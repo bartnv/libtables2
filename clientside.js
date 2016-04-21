@@ -1,0 +1,1136 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Libtables2: framework for building web-applications on relational databases *
+ * Copyright (C) 2016  Bart Noordervliet, MMVI                                 *
+ *                                                                             *
+ * This program is free software: you can redistribute it and/or modify        *
+ * it under the terms of the GNU Affero General Public License as              *
+ * published by the Free Software Foundation, either version 3 of the          *
+ * License, or (at your option) any later version.                             *
+ *                                                                             *
+ * This program is distributed in the hope that it will be useful,             *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of              *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               *
+ * GNU Affero General Public License for more details.                         *
+ *                                                                             *
+ * You should have received a copy of the GNU Affero General Public License    *
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.       *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Notes on variable names:                                        *
+ *                                                                 *
+ *   r     = table row iterator                                    *
+ *   c     = table column iterator                                 *
+ *   i, j  = generic iterators                                     *
+ *   attr  = jQuery object built from HTML5 "data-" attributes     *
+ *   table, thead, tbody, tfoot, row, cell                         *
+ *         = jQuery object wrapping the corresponding DOM element  *
+ *   data  = object parsed from server JSON response               *
+ *   key   = unique identifier string for the table                *
+ *             composed of <block>:<tag>_<params>                  *
+ *             where the _<params> part is only present            *
+ *             if the table has been passed parameters             *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var tables = {};
+
+function tr(str) {
+  switch (navigator.language) {
+    case "nl":
+      switch (str) {
+        case "Totals": return "Totalen";
+        case "Page": return "Pagina";
+        case "of": return "van";
+        case "Error": return "Fout";
+        case "Insert": return "Toevoegen";
+        default: return str;
+      }
+    default: return str;
+  }
+};
+
+function userError(msg) {
+  alert(tr('Error') + ': ' + msg);
+}
+function appError(msg, context) {
+  console.log('Error: ' + msg);
+  if (context) console.log('Context:', context);
+}
+
+$(document).ready(function() {
+  $('.lt-div:visible').each(function() {
+    var attr = $(this).data();
+    loadTable($(this), attr);
+  });
+  window.setInterval(refreshAll, 30000);
+});
+
+function refreshAll() {
+  $('.lt-table:visible').each(function() {
+    var table = $(this);
+    var key = $(this).attr('id');
+    if (!table.length || !tables[key]) return;
+    refreshTable(table, key);
+  });
+}
+
+function loadOrRefreshCollection(coll, sub) {
+  coll.each(function() {
+    var attr = $(this).data();
+    var key = attr.source + (attr.params?'_' + attr.params:'');
+    if (!tables[key] || !document.getElementById(key)) loadTable($(this), attr, sub); // Using getElementById() because jQuery gets confused by the colon in the id
+    else refreshTable($(this).find('table'), key);
+  });
+}
+
+function showTableInDialog(table) {
+  if (!table.dialog) {
+    appError('jQuery UI Dialog widget not loaded', table);
+    return;
+  }
+  table.find('thead > tr:first').hide();
+  table.dialog({
+    title: table.find('.lt-title').text(),
+    width: table.outerWidth()+30,
+    close: function(evt, ui) {
+      $(this).dialog("destroy");
+      $(this).find('thead > tr:first').show();
+    }
+  });
+}
+
+function changeParams(div, params) {
+  var attr = div.data();
+  if (typeof params === 'string') {
+    if (params === attr.params) return;
+    attr.params = params;
+  }
+  else {
+    var str = btoa(JSON.stringify(params));
+    if (str === attr.params) return;
+    attr.params = str;
+  }
+  var key = attr.source + (attr.params?'_' + attr.params:'');
+  if (tables[key]) delete tables[key];
+  div.html("Loading...");
+  loadTable(div, attr);
+}
+
+function loadTable(div, attr, sub) {
+  if (attr.params === "-") return;
+  var key = attr.source + (attr.params?'_' + attr.params:'');
+  var table = $('<table id="' + key + '" class="lt-table"/>');
+
+  if (tables[key]) {
+    if (tables[key].doingajax) {
+      console.log('Skipping load for', key, '(already in progress)');
+      return;
+    }
+    tables[key].table = table;
+    console.log('Rendering table ' + key + ' from existing data');
+    renderTable(table, tables[key].data);
+    div.empty().append(table);
+    refreshTable(table, key);
+  }
+  else if (attr.embedded) {
+    tables[key] = {};
+    tables[key].table = table;
+    var json = atob(attr.embedded.replace(/\n/g, ''));
+    var data = JSON.parse(json);
+    tables[key].data = data;
+    renderTable(table, data);
+    div.empty().append(table);
+    div.removeAttr('embedded');
+  }
+  else {
+    tables[key] = {};
+    tables[key].table = table;
+    tables[key].start = Date.now();
+    tables[key].doingajax = true;
+    $.ajax({
+      dataType: "json",
+      url: "data.php",
+      data: "mode=gettable&src=" + attr.source + (attr.params ? "&params=" + attr.params : ""),
+      context: div,
+      success: function(data) {
+        if (data.error) {
+          this.empty().append('<p>Error from server while loading table. Technical information is available in the console log.</p>');
+          appError(data.error, this);
+        }
+        else {
+          data.downloadtime = Date.now() - tables[key].start - data.querytime;
+          tables[key].data = data;
+          renderTable(table, data, sub);
+          this.empty().append(table);
+          if (data.options.callbacks && data.options.callbacks.load) window.setTimeout(data.options.callbacks.load.replace('#src', this.data('source')), 0);
+        }
+        tables[key].doingajax = false;
+      },
+      error: function(xhr, status) { this.empty().append('Error while loading table ' + this.data('source') + ' (' + status + ' from server)'); }
+    });
+  }
+}
+
+function refreshTable(table, key) {
+  if (tables[key].doingajax) {
+    console.log('Skipping refresh on ' + key + ' (already in progress)');
+    return;
+  }
+  tables[key].start = Date.now();
+  tables[key].doingajax = true;
+  $.ajax({
+    dataType: "json",
+    url: "data.php",
+    data: "mode=refreshtable&src=" + tables[key].data.block + ':' + tables[key].data.tag + "&crc=" + tables[key].data.crc + (tables[key].data.params ? "&params=" + tables[key].data.params : ""),
+    context: table,
+    success: function(data) {
+      if (data.error) appError(data.error, this);
+      else if (data.nochange);
+      else {
+        tables[key].data.downloadtime = Date.now() - tables[key].start - data.querytime;
+        updateTable(this.find('tbody'), tables[key].data, data.rows);
+        tables[key].data.rows = data.rows;
+        tables[key].data.crc = data.crc;
+        var options = tables[key].data.options;
+        if (options.sum) updateSums(this.find('tfoot'), tables[key].data);
+        if (options.callbacks && options.callbacks.change) window.setTimeout(options.callbacks.change.replace('#src', this.parent().data('source')), 0);
+      }
+      tables[key].doingajax = false;
+    }
+  });
+}
+
+function sortOnColumn(a, b, index) {
+  if (a[index] === null) return -1;
+  if (a[index] === b[index]) return 0;
+  else if (a[index] < b[index]) return -1;
+  else return 1;
+}
+
+function sortBy(tableId, el) {
+  var table = tables[tableId].table;
+  var data = tables[tableId].data;
+  if (data.options.sortby == $(el).html()) {
+    if (data.options.sortdir == 'ascending') data.options.sortdir = 'descending';
+    else data.options.sortdir = 'ascending';
+  }
+  else {
+    data.options.sortby = $(el).html();
+    data.options.sortdir = 'ascending';
+  }
+  console.log('Sort table ' + tableId + ' on column ' + $(el).html() + ' ' + data.options.sortdir);
+  table.empty();
+  renderTable(table, data);
+}
+
+function goPage(tableId, which) {
+  var table = tables[tableId].table;
+  var data = tables[tableId].data;
+  var old = data.options.page;
+  if (isNaN(which)) {
+    if (which == 'prev') data.options.page -= 1;
+    else if (which == 'next') data.options.page += 1;
+  }
+  else data.options.page = which;
+  if ((data.options.page <= 0) || ((data.options.page-1) * data.options.limit > data.rows.length)) {
+    data.options.page = old;
+    return;
+  }
+  table.empty();
+  renderTable(table, data);
+}
+
+function replaceHashes(str, row) {
+  if (str.indexOf('#') >= 0) {
+    str = str.replace(/#id/g, row[0]);
+    for (var c = row.length-1; c; c--) {
+      if (str.indexOf('#'+c) >= 0) str = str.replace(new RegExp('#'+c, 'g'), row[c] === null ? '' : row[c]);
+    }
+  }
+  return str;
+}
+
+function renderTable(table, data, sub) {
+  var start = Date.now();
+  if (data.options.format) renderTableFormat(table, data, sub);
+  else renderTableGrid(table, data, sub);
+  console.log('Load timings for ' + (sub?'sub':'') + 'table ' + data.tag + ': sql ' + data.querytime + ' download ' + (data.downloadtime?data.downloadtime:'n/a') + ' render ' + (Date.now()-start) + ' ms');
+}
+
+function renderTableFormat(table, data, sub) {
+  if (data.options.classes && data.options.classes.table) table.addClass(data.options.classes.table);
+  var headstr = '<thead><tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
+  if (data.options.popout && (data.options.popout.type == 'floating-div'))
+    headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"") + '" onclick="showTableInDialog($(this).closest(\'table\'));">';
+  headstr += '</th></tr></thead>';
+  var thead = $(headstr);
+
+  if (!data.options.page) data.options.page = 1;
+  var offset = data.options.page - 1;
+
+  if (data.rows.length > 1) thead.append('<tr class="lt-limit"><th colspan="' + data.headers.length + '"><a href="javascript:goPage(\'' + table.attr('id') + '\', \'prev\')">&lt;</a> ' + tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + data.rows.length + ' <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')">&gt;</a></th></tr>');
+
+  if (data.options.pagetitle) document.title = replaceHashes(data.options.pagetitle, data.rows[offset]);
+
+  var tbody = $('<tbody/>');
+  if (typeof(data.options.format) == 'string') var fmt = data.options.format.split('\n')
+  else var fmt = data.options.format;
+  var headcount = 0;
+  var colcount = 0;
+  var colspan;
+  var rowspan = 0;
+
+  for (var r = 0; fmt[r]; r++) {
+    var row = $('<tr class="lt-row" data-rowid="' + data.rows[offset][0] + '"/>');
+    for (var c = 0; fmt[r][c]; c++) {
+      if (fmt[r][c] == 'H') {
+        if (headcount++ >= data.headers.length) {
+          appError('Too many headers specified in format string for ' + data.block + ':' + data.tag, data.options.format);
+          break;
+        }
+        for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
+        for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
+        row.append('<td class="lt-head"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>' + data.headers[headcount] + '</td>');
+      }
+      else if (fmt[r][c] == 'C') {
+        if (colcount++ >= data.rows[offset].length) {
+          appError('Too many columns specified in format string for ' + data.block + ':' + data.tag, data.options.format);
+          break;
+        }
+        for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
+        for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
+        var cell = $(renderCell(data.options, data.rows[offset], colcount));
+        if (colspan > 1) cell.attr('colspan', colspan);
+        if (rowspan > 1) cell.attr('rowspan', rowspan);
+        row.append(cell);
+      }
+      else if ((fmt[r][c] == 'A') && data.options.appendcell) {
+        for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
+        for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
+        row.append('<td class="lt-cell"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>' + replaceHashes(data.options.appendcell, data.rows[offset]) + '</td>');
+      }
+      else if (fmt[r][c] == 'x') row.append('<td class="lt-unused"/>');
+    }
+    tbody.append(row);
+  }
+
+  table.append(thead, tbody);
+  table.parent().data('crc', data.crc);
+
+  if (data.options.subtables) loadOrRefreshCollection(tbody.find('.lt-div'), true);
+}
+
+function renderTableGrid(table, data, sub) {
+  var pagetitle;
+  if (data.options.classes && data.options.classes.table) table.addClass(data.options.classes.table);
+  var headstr = '<thead>';
+  if (!sub) {
+    headstr += '<tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
+    if (data.options.popout && (data.options.popout.type == 'floating-div')) headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"") + '" onclick="showTableInDialog($(this).closest(\'table\'));">';
+    headstr += '</th></tr>';
+  }
+  headstr += '</thead>';
+  var thead = $(headstr);
+
+  if (data.options.limit && (data.rows.length > data.options.limit)) {
+    if (!data.options.page) data.options.page = 1;
+    thead.append('<tr class="lt-limit"><th colspan="' + data.headers.length + '"><a href="javascript:goPage(\'' + table.attr('id') + '\', \'prev\')">&lt;</a> ' + tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + Math.ceil(data.rows.length/data.options.limit) + ' <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')">&gt;</a></th></tr>');
+  }
+  if (data.rows.length) {
+    var row = $('<tr class="lt-row"/>');
+    for (var c = 0; c < data.headers.length; c++) { // Loop over the columns for the headers
+      if (data.options.sortby) {
+        if (data.options.sortby == data.headers[c]) {
+          if (data.options.sortdir == 'ascending') data.rows.sort(function(a, b) { return sortOnColumn(a, b, c); });
+          else data.rows.sort(function(a, b) { return sortOnColumn(b, a, c); });
+        }
+      }
+      if (c) {
+        if (data.options.mouseover && data.options.mouseover['#'+c]) continue;
+        var onclick = "";
+        var classes = [ "lt-head" ];
+        if (data.options.sortable) {
+          if (typeof(data.options.sortable) == 'boolean') {
+            onclick = "sortBy('" + table.attr('id') + "', this);";
+            if (data.options.sortby == data.headers[c]) {
+              if (data.options.sortdir == 'ascending') classes.push('lt-sorted-asc');
+              else classes.push('lt-sorted-desc');
+            }
+            else classes.push('lt-sort');
+          }
+        }
+        row.append('<td class="' + classes.join(' ') + '" onclick="' + onclick + '">' + data.headers[c] + '</td>');
+      }
+    }
+    thead.append(row);
+  }
+
+  var tbody = $('<tbody/>');
+  if (data.options.page) var offset = data.options.limit * (data.options.page - 1);
+  else var offset = 0;
+  for (var r = offset; r < data.rows.length; r++) { // Main loop over the data rows
+    if ((r == offset) && data.options.pagetitle) document.title = replaceHashes(data.options.pagetitle, data.rows[r]);
+    if (data.options.limit && (offset+data.options.limit == r)) break;
+    row = $('<tr class="lt-row" data-rowid="'+data.rows[r][0]+'"/>');
+    for (var c = 1; c < data.rows[r].length; c++) { // Loop over each column
+      if (data.options.mouseover && data.options.mouseover['#'+c]) continue;
+      row.append(renderCell(data.options, data.rows[r], c));
+    }
+    if (data.options.appendcell) row.append('<td class="lt-cell">' + replaceHashes(data.options.appendcell, data.rows[r]) + '</td>');
+    if (data.options.delete) {
+      if (data.options.delete.text) var value = data.options.delete.text;
+      else var value = '✖';
+      row.append('<td class="lt-cell"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
+    }
+    tbody.append(row);
+  }
+
+  var tfoot = $('<tfoot/>');
+  if (data.options.sum) calcSums(tfoot, data);
+
+  if (data.options.insert && (typeof(data.options.insert) == 'object')) {
+    if (data.options.insert.include == 'edit') var fields = jQuery.extend({}, data.options.edit, data.options.insert);
+    else var fields = data.options.insert;
+
+    row = $('<tr class="lt-row"/>');
+    for (var c = 1; ; c++) {
+      if (data.options.mouseover && data.options.mouseover['#'+c]) continue;
+      if (!fields['#'+c]) {
+        if (c == data.headers.length) break;
+        str = '<td class="lt-head">' + data.headers[c] + '</td>';
+      }
+      else {
+        if ((typeof(fields['#'+c]) == 'object') && fields['#'+c].label) str = '<td class="lt-head">' + fields['#'+c].label + '</td>';
+        else str = '<td class="lt-head">' + data.headers[c] + '</td>';
+      }
+      row.append(str);
+    }
+    tfoot.append(row);
+
+    row = $('<tr class="lt-row"/>');
+    for (var c = 1; ; c++) {
+      if (!fields['#'+c]) {
+        if (c >= data.headers.length-1) break;
+        else {
+          row.append('<td/>');
+          continue;
+        }
+      }
+      var cell = $('<td class="lt-cell"></td>');
+      if (typeof(fields['#'+c]) == 'string') var input = $('<input type="text" name="' + fields['#'+c] + '">');
+      else if (Object.keys(fields['#'+c]).length == 1) var input = $('<input type="text" name="' + fields['#'+c][0] + '">');
+      else if (fields['#'+c].type == 'multiline') var input = $('<textarea class="lt_insert" name="' + fields['#'+c].target + '" oninput="$(this).textareaAutoSize();"/>');
+      else if (fields['#'+c].type == 'checkbox') var input = $('<input type="checkbox" name="' + fields['#'+c].target + '">');
+      else if (fields['#'+c].type == 'password') var input = $('<input type="password" name="' + fields['#'+c].target + '">');
+      else {
+        if (fields['#'+c].target) var input = $('<select name="' + fields['#'+c].target + '"/>');
+        else var input = $('<select name="' + fields['#'+c][0] + '"/>');
+        $.ajax({
+          method: 'get',
+          url: 'data.php',
+          dataType: 'json',
+          context: input,
+          data: { mode: 'selectbox', src: data.block + ':' + data.tag, col: c },
+          success: function(data) {
+            if (data.error) {
+              this.parent().css({ backgroundColor: '#ffa0a0' });
+              appError(data.error, cell)
+            }
+            else {
+              var items = data.items;
+              if (data.null) this.append('<option value=""></option>');
+              for (var i = 0; items[i]; i++) this.append('<option value="' + items[i][0] + '">' + items[i][1] + '</option>');
+              this.prop('selectedIndex', -1); // This selects nothing, rather than the first option
+            }
+          }
+        });
+      }
+      cell.append(input);
+      row.append(cell);
+    }
+    row.append('<td class="lt-cell"><input type="button" value="' + tr('Insert') + '" onclick="doInsert(this)"></td>');
+    tfoot.append(row);
+  }
+
+  if (data.options.export) {
+    if (data.options.export.xlsx) {
+      tfoot.append('<tr><td colspan="' + data.headers.length + '">Export as: <a href="data.php?mode=excelexport&src=' + data.block + ':' + data.tag + '">Excel</a></td></tr>');
+    }
+  }
+
+  table.append(thead, tbody, tfoot);
+  table.parent().data('crc', data.crc);
+}
+
+function renderCell(options, row, c) {
+  var classes = [ "lt-cell" ];
+  if (options.format) classes.push('lt-data');
+  if (options.class && options.class['#'+c]) classes.push(options.class['#'+c]);
+  if (options.edit && options.edit['#'+c]) {
+    if (typeof(options.edit['#'+c]) == 'string') var onclick = ' onclick="doEdit(this)"';
+    else if (typeof(options.edit['#'+c]) == 'object') {
+      if (options.edit['#'+c].query || (!options.edit['#'+c].target && (options.edit['#'+c].length == 2))) var onclick = ' onclick="doEditSelect(this)"';
+      else var onclick = ' onclick="doEdit(this)"';
+    }
+    classes.push('lt-edit');
+  }
+  else var onclick = "";
+  if (options.mouseover && options.mouseover['#'+(c+1)] && row[c+1]) {
+    var mouseover = ' title="' + row[c+1] + '"';
+  }
+  else var mouseover = '';
+  if (options.format) var colid = ' data-colid="' + c + '"';
+  else var colid = '';
+  if (options.style && options.style['#'+c]) var style = ' style="' + replaceHashes(options.style['#'+c], row) + '"';
+  else var style = '';
+
+  if (options.subtables && (options.subtables['#'+c])) {
+    if (typeof(row[c]) == 'string') {
+      if (row[c].startswith('[')) var params = btoa(row[c]);
+      else var params = btoa('[ "' + row[c] + '" ]');
+    }
+    else if (typeof(row[c]) == 'number') var params = btoa('[ ' + row[c] + ' ]');
+    else var params = '';
+    var content = '<div class="lt-div" data-source="' + options.subtables['#'+c] + '" data-params="' + params + '">Loading subtable ' + options.subtables['#'+c] + '</div>';
+  }
+  else var content = row[c] === null ? '' : row[c];
+  return '<td class="' + classes.join(' ') + '"' + colid + style + onclick + mouseover + '>' + content + '</td>';
+}
+
+function calcSums(tfoot, data, update) {
+  var avgs = [];
+//  if ((typeof(data.options.sum) === 'string') && (data.options.sum.indexOf('#') == 0)) {
+//    var col = parseInt(data.options.sum.substring(1));
+//    if (!isNaN(col)) sums.push(col);
+//  }
+
+  var labeldone = 0;
+  var row = $('<tr class="lt-sums">');
+  for (var c = 1; c < data.headers.length; c++) {
+    var classes = [ "lt-cell", "lt-sum" ];
+    if (data.options.class && data.options.class['#'+c]) classes.push(data.options.class['#'+c]);
+    if (data.options.sum['#'+c]) {
+      var sum = 0;
+      for (var r = 0; r < data.rows.length; r++) sum += data.rows[r][c];
+      row.append('<td class="' + classes.join(' ') + '">' + sum + '</td>');
+    }
+    else if (!labeldone) {
+      row.append('<td class="' + classes.join(' ') + '">' + tr('Totals') + '</td>');
+      labeldone = 1;
+    }
+    else row.append('<td/>');
+  }
+  tfoot.append(row);
+}
+function updateSums(tfoot, data) {
+  var row = tfoot.find('tr.lt-sums');
+  for (var c = 1; c < data.headers.length; c++) {
+    if (data.options.sum['#'+c]) {
+      var sum = 0;
+      for (var r = 0; r < data.rows.length; r++) sum += data.rows[r][c];
+      var oldsum = row.children().eq(c-1).html();
+      if (sum != oldsum) {
+        var cell = row.children().eq(c-1);
+        cell.html(sum);
+        cell.css('background-color', 'green');
+        setTimeout(function(cell) { cell.css('background-color', 'rgba(0,255,0,0.25)'); }, 2000, cell);
+      }
+    }
+  }
+}
+
+function updateTable(tbody, data, newrows) {
+  var start = Date.now();
+  var oldrows = data.rows;
+  var newrows = newrows.slice(); // Copy the array so that we can filter out the existing rows
+
+  for (var i = 0, found; i < oldrows.length; i++) {
+    found = 0;
+    for (var j = 0; j < newrows.length; j++) {
+      if (oldrows[i][0] == newrows[j][0]) { // Row remains
+        if (!data.options.format || (i+1 == data.options.page)) updateRow(data.options, tbody, oldrows[i], newrows[j]);
+        newrows.remove(j);
+        found = 1;
+        break;
+      }
+    }
+    if (!found) { // Row deleted
+      var row = tbody.children('[data-rowid="' + oldrows[i][0] + '"]');
+      if (row.length) {
+        if (data.options.format) {
+          row.css('background-color', 'red');
+        }
+        else {
+          row.css('background-color', 'red');
+          row.animate({ opacity: 0 }, 2000, 'swing', function() {
+            $(this).css('height', $(this).height());
+            $(this).empty();
+            $(this).animate({ height: 0 }, 1000, 'linear', function() { $(this).remove(); });
+          });
+        }
+      }
+    }
+  }
+  if (data.options.format) {
+    // Update page-number here
+  }
+  else {
+    for (var i = 0; i < newrows.length; i++) { // Row added
+      var row = $('<tr class="lt-row" data-rowid="'+newrows[i][0]+'"/>');
+      for (c = 1; c < newrows[i].length; c++) {
+        if (data.options.mouseover && data.options.mouseover['#'+(c)]) continue;
+        row.append($(renderCell(data.options, newrows[i], c)));
+      }
+      if (data.options.appendcell) row.append('<td class="lt-cell">' + replaceHashes(data.options.appendcell, newrows[i]) + '</td>');
+      if (data.options.delete.text) var value = data.options.delete.text;
+      else var value = '✖';
+      if (data.options.delete) row.append('<td class="lt-cell"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
+      row.css({ backgroundColor: 'green' });
+      tbody.append(row);
+      setTimeout(function(row) { row.css({ backgroundColor: 'transparent' }); }, 1000, row);
+    }
+  }
+  console.log('Refresh timings for table ' + data.tag + ': sql ' + data.querytime + ' download ' + data.downloadtime + ' render ' + (Date.now()-start) + ' ms');
+}
+function updateRow(options, tbody, oldrow, newrow) {
+  var offset = 1;
+  for (var c = 1; c < oldrow.length; c++) {
+    var cell = null;
+    if (options.mouseover && options.mouseover['#'+c]) {
+      offset++;
+      if (oldrow[c] != newrow[c]) {
+        if (options.format) var cell = tbody.find('[data-colid="' + oldrow[0] + '"]');
+        else var cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').children().eq(c-offset);
+        if (cell) {
+          cell.attr('title', newrow[c]?newrow[c]:(newrow[c]===false?'false':''));
+          cell.css('background-color', 'green');
+          setTimeout(function(cell) { cell.css('background-color', 'rgba(0,255,0,0.25)'); }, 2000, cell);
+        }
+      }
+    }
+    else if (oldrow[c] != newrow[c]) {
+      if (options.format) cell = tbody.find('[data-colid="' + c + '"]');
+      else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').children().eq(c-offset);
+      if (cell) {
+        cell.html(newrow[c]?newrow[c]:(newrow[c]===false?'false':''));
+        cell.css('background-color', 'green');
+        setTimeout(function(cell) { cell.css('background-color', 'rgba(0,255,0,0.25)'); }, 2000, cell);
+      }
+      else appError('Updated cell not found', tbody);
+    }
+
+    if (options.style && options.style['#'+c]) {
+      if (!cell) {
+        if (options.format) cell = tbody.find('[data-colid="' + c + '"]');
+        else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').children().eq(c-offset);
+      }
+      if (cell) cell.attr('style', replaceHashes(options.style['#'+c], newrow));
+    }
+  }
+}
+
+function doEdit(cell) {
+  if ($('#editbox').length) return;
+  cell = $(cell);
+  cell.addClass('lt-editing');
+  var content = cell.html();
+  var data = tables[cell.closest('table').attr('id')].data;
+  if (data.options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
+  else var c = cell.index()+1;
+  if ((typeof(data.options.edit['#'+c]) == 'object') && data.options.edit['#'+c].type == 'multiline') {
+    edit = $('<textarea id="editbox" name="input">');
+    edit.html(content);
+    edit.css({ width: cell.width() + 'px', height: cell.height() + 'px' });
+  }
+  else if ((typeof(data.options.edit['#'+c]) == 'object') && data.options.edit['#'+c].type == 'checkbox') {
+    var truevalue;
+    edit = $('<input type="checkbox" id="editbox" name="input">');
+    if (data.options.edit['#'+c].truevalue) truevalue = data.options.edit['#'+c].truevalue;
+    else truevalue = 'true';
+    if (content === truevalue) edit.prop('checked', true);
+  }
+  else if ((typeof(data.options.edit['#'+c]) == 'object') && data.options.edit['#'+c].type == 'password') {
+    edit = $('<input type="password" id="editbox" name="input">');
+  }
+  else {
+    edit = $('<input type="text" id="editbox" name="input">');
+    edit.val(content);
+    edit.css({ width: cell.width() + 'px', maxHeight: cell.height() + 'px' });
+  }
+  cell.empty().append(edit);
+  if (edit.prop('nodeName') == 'TEXTAREA') edit.textareaAutoSize();
+  edit.select();
+  edit.on('keydown', cell, function(evt){
+    var cell = evt.data;
+    var edit = $(this);
+    if (edit.prop('nodeName') == 'TEXTAREA') edit.textareaAutoSize();
+    if ((evt.which != 9) && (evt.which != 13) && (evt.which != 27) && (evt.which != 38) && (evt.which != 40)) return;
+    if ((edit.prop('nodeName') == 'TEXTAREA') && ((evt.which == 13) || (evt.which == 38) || (evt.which == 40))) return;
+
+    if (evt.which == 27) cell.html(content); // Escape
+    else checkEdit(cell, edit, content);
+
+    if (evt.which == 38) { // Arrow up
+      cell.parent().prev().children().eq(cell.index()).trigger('click');
+    }
+    else if (evt.which == 40) { // Arrow down
+      cell.parent().next().children().eq(cell.index()).trigger('click');
+    }
+    else if (evt.which == 9) { // Tab
+      if (evt.shiftKey) cell.prev().trigger('click');
+      else findNextEdit(cell, evt);
+    }
+    cell.removeClass('lt-editing');
+    return false;
+  });
+  edit.on('blur', cell, function(evt){
+    checkEdit(evt.data, $(this), content);
+    evt.data.removeClass('lt-editing');
+  });
+  if ((typeof(data.options.edit['#'+c]) == 'object') && data.options.edit['#'+c].type == 'color') {
+    $(cell).colpick({
+      color: content,
+      layout: 'hex',
+      onSubmit: function(hsb, hex, rgb, el) {
+        edit.val('#' + hex);
+        checkEdit(cell, edit, content);
+        $(cell).colpickHide();
+      }
+    }).colpickShow();
+    return;
+  }
+  else edit.focus();
+}
+
+function doEditSelect(cell) {
+  if ($('#editbox').length) return;
+  cell = $(cell);
+  cell.addClass('lt-editing');
+  var key = cell.closest('table').attr('id');
+  var content = cell.html();
+  if (tables[key].data.options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
+  else var c = cell.index()+1;
+  $.ajax({
+    method: 'get',
+    url: 'data.php',
+    dataType: 'json',
+    context: cell,
+    data: { mode: 'selectbox', src: tables[key].data.block + ':' + tables[key].data.tag, col: c },
+    success: function(data) {
+      if (data.error) appError(data.error, cell)
+      else {
+        var oldvalue = null;
+        this.css({ backgroundColor: 'transparent' });
+        var items = data.items;
+        var selectbox = $('<select id="editbox"></select>');
+        selectbox.css({ width: this.width() + 'px', maxHeight: this.height() + 'px' });
+        var selected = 0
+        if (data.null) selectbox.append('<option value=""></option>');
+        for (var i = 0; items[i]; i++) {
+          if (items[i][1] == content) {
+             selectbox.append('<option value="' + items[i][0] + '" selected>' + items[i][1] + '</option>');
+             oldvalue = String(items[i][0]);
+             selected = 1;
+          }
+          else selectbox.append('<option value="' + items[i][0] + '">' + items[i][1] + '</option>');
+        }
+        this.empty().append(selectbox);
+        if (!selected) selectbox.prop('selectedIndex', -1);
+        selectbox.focus();
+        selectbox.on('keydown', this, function(evt) {
+          var cell = evt.data;
+          if (evt.which == 27) cell.html(content); // Escape
+          else if (evt.which == 13) checkEdit(cell, selectbox, oldvalue); // Enter
+          else if (evt.keyCode == 9) { // Tab
+            checkEdit(cell, selectbox, oldvalue);
+            if (evt.shiftKey) cell.prev().trigger('click');
+            else findNextEdit(cell, evt);
+          }
+          else {
+            return true; // Allow default action (for instance list searching)
+//            if (selectbox.data('filter')) {
+//              if (evt.which == 8) selectbox.data('filter', selectbox.data('filter').substring(0, selectbox.data('filter').length-1));
+//              else selectbox.data('filter', selectbox.data('filter') + String.fromCharCode(evt.keyCode));
+//              console.log(selectbox.data('filter'));
+//              selectbox.find('option').each(function() {
+//                var option = $(this);
+//                var regex = new RegExp(option.parent().data('filter'),"i")
+//                if (option.text().search(regex) != -1) option.removeProp('hidden');
+//                else option.prop('hidden', 'hidden');
+//              });
+//            }
+//            else selectbox.data('filter', String.fromCharCode(evt.keyCode));
+          }
+          cell.removeClass('lt-editing');
+          return false;
+        });
+        selectbox.on('blur', this, function(evt) {
+          checkEdit(evt.data, $(this), oldvalue);
+          evt.data.removeClass('lt-editing');
+        });
+      }
+    }
+  });
+  cell.css({ backgroundColor: '#ffa0a0' });
+}
+
+function checkEdit(cell, edit, oldvalue) {
+  var newvalue = edit.val();
+  var key = cell.closest('table').attr('id');
+  var options = tables[key].data.options;
+  if (options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
+  else var c = cell.index()+1;
+  if (options.edit['#'+c].type == 'checkbox') {
+    if (edit.prop('checked')) {
+      if (options.edit['#'+c].truevalue) newvalue = options.edit['#'+c].truevalue;
+      else newvalue = 'true';
+    }
+    else {
+      if (options.edit['#'+c].falsevalue) newvalue = options.edit['#'+c].falsevalue
+      else newvalue = 'false';
+    }
+  }
+
+  if (newvalue !== oldvalue) {
+    var data = { mode: 'inlineedit', src: tables[key].data.block + ':' + tables[key].data.tag, col: c, row: cell.parent().data('rowid'), val: newvalue };
+    if (tables[key].data.params) data['params'] = tables[key].data.params;
+    if (options.sql) data['sql'] = options.sql;
+    $.ajax({
+      method: 'post',
+      url: 'data.php',
+      dataType: 'json',
+      context: cell,
+      data: data,
+      success: function(data) {
+        if (data.error) userError(data.error);
+        else {
+          if (!options.style || !options.style['#'+c]) this.css({ backgroundColor: 'transparent' });
+          var rows = tables[key].data.rows;
+          for (var r = 0; r < rows.length; r++) {
+            if (rows[r][0] == this.parent().data('rowid')) break;
+          }
+          if (r == rows.length) console.log('Row not found in table data');
+          else {
+//            var options = tables[key].data.options; // var options can be used from the closure
+            if ((data.input == 'true') || (data.input == options.edit['#'+c].truevalue)) data.input = true;
+            else if ((data.input == 'false') || (data.input == options.edit['#'+c].falsevalue)) data.input = false;
+            if ((data.input === '') && (data.row[c] === null)) data.input = null;
+
+            if ((typeof(options.edit['#'+c]) == 'object') && (options.edit['#'+c].query || (!options.edit['#'+c].target && (options.edit['#'+c].length == 2)))) rows[r][c] = data.row[c];
+            else rows[r][c] = data.input;
+            updateRow(options, this.closest('tbody'), rows[r], data.row);
+            rows[r] = data.row;
+            if (options.callbacks && options.callbacks.change) window.setTimeout(options.callbacks.change, 0);
+          }
+        }
+      }
+    });
+    if (edit.prop('nodeName') == 'SELECT') cell.html(edit.find('option:selected').text());
+    else if (options.edit['#'+c].type == 'password') cell.empty();
+    else cell.html(newvalue);
+    if (!options.style || !options.style['#'+c]) cell.css({ backgroundColor: '#ffa0a0' });
+  }
+  else if (edit.prop('nodeName') == 'SELECT') cell.html(edit.find('option[value="' + oldvalue + '"]').text());
+  else cell.html(oldvalue);
+}
+
+function doInsert(el) {
+  el = $(el);
+  row = el.parent().parent();
+  postdata = row.find('input,select,textarea').not(el).map(function() {
+    input = $(this);
+    if (input.prop('type') == 'checkbox') value = input.prop('checked');
+    else value = input.val();
+    if (value === null) value = '';
+    return input.prop('name').replace('.', ':') + '=' + encodeURIComponent(value);
+  }).get().join('&');
+  table = tables[row.closest('table').attr('id')].data;
+  if (table.options.insert.hidden) {
+    if (typeof(table.options.insert.hidden[0]) == 'object') { // Multiple hidden fields (array of arrays)
+    }
+    else {
+      if (!table.options.insert.hidden['target'] || !table.options.insert.hidden['value']) appError('No target or value defined in insert hidden');
+      value = String(table.options.insert.hidden['value']);
+      if (value.indexOf('#') >= 0) {
+        if (row.closest('.lt-div').data('params')) {
+          params = JSON.parse(atob(row.closest('.lt-div').data('params')));
+          for (var i = 0; params[i]; i++) {
+            value = value.replace('#param' + (i+1), params[i]);
+          }
+          postdata = 'params=' + row.closest('.lt-div').data('params') + '&' + postdata;
+        }
+      }
+      postdata += '&' + table.options.insert.hidden['target'].replace('.', ':') + '=' + value;
+    }
+  }
+  $.ajax({
+    dataType: 'json',
+    url: 'data.php',
+    method: 'post',
+    context: row,
+    data: 'mode=insertrow&src=' + table.block + ':' + table.tag + '&' + postdata,
+    success: function(data) {
+      if (data.error) userError(data.error);
+      else {
+        this.find('input,select,textarea').each(function() {
+          var el = $(this);
+          if (el.prop('type') == 'button');
+          else if (el.prop('type') == 'checkbox') el.prop('checked', false);
+          else if (el.prop('nodeName') == 'select') el.prop('selectedIndex', -1);
+          else el.val('');
+        });
+        var table = this.closest('table');
+        updateTable(table.find('tbody'), tables[table.attr('id')].data, data.rows);
+        tables[table.attr('id')].data.rows = data.rows;
+        tables[table.attr('id')].data.crc = data.crc;
+        if (tables[table.attr('id')].data.options.sum) updateSums(table.find('tfoot'), tables[table.attr('id')].data);
+      }
+    }
+  });
+}
+
+function doDelete(el) {
+  el = $(el);
+  var rowid = el.closest('tr').data('rowid');
+  var table = tables[el.closest('table').attr('id')].data;
+  if (table.options.delete.confirm) {
+    for (var r = 0; r < table.rows.length; r++) {
+      if (table.rows[r][0] == rowid) break;
+    }
+    if (r == table.rows.length) {
+      appError('Row to be deleted not found', table.rows);
+      return;
+    }
+    if (!confirm(replaceHashes(table.options.delete.confirm, table.rows[r]))) return;
+  }
+  $.ajax({
+    dataType: 'json',
+    url: 'data.php',
+    method: 'post',
+    context: el.closest('tbody'),
+    data: 'mode=deleterow&src=' + table.block + ':' + table.tag + '&id=' + rowid,
+    success: function(data) {
+      if (data.error) userError(data.error);
+      else {
+        var newrows = table.rows.slice();
+        for (var r = 0; r < newrows.length; r++) {
+          if (newrows[r][0] == rowid) break;
+        }
+        if (r == newrows.length) {
+          appError('Deleted row not found', newrows);
+          return;
+        }
+        newrows.remove(r);
+        updateTable(this, table, newrows);
+        if (table.options.trigger) {
+          if (table.options.trigger.indexOf(':') > 0) var triggered = document.getElementById(table.options.trigger);
+          else var triggered = document.getElementById(table.block + ':' + table.options.trigger);
+          loadOrRefreshCollection($(triggered).parent());
+        }
+      }
+    }
+  });
+}
+
+function findNextEdit(el, evt) {
+  while (el.next().length > 0) {
+    if (el.next().hasClass('lt-edit')) {
+      el.next().trigger('click');
+//      el.next().scrollIntoViewLazy();
+      return;
+    }
+    if (el.next().hasClass('form')) {
+      el.next().children(':first').focus();
+//      el.next().scrollIntoViewLazy();
+      el.removeClass('lt-editing');
+      return;
+    }
+    el = el.next();
+  }
+  el.removeClass('lt-editing');
+}
+
+var sqlregex = /^\s*select\s+(\*|([a-z_]+\.)?[a-z_]+|count\s*\(\*\)|case\s+when\s+([a-z_]+\.)?[a-z_]+\s+(=|<=?|>=?|<>)\s+(\d+|'[^']+'|(true|false))\s+then\s+(\d+|'[^']+'|(true|false))\s+else\s+(\d+|'[^']+'|(true|false))\s+end)(\s+as\s+("[a-z_]+"|[a-z_]+))?(\s*,\s*(\*|([a-z_]+\.)?[a-z_]+|count\s*\(\*\)|case\s+when\s+([a-z_]+\.)?[a-z_]+\s+(=|<=?|>=?|<>)\s+(\d+|'[^']+'|(true|false))\s+then\s+(\d+|'[^']+'|(true|false))\s+else\s+(\d+|'[^']+'|(true|false))\s+end)(\s+as\s+("[a-z_]+"|[a-z_]+))?)*\s+from\s+[a-z_]+(\s+(left\s+)?join\s+[a-z_]+\s+on\s+([a-z_]+\.)?[a-z_]+\s*(=|<=?|>=?|<>)\s*([a-z_]+\.)?[a-z_]+(\s+(and|or)\s+([a-z_]+\.)?[a-z_]+\s*(=|<=?|>=?|<>)\s*([a-z_]+\.)?[a-z_]+)*)*(\s+where\s+([a-z_]+\.)?[a-z_]+\s*(=|<=?|>=?|<>)\s*(\d+|'[^']+'|(true|false))(\s+(and|or)\s+([a-z_]+\.)?[a-z_]+\s*(=|<=?|>=?|<>)\s*(\d+|'[^']+'|(true|false)))*)?(\s+group\s+by\s+([a-z_]+\.)?[a-z_]+(\s*,\s*([a-z_]+\.)?[a-z_]+)*)?(\s+order\s+by\s+(([a-z_]+\.)?[a-z_]+|\d+)(\s*,\s*(([a-z_]+\.)?[a-z_]+|\d+))*)?(\s+limit\s+\d+)?\s*;?$/i;
+function check_sql(textarea) {
+  textarea = $(textarea);
+  var str = textarea.val();
+  if (str.length && (str.indexOf(';') != -1)) {
+    str = str.replace(';', '');
+    textarea.val(str);
+    run_sql(textarea.parent());
+  }
+  if (str.search(sqlregex) >= 0) textarea.css('border-color', 'green');
+  else textarea.css('border-color', 'red');
+}
+function run_sql(form) {
+  var textarea = $(form).find('textarea');
+  $.ajax({
+    dataType: "json",
+    url: "data.php",
+    method: "post",
+    data: "mode=sqlrun&sql=" + encodeURIComponent(textarea.val()),
+    context: this,
+    success: function(data) {
+      var table = $('#sqlrun\\:table');
+      if (data.error) {
+        table.empty();
+        table.append('<tr class="lt-row"><td class="lt-cell" style="font-family: monospace; border-color: red;">' + data.error + '</td></tr>');
+        textarea.focus();
+      }
+      else {
+        tables['sqlrun:table'] = {};
+        tables['sqlrun:table'].data = data;
+        table.empty();
+        renderTable(table, data);
+        textarea.focus();
+      }
+    },
+    error: function(xhr, status) { $(this).empty().append('Error while loading table ' + $(this).data('source') + ' (' + status + ' from server)'); }
+  });
+}
+
+/* * * * * * * * * * * * * * * * * * * * * *
+ *                                         *
+ * Functions for FullCalendar integration  *
+ *                                         *
+ * * * * * * * * * * * * * * * * * * * * * */
+
+function calendarSelect(start, end, timezone, callback) {
+  $.ajax({
+    url: 'data.php',
+    type: 'POST',
+    dataType: 'json',
+    data: {
+      mode: 'calendarselect',
+      src: this.options.src,
+      start: start.format(),
+      end: end.format()
+    },
+    success: function(data) {
+      if (data.error) alert(data.error);
+      else callback(data);
+    },
+    error: function(jqXHR, testStatus, errorThrown) {
+      alert(errorThrown);
+    }
+  });
+}
+function calendarUpdate(event, delta, revertFunc) {
+  $.ajax({
+    url: 'data.php',
+    type: 'POST',
+    dataType: 'json',
+    data: {
+      mode: 'calendarupdate',
+      src: event.src,
+      id: event.id,
+      start: event.start.format(),
+      end: event.end.format()
+    },
+    error: function(jqXHR, textStatus, errorThrown) {
+      alert(errorThrown);
+      revertFunc();
+    }
+  });
+}
+function calendarInsert(start, end) {
+  $.ajax({
+    url: 'data.php',
+    type: 'POST',
+    dataType: 'json',
+    data: {
+      mode: 'calendarinsert',
+      src: this.calendar.options.src,
+      param1: $('input[name=param1]:checked').val(),
+      param2: $('input[name=param2]:checked').val(),
+      start: start.format(),
+      end: end.format()
+    },
+    context: this,
+    success: function(data) {
+      if (data.error) alert(data.error);
+      this.calendar.refetchEvents();
+    },
+    error: function(jqXHR, testStatus, errorThrown) {
+      alert(errorThrown);
+    }
+  });
+}
+function calendarDelete(src, id, successFunc) {
+  $.ajax({
+    url: 'data.php',
+    type: 'POST',
+    dataType: 'json',
+    data: {
+      mode: 'calendardelete',
+      src: src,
+      id: id
+    },
+    success: successFunc,
+    error: function(jqXHR, textStatus, errorThrown) {
+      alert(errorThrown);
+    }
+  });
+}
+
+/* * * * * * * * * * * * *
+ *                       *
+ *   3rd-party scripts   *
+ *                       *
+ * * * * * * * * * * * * */
+
+// Array Remove - By John Resig (MIT licensed) - http://ejohn.org/blog/javascript-array-remove/
+Array.prototype.remove = function(from, to) {
+  var rest = this.slice((to || from) + 1 || this.length);
+  this.length = from < 0 ? this.length + from : from;
+  return this.push.apply(this, rest);
+};
+
+// jQuery Textarea AutoSize plugin - By Javier Julio (MIT licensed) - https://github.com/javierjulio/textarea-autosize
+;(function ($, window, document, undefined) {
+  var pluginName = "textareaAutoSize";
+  var pluginDataName = "plugin_" + pluginName;
+  var containsText = function (value) {
+    return (value.replace(/\s/g, '').length > 0);
+  };
+
+  function Plugin(element, options) {
+    this.element = element;
+    this.$element = $(element);
+    this.init();
+  }
+
+  Plugin.prototype = {
+    init: function() {
+      var height = this.$element.outerHeight();
+      var diff = parseInt(this.$element.css('paddingBottom')) +
+                 parseInt(this.$element.css('paddingTop')) || 0;
+
+      if (containsText(this.element.value)) {
+        this.$element.height(this.element.scrollHeight - diff);
+      }
+
+      // keyup is required for IE to properly reset height when deleting text
+      this.$element.on('input keyup', function(event) {
+        var $window = $(window);
+        var currentScrollPosition = $window.scrollTop();
+
+        $(this)
+          .height(0)
+          .height(this.scrollHeight - diff);
+
+        $window.scrollTop(currentScrollPosition);
+      });
+    }
+  };
+
+  $.fn[pluginName] = function (options) {
+    this.each(function() {
+      if (!$.data(this, pluginDataName)) {
+        $.data(this, pluginDataName, new Plugin(this, options));
+      }
+    });
+    return this;
+  };
+
+})(jQuery, window, document);
