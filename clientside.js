@@ -188,6 +188,17 @@ function refreshTable(table, key) {
       else if (data.nochange);
       else {
         tables[key].data.downloadtime = Date.now() - tables[key].start - data.querytime;
+        if (tables[key].data.headers.length != data.headers.length) {
+          if ($('#editbox').length) return; // Don't reload the table if user is editing
+          console.log('Column count changed; reloading table');
+          tables[key].data.headers = data.headers;
+          tables[key].data.rows = data.rows;
+          tables[key].data.crc = data.crc;
+          tables[key].doingajax = false;
+          loadTable(this.parent(), this.parent().data());
+          return;
+        }
+        updateHeaders(this.find('thead'), data.headers);
         updateTable(this.find('tbody'), tables[key].data, data.rows);
         tables[key].data.rows = data.rows;
         tables[key].data.crc = data.crc;
@@ -196,6 +207,16 @@ function refreshTable(table, key) {
         if (options.callbacks && options.callbacks.change) window.setTimeout(options.callbacks.change.replace('#src', this.parent().data('source')), 0);
       }
       tables[key].doingajax = false;
+    }
+  });
+}
+
+function updateHeaders(thead, headers) {
+  thead.find('.lt-head').each(function(i) {
+    var th = $(this);
+    if (th.html() != headers[i+1]) {
+      th.html(headers[i+1]).css('background-color', 'green');
+      setTimeout(function(th) { th.css('background-color', 'rgba(0,255,0,0.25)'); }, 2000, th);
     }
   });
 }
@@ -582,7 +603,7 @@ function updateTable(tbody, data, newrows) {
         row.append($(renderCell(data.options, newrows[i], c)));
       }
       if (data.options.appendcell) row.append('<td class="lt-cell">' + replaceHashes(data.options.appendcell, newrows[i]) + '</td>');
-      if (data.options.delete.text) var value = data.options.delete.text;
+      if (data.options.delete && data.options.delete.text) var value = data.options.delete.text;
       else var value = '✖';
       if (data.options.delete) row.append('<td class="lt-cell"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
       row.css({ backgroundColor: 'green' });
