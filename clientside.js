@@ -533,7 +533,7 @@ function calcSums(tfoot, data, update) {
     if (data.options.sum['#'+c]) {
       var sum = 0;
       for (var r = 0; r < data.rows.length; r++) sum += data.rows[r][c];
-      row.append('<td class="' + classes.join(' ') + '">' + sum + '</td>');
+      row.append('<td class="' + classes.join(' ') + '">' + (Math.round(sum*1000000)/1000000) + '</td>');
     }
     else if (!labeldone) {
       row.append('<td class="' + classes.join(' ') + '">' + tr('Totals') + '</td>');
@@ -549,6 +549,7 @@ function updateSums(tfoot, data) {
     if (data.options.sum['#'+c]) {
       var sum = 0;
       for (var r = 0; r < data.rows.length; r++) sum += data.rows[r][c];
+      sum = String(Math.round(sum*1000000)/1000000);
       var oldsum = row.children().eq(c-1).html();
       if (sum != oldsum) {
         var cell = row.children().eq(c-1);
