@@ -43,6 +43,7 @@ function tr(str) {
         case "of": return "van";
         case "Error": return "Fout";
         case "Insert": return "Toevoegen";
+        case "Export as": return "Exporteren naar";
         default: return str;
       }
     default: return str;
@@ -475,7 +476,7 @@ function renderTableGrid(table, data, sub) {
 
   if (data.options.export) {
     if (data.options.export.xlsx) {
-      tfoot.append('<tr><td colspan="' + data.headers.length + '">Export as: <a href="data.php?mode=excelexport&src=' + data.block + ':' + data.tag + '">Excel</a></td></tr>');
+      tfoot.append('<tr><td colspan="' + data.headers.length + '">' + tr('Export as') + ': <a href="data.php?mode=excelexport&src=' + data.block + ':' + data.tag + '">Excel</a></td></tr>');
     }
   }
 
