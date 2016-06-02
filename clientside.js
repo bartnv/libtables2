@@ -1036,7 +1036,10 @@ function calendarSelect(start, end, timezone, callback) {
       end: end.format()
     },
     success: function(data) {
-      if (data.error) alert(data.error);
+      if (data.error) {
+        alert(data.error);
+        if (data.redirect) window.location = data.redirect;
+      }
       else callback(data);
     },
     error: function(jqXHR, testStatus, errorThrown) {

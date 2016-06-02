@@ -2,8 +2,9 @@
 
 global $dbh;
 
-function fatalerr($msg) {
+function fatalerr($msg, $redirect = "") {
   $ret['error'] = $msg;
+  if (!empty($redirect)) $ret['redirect'] = $redirect;
   print json_encode($ret);
   exit;
 }
@@ -65,6 +66,8 @@ function lt_find_table($src) {
   ob_start();
   if (eval(file_get_contents($lt_settings['blocks_dir'] . $src[0] . '.php')) === FALSE) fatalerr('Syntax error in block ' . $src[0]);
   ob_end_clean();
+
+  if (!empty($error)) fatalerr($error, $redirect);
 
   $table = 0;
   foreach ($tables as $atable) {
