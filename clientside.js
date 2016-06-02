@@ -102,16 +102,22 @@ function showTableInDialog(table) {
 
 function changeParams(div, params) {
   var attr = div.data();
+  var key = attr.source + (attr.params?'_' + attr.params:'');
   if (typeof params === 'string') {
-    if (params === attr.params) return;
+    if (params === attr.params) {
+      refreshTable(div.find('table').first(), key);
+      return;
+    }
     attr.params = params;
   }
   else {
     var str = btoa(JSON.stringify(params));
-    if (str === attr.params) return;
+    if (str === attr.params) {
+      refreshTable(div.find('table').first(), key);
+      return;
+    }
     attr.params = str;
   }
-  var key = attr.source + (attr.params?'_' + attr.params:'');
   if (tables[key]) delete tables[key];
   div.html("Loading...");
   loadTable(div, attr);
