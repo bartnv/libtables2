@@ -43,7 +43,7 @@ function tr(str) {
         case "of": return "van";
         case "Error": return "Fout";
         case "Insert": return "Toevoegen";
-        case "Export as": return "Exporteren naar";
+        case "Export as": return "Exporteren als";
         default: return str;
       }
     default: return str;
@@ -236,19 +236,34 @@ function sortOnColumn(a, b, index) {
 }
 
 function sortBy(tableId, el) {
+  el = $(el);
   var table = tables[tableId].table;
   var data = tables[tableId].data;
-  if (data.options.sortby == $(el).html()) {
+  if (data.options.sortby == el.html()) {
     if (data.options.sortdir == 'ascending') data.options.sortdir = 'descending';
     else data.options.sortdir = 'ascending';
   }
   else {
-    data.options.sortby = $(el).html();
+    data.options.sortby = el.html();
     data.options.sortdir = 'ascending';
   }
-  console.log('Sort table ' + tableId + ' on column ' + $(el).html() + ' ' + data.options.sortdir);
-  table.empty();
-  renderTable(table, data);
+  console.log('Sort table ' + tableId + ' on column ' + el.html() + ' ' + data.options.sortdir);
+
+  var c = el.index()+1;
+  if (data.options.sortdir == 'ascending') {
+    data.rows.sort(function(a, b) { return sortOnColumn(a, b, c); });
+    el.siblings().removeClass('lt-sorted-asc lt-sorted-desc');
+    el.removeClass('lt-sorted lt-sorted-desc').addClass('lt-sorted-asc');
+  }
+  else {
+    data.rows.sort(function(a, b) { return sortOnColumn(b, a, c); });
+    el.siblings().removeClass('lt-sorted-asc lt-sorted-desc');
+    el.removeClass('lt-sorted lt-sorted-asc').addClass('lt-sorted-desc');
+  }
+
+  var tbody = table.find('tbody');
+  tbody.empty();
+  var rowcount = renderTbody(tbody, data);
 }
 
 function goPage(tableId, which) {
@@ -264,8 +279,12 @@ function goPage(tableId, which) {
     data.options.page = old;
     return;
   }
-  table.empty();
-  renderTable(table, data);
+//  table.empty();
+//  renderTable(table, data);
+  var tbody = table.find('tbody');
+  tbody.empty();
+  var rowcount = renderTbody(tbody, data);
+  if (data.options.limit) table.find('.lt-pages').html(tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + Math.ceil(rowcount/data.options.limit));
 }
 
 function replaceHashes(str, row) {
@@ -360,9 +379,9 @@ function renderTableGrid(table, data, sub) {
   headstr += '</thead>';
   var thead = $(headstr);
 
-  if (data.options.limit && (data.rows.length > data.options.limit)) {
+  if (data.options.limit) {
     if (!data.options.page) data.options.page = 1;
-    thead.append('<tr class="lt-limit"><th colspan="' + data.headers.length + '"><a href="javascript:goPage(\'' + table.attr('id') + '\', \'prev\')">&lt;</a> ' + tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + Math.ceil(data.rows.length/data.options.limit) + ' <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')">&gt;</a></th></tr>');
+    thead.append('<tr class="lt-limit"><th colspan="' + data.headers.length + '"><a href="javascript:goPage(\'' + table.attr('id') + '\', \'prev\')">&lt;</a> <span class="lt-pages"></span> <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')">&gt;</a></th></tr>');
   }
   if (data.rows.length) {
     var row = $('<tr class="lt-row"/>');
@@ -392,26 +411,19 @@ function renderTableGrid(table, data, sub) {
     }
     thead.append(row);
   }
+  if (data.options.filter) {
+    var row = $('<tr class="lt-row"/>');
+    for (var c = 1; c < data.headers.length; c++) {
+      if ((data.options.filter === true) || data.options.filter['#'+c]) row.append('<td class="lt-filter"><input type="text" oninput="updateFilter(this);"></td>');
+      else row.append('<td/>');
+    }
+    row.find('td').first().prepend('<span class="lt-label-filter"><img src="filter.svg" style="width: 15px; height: 15px;" title="Use these fields to filter the table\nMultiple filtered columns combine with AND logic\nNumeric matching is supported by starting with =, <, >, <= or >=\nRegular expressions can also be used, for example:\n   \'^text\' to match at the start\n   \'text$\' to match at the end\n   \'(one|two)\' to match one or two"></span>');
+    thead.append(row);
+  }
 
   var tbody = $('<tbody/>');
-  if (data.options.page) var offset = data.options.limit * (data.options.page - 1);
-  else var offset = 0;
-  for (var r = offset; r < data.rows.length; r++) { // Main loop over the data rows
-    if ((r == offset) && data.options.pagetitle) document.title = replaceHashes(data.options.pagetitle, data.rows[r]);
-    if (data.options.limit && (offset+data.options.limit == r)) break;
-    row = $('<tr class="lt-row" data-rowid="'+data.rows[r][0]+'"/>');
-    for (var c = 1; c < data.rows[r].length; c++) { // Loop over each column
-      if (data.options.mouseover && data.options.mouseover['#'+c]) continue;
-      row.append(renderCell(data.options, data.rows[r], c));
-    }
-    if (data.options.appendcell) row.append('<td class="lt-cell">' + replaceHashes(data.options.appendcell, data.rows[r]) + '</td>');
-    if (data.options.delete) {
-      if (data.options.delete.text) var value = data.options.delete.text;
-      else var value = '✖';
-      row.append('<td class="lt-cell"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
-    }
-    tbody.append(row);
-  }
+  var rowcount = renderTbody(tbody, data);
+  if (data.options.limit) thead.find('.lt-pages').html(tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + Math.ceil(rowcount/data.options.limit));
 
   var tfoot = $('<tfoot/>');
   if (data.options.sum) calcSums(tfoot, data);
@@ -488,6 +500,56 @@ function renderTableGrid(table, data, sub) {
 
   table.append(thead, tbody, tfoot);
   table.parent().data('crc', data.crc);
+}
+
+function renderTbody(tbody, data) {
+  if (data.options.page) var offset = data.options.limit * (data.options.page - 1);
+  else var offset = 0;
+  var rowcount = 0;
+  mainloop:
+  for (var r = 0; r < data.rows.length; r++) { // Main loop over the data rows
+    if (data.filters) {
+      for (i in data.filters) {
+        if (data.filters[i] instanceof RegExp) {
+          if ((typeof data.rows[r][i] == 'string') && (data.rows[r][i].search(data.filters[i]) >= 0)) continue;
+        }
+        else if (data.filters[i].startsWith('>=')) {
+          if (data.rows[r][i] >= parseFloat(data.filters[i].substring(2))) continue;
+        }
+        else if (data.filters[i].startsWith('>')) {
+          if (data.rows[r][i] > parseFloat(data.filters[i].substring(1))) continue;
+        }
+        else if (data.filters[i].startsWith('<=')) {
+          if (data.rows[r][i] <= parseFloat(data.filters[i].substring(2))) continue;
+        }
+        else if (data.filters[i].startsWith('<')) {
+          if (data.rows[r][i] < parseFloat(data.filters[i].substring(1))) continue;
+        }
+        else if (data.filters[i].startsWith('=')) {
+          if (data.rows[r][i] == parseFloat(data.filters[i].substring(1))) continue;
+        }
+        continue mainloop;
+      }
+    }
+    rowcount++;
+    if (rowcount <= offset) continue;
+    if (data.options.limit && (offset+data.options.limit < rowcount)) continue;
+    if ((rowcount == offset) && data.options.pagetitle) document.title = replaceHashes(data.options.pagetitle, data.rows[r]);
+    row = $('<tr class="lt-row" data-rowid="'+data.rows[r][0]+'"/>');
+    for (var c = 1; c < data.rows[r].length; c++) { // Loop over each column
+      if (data.options.mouseover && data.options.mouseover['#'+c]) continue;
+      row.append(renderCell(data.options, data.rows[r], c));
+    }
+    if (data.options.appendcell) row.append('<td class="lt-cell">' + replaceHashes(data.options.appendcell, data.rows[r]) + '</td>');
+    if (data.options.delete) {
+      if (data.options.delete.text) var value = data.options.delete.text;
+      else var value = '✖';
+      row.append('<td class="lt-cell"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
+    }
+    tbody.append(row);
+  }
+
+  return rowcount;
 }
 
 function renderCell(options, row, c) {
@@ -656,6 +718,27 @@ function updateRow(options, tbody, oldrow, newrow) {
       if (cell) cell.attr('style', replaceHashes(options.style['#'+c], newrow));
     }
   }
+}
+
+function updateFilter(edit) {
+  edit = $(edit);
+  var c = edit.parent().index()+1;
+  var table = edit.closest('table');
+  var data = tables[table.attr('id')].data;
+  if (!data.filters) data.filters = {};
+  edit.css('background-color', '');
+  if (edit.val() === "") delete data.filters[c];
+  else if (edit.val().search(/^[<>= ]+$/) >= 0) edit.css('background-color', 'rgba(255,0,0,0.5)');
+  else if (edit.val().startsWith('<') || edit.val().startsWith('>') || edit.val().startsWith('=')) data.filters[c] = edit.val();
+  else {
+    try { data.filters[c] = new RegExp(edit.val(), 'i'); }
+    catch (e) { edit.css('background-color', 'rgba(255,0,0,0.5)'); }
+  }
+  if (data.options.page > 1) data.options.page = 1;
+  var tbody = table.find('tbody');
+  tbody.empty();
+  var rowcount = renderTbody(tbody, data);
+  if (data.options.limit) table.find('.lt-pages').html(tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + Math.ceil(rowcount/data.options.limit));
 }
 
 function doEdit(cell) {
