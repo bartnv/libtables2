@@ -414,7 +414,7 @@ function renderTableGrid(table, data, sub) {
   if (data.options.filter) {
     var row = $('<tr class="lt-row"/>');
     for (var c = 1; c < data.headers.length; c++) {
-      if ((data.options.filter === true) || data.options.filter['#'+c]) row.append('<td class="lt-filter"><input type="text" oninput="updateFilter(this);"></td>');
+      if ((data.options.filter === true) || data.options.filter['#'+c]) row.append('<td class="lt-filter"><input type="text" size="5" oninput="updateFilter(this);"></td>');
       else row.append('<td/>');
     }
     row.find('td').first().prepend('<span class="lt-label-filter"><img src="filter.svg" style="width: 15px; height: 15px;" title="Use these fields to filter the table\nMultiple filtered columns combine with AND logic\nNumeric matching is supported by starting with =, <, >, <= or >=\nRegular expressions can also be used, for example:\n   \'^text\' to match at the start\n   \'text$\' to match at the end\n   \'(one|two)\' to match one or two"></span>');
