@@ -80,6 +80,19 @@ function lt_find_table($src) {
   fatalerr('Specified src not found in mode inlineedit');
 }
 
+function allowed_block($block) {
+  if ($lt_settings['security'] == 'php') {
+    if (empty($lt_settings['allowed_blocks_query'])) fatalerr("Configuration sets security to 'php' but no allowed_blocks_query defined");
+    if (!($res = $dbh->query($lt_settings['allowed_blocks_query']))) {
+      $err = $dbh->errorInfo();
+      fatalerr("Allowed-blocks query returned error: " . $err[2]);
+    }
+    $allowed_blocks = $res->fetchAll(PDO::FETCH_COLUMN, 0);
+    if (!in_array($basename, $allowed_blocks)) return false;
+  }
+  return true;
+}
+
 function lt_remove_parens($str) {
   $c = 0;
   $ret = "";
@@ -127,6 +140,7 @@ else fatalerr('No mode specified');
 switch ($mode) {
   case 'getblock':
     if (empty($_GET['block'])) fatalerr('No blockname specified in mode getblock');
+    if (!allowed_block($_GET['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     if (preg_match('/(\.\.|\\|\/)/', $_GET['block'])) fatalerr('Invalid blockname in mode getblock');
     if (empty($_GET['params'])) $params = array();
     else if (!($params = json_decode(base64_decode($_GET['params'])))) fatalerr('Invalid params in mode getblock');
@@ -138,6 +152,7 @@ switch ($mode) {
     else $params = array();
 
     $table = lt_find_table($_GET['src']);
+    if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     $data = lt_query($table['query'], $params);
     if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $src[0] . " returned error:\n\n" . $data['error']);
     $data['block'] = $table['block'];
@@ -155,7 +170,7 @@ switch ($mode) {
     break;
   case 'sqlrun':
     $matches = array();
-    if (empty($lt_settings) || ($lt_settings['security'] != 'database')) fatalerr('SQLrun not enabled due to security setting');
+    if (empty($lt_settings) || ($lt_settings['security'] != 'none')) fatalerr('SQLrun not enabled due to security setting');
     if (empty($_POST['sql']) || !preg_match('/^\s*SELECT /i', $_POST['sql'])) fatalerr('Invalid sql in mode sqlrun');
     $data = lt_query($_POST['sql']);
     $data['title'] = 'sqlrun';
@@ -176,6 +191,7 @@ switch ($mode) {
     else $params = array();
 
     $table = lt_find_table($_GET['src']);
+    if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     $data = lt_query($table['query'], $params);
     if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
     header('Content-type: application/json; charset=utf-8');
@@ -203,6 +219,7 @@ switch ($mode) {
     }
     else {
       $table = lt_find_table($_POST['src']);
+      if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
       if (empty($table['options']['edit']['#' . $_POST['col']])) fatalerr('No edit option found for column ' . $_POST['col'] . ' in table ' . $_POST['src']);
       $edit = $table['options']['edit']['#' . $_POST['col']];
     }
@@ -293,6 +310,7 @@ switch ($mode) {
     }
     else {
       $table = lt_find_table($_GET['src']);
+      if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
       $edit = $table['options']['edit'];
     }
 
@@ -320,6 +338,7 @@ switch ($mode) {
     if (empty($_GET['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_GET['src'])) fatalerr('Invalid src in mode excelexport');
 
     $table = lt_find_table($_GET['src']);
+    if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
 
     $data = lt_query($table['query'], $params);
     if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
@@ -341,6 +360,7 @@ switch ($mode) {
     else $params = array();
 
     $tableinfo = lt_find_table($_POST['src']);
+    if (!allowed_block($tableinfo['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     $tables = array();
 
     foreach ($_POST as $key => $value) {
@@ -375,6 +395,7 @@ switch ($mode) {
     if (empty($_POST['id']) || !is_numeric($_POST['id'])) fatalerr('Invalid delete id in mode deleterow');
 
     $table = lt_find_table($_POST['src']);
+    if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     if (empty($table['options']['delete']['table'])) fatalerr('No table defined in delete option in block ' . $_POST['src']);
     $target = $table['options']['delete']['table'];
 
@@ -407,6 +428,7 @@ switch ($mode) {
     if (empty($_POST['start'])) fatalerr('Invalid start date in mode calendarselect');
     if (empty($_POST['end'])) fatalerr('Invalid end date in mode calendarselect');
     $table = lt_find_table($_POST['src']);
+    if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     if (empty($table['queries']['select'])) fatalerr('No select query defined in lt_calendar block ' . $_POST['src']);
 
     if (!($stmt = $dbh->prepare($table['queries']['select']))) {
@@ -438,6 +460,7 @@ switch ($mode) {
     if (empty($_POST['start'])) fatalerr('Invalid start date in mode calendarupdate');
     if (empty($_POST['end'])) fatalerr('Invalid end date in mode calendarupdate');
     $table = lt_find_table($_POST['src']);
+    if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     if (empty($table['queries']['update'])) fatalerr('No update query defined in lt_calendar block ' . $_POST['src']);
 
     if (!($stmt = $dbh->prepare($table['queries']['update']))) {
@@ -455,6 +478,7 @@ switch ($mode) {
     if (empty($_POST['start'])) fatalerr('Invalid start date in mode calendarinsert');
     if (empty($_POST['end'])) fatalerr('Invalid end date in mode calendarinsert');
     $table = lt_find_table($_POST['src']);
+    if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     if (empty($table['queries']['insert'])) fatalerr('No insert query defined in lt_calendar block ' . $_POST['src']);
 
     if (!($stmt = $dbh->prepare($table['queries']['insert']))) {
@@ -476,6 +500,7 @@ switch ($mode) {
     if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode calendardelete');
     if (empty($_POST['id']) || !is_numeric($_POST['id'])) fatalerr('Invalid id in mode calendardelete');
     $table = lt_find_table($_POST['src']);
+    if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     if (empty($table['queries']['delete'])) fatalerr('No insert query defined in lt_calendar block ' . $_POST['src']);
 
     if (!($stmt = $dbh->prepare($table['queries']['delete']))) {

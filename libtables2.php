@@ -96,6 +96,23 @@ function lt_print_block($block, $params = array(), $options = array()) {
   $basename = $block;
   $block_options = $options;
 
+  if ($lt_settings['security'] == 'php') {
+    if (empty($lt_settings['allowed_blocks_query'])) {
+      print "Configuration sets security to 'php' but no allowed_blocks_query defined";
+      return;
+    }
+    if (!($res = $dbh->query($lt_settings['allowed_blocks_query']))) {
+      $err = $dbh->errorInfo();
+      print "Allowed-blocks query returned error: " . $err[2];
+      return;
+    }
+    $allowed_blocks = $res->fetchAll(PDO::FETCH_COLUMN, 0);
+    if (!in_array($basename, $allowed_blocks)) {
+      print "Block $basename is not in our list of allowed blocks";
+      return;
+    }
+  }
+
   if (file_exists($lt_settings['blocks_dir'] . $basename . '.html')) {
     readfile($lt_settings['blocks_dir'] . $basename . '.html');
     return;
