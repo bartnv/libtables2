@@ -290,7 +290,7 @@ function goPage(tableId, which) {
 function replaceHashes(str, row) {
   if (str.indexOf('#') >= 0) {
     str = str.replace(/#id/g, row[0]);
-    for (var c = row.length-1; c; c--) {
+    for (var c = row.length-1; c >= 0; c--) {
       if (str.indexOf('#'+c) >= 0) str = str.replace(new RegExp('#'+c, 'g'), row[c] === null ? '' : row[c]);
     }
   }
@@ -411,7 +411,7 @@ function renderTableGrid(table, data, sub) {
     }
     thead.append(row);
   }
-  if (data.options.filter) {
+  if (typeof data.options.filter == 'object') {
     var row = $('<tr class="lt-row"/>');
     for (var c = 1; c < data.headers.length; c++) {
       if ((data.options.filter === true) || data.options.filter['#'+c]) row.append('<td class="lt-filter"><input type="text" size="5" oninput="updateFilter(this);"></td>');
