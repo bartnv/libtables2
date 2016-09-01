@@ -35,6 +35,19 @@ function lt_table($tag, $title, $query, $options = array()) {
   }
 
   if (!empty($block_options['params'])) $params = $block_options['params'];
+  elseif (!empty($options['params'])) {
+    if (is_numeric($options['params'])) $params = array();
+    elseif (is_array($options['params'])) {
+      $params = array();
+      foreach ($options['params'] as $param) {
+        if (!empty($_GET[$param])) $params[] = $_GET[$param];
+        else {
+          print "<p>Table $tag in block $basename requires $param parameter</p>";
+          return;
+        }
+      }
+    }
+  }
   else $params = array();
   if (!empty($options['classes']['div'])) $divclasses = 'lt-div ' . $options['classes']['div'];
   else $divclasses = 'lt-div';
