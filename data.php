@@ -81,7 +81,7 @@ function lt_find_table($src) {
 }
 
 function allowed_block($block) {
-  if ($lt_settings['security'] == 'php') {
+  if (!empty($lt_settings['security']) && ($lt_settings['security'] == 'php')) {
     if (empty($lt_settings['allowed_blocks_query'])) fatalerr("Configuration sets security to 'php' but no allowed_blocks_query defined");
     if (!($res = $dbh->query($lt_settings['allowed_blocks_query']))) {
       $err = $dbh->errorInfo();
