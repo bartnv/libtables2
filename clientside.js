@@ -328,38 +328,40 @@ function renderTableFormat(table, data, sub) {
   var colspan;
   var rowspan = 0;
 
-  for (var r = 0; fmt[r]; r++) {
-    var row = $('<tr class="lt-row" data-rowid="' + data.rows[offset][0] + '"/>');
-    for (var c = 0; fmt[r][c]; c++) {
-      if (fmt[r][c] == 'H') {
-        if (headcount++ >= data.headers.length) {
-          appError('Too many headers specified in format string for ' + data.block + ':' + data.tag, data.options.format);
-          break;
+  if (data.rows[offset]) {
+    for (var r = 0; fmt[r]; r++) {
+      var row = $('<tr class="lt-row" data-rowid="' + data.rows[offset][0] + '"/>');
+      for (var c = 0; fmt[r][c]; c++) {
+        if (fmt[r][c] == 'H') {
+          if (headcount++ >= data.headers.length) {
+            appError('Too many headers specified in format string for ' + data.block + ':' + data.tag, data.options.format);
+            break;
+          }
+          for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
+          for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
+          row.append('<td class="lt-head"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>' + data.headers[headcount] + '</td>');
         }
-        for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
-        for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
-        row.append('<td class="lt-head"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>' + data.headers[headcount] + '</td>');
-      }
-      else if (fmt[r][c] == 'C') {
-        if (colcount++ >= data.rows[offset].length) {
-          appError('Too many columns specified in format string for ' + data.block + ':' + data.tag, data.options.format);
-          break;
+        else if (fmt[r][c] == 'C') {
+          if (colcount++ >= data.rows[offset].length) {
+            appError('Too many columns specified in format string for ' + data.block + ':' + data.tag, data.options.format);
+            break;
+          }
+          for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
+          for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
+          var cell = $(renderCell(data.options, data.rows[offset], colcount));
+          if (colspan > 1) cell.attr('colspan', colspan);
+          if (rowspan > 1) cell.attr('rowspan', rowspan);
+          row.append(cell);
         }
-        for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
-        for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
-        var cell = $(renderCell(data.options, data.rows[offset], colcount));
-        if (colspan > 1) cell.attr('colspan', colspan);
-        if (rowspan > 1) cell.attr('rowspan', rowspan);
-        row.append(cell);
+        else if ((fmt[r][c] == 'A') && data.options.appendcell) {
+          for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
+          for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
+          row.append('<td class="lt-cell"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>' + replaceHashes(data.options.appendcell, data.rows[offset]) + '</td>');
+        }
+        else if (fmt[r][c] == 'x') row.append('<td class="lt-unused"/>');
       }
-      else if ((fmt[r][c] == 'A') && data.options.appendcell) {
-        for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
-        for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
-        row.append('<td class="lt-cell"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>' + replaceHashes(data.options.appendcell, data.rows[offset]) + '</td>');
-      }
-      else if (fmt[r][c] == 'x') row.append('<td class="lt-unused"/>');
+      tbody.append(row);
     }
-    tbody.append(row);
   }
 
   table.append(thead, tbody);
