@@ -44,6 +44,7 @@ function tr(str) {
         case "Error": return "Fout";
         case "Insert": return "Toevoegen";
         case "Export as": return "Exporteren als";
+        case "Row has errors and cannot be inserted": return "Rij heeft fouten en kan niet worden toegevoegd";
         default: return str;
       }
     default: return str;
@@ -462,6 +463,7 @@ function renderTableGrid(table, data, sub) {
       else if (fields['#'+c].type == 'multiline') var input = $('<textarea class="lt_insert" name="' + fields['#'+c].target + '" oninput="$(this).textareaAutoSize();"/>');
       else if (fields['#'+c].type == 'checkbox') var input = $('<input type="checkbox" name="' + fields['#'+c].target + '">');
       else if (fields['#'+c].type == 'password') var input = $('<input type="password" name="' + fields['#'+c].target + '">');
+      else if (fields['#'+c].target && !fields['#'+c].query) var input = $('<input type="text" name="' + fields['#'+c].target + '">');
       else {
         if (fields['#'+c].target) var input = $('<select name="' + fields['#'+c].target + '"/>');
         else var input = $('<select name="' + fields['#'+c][0] + '"/>');
@@ -481,6 +483,27 @@ function renderTableGrid(table, data, sub) {
               if (data.null) this.append('<option value=""></option>');
               for (var i = 0; items[i]; i++) this.append('<option value="' + items[i][0] + '">' + items[i][1] + '</option>');
               this.prop('selectedIndex', -1); // This selects nothing, rather than the first option
+            }
+          }
+        });
+      }
+      if ((typeof fields['#'+c] == 'object') && fields['#'+c].required) {
+        input.addClass('lt-input-required');
+        input.on('input', fields['#'+c].required, function(evt) {
+          if (evt.data === true) {
+            var input = $(this);
+            if ((input.val() === '') || (input.val() === null)) input.addClass('lt-input-error');
+            else input.removeClass('lt-input-error');
+          }
+          else if (evt.data.regex) {
+            var input = $(this);
+            if (input.val().search(new RegExp(evt.data.regex)) >= 0) {
+              input.removeClass('lt-input-error');
+              input.attr('title', '');
+            }
+            else {
+              input.addClass('lt-input-error');
+              if (evt.data.message) input.attr('title', evt.data.message);
             }
           }
         });
@@ -886,6 +909,29 @@ function doEditSelect(cell) {
   cell.css({ backgroundColor: '#ffa0a0' });
 }
 
+function checkRequirements(options, c, value) {
+  if (options.edit['#'+c].required === true) {
+    if (value === '') {
+      alert('Column ' + c + ' may not be empty');
+      return false;
+    }
+  }
+  else if (typeof options.edit['#'+c].required == 'object') {
+    if (options.edit['#'+c].required.regex) {
+      if (value.search(new RegExp(options.edit['#'+c].required.regex))) return true;
+      if (options.edit['#'+c].required.message) alert(options.edit['#'+c].required.message);
+      else alert('Invalid input for column ' + c);
+      return false;
+    }
+    else if (value === '') {
+      if (options.edit['#'+c].required.message) alert(options.edit['#'+c].required.message);
+      else alert('Column ' + c + ' may not be empty');
+      return false;
+    }
+  }
+  return true;
+}
+
 function checkEdit(cell, edit, oldvalue) {
   var newvalue = edit.val();
   var key = cell.closest('table').attr('id');
@@ -904,6 +950,9 @@ function checkEdit(cell, edit, oldvalue) {
   }
 
   if (newvalue !== oldvalue) {
+    if (options.edit['#'+c].required) {
+      if (!checkRequirements(options, c, newvalue)) return;
+    }
     var data = { mode: 'inlineedit', src: tables[key].data.block + ':' + tables[key].data.tag, col: c, row: cell.parent().data('rowid'), val: newvalue };
     if (tables[key].data.params) data['params'] = tables[key].data.params;
     if (options.sql) data['sql'] = options.sql;
@@ -949,13 +998,20 @@ function checkEdit(cell, edit, oldvalue) {
 function doInsert(el) {
   el = $(el);
   row = el.parent().parent();
+  var error = false;
   postdata = row.find('input,select,textarea').not(el).map(function() {
     input = $(this);
     if (input.prop('type') == 'checkbox') value = input.prop('checked');
     else value = input.val();
     if (value === null) value = '';
+    input.trigger('input');
+    if (input.hasClass('lt-input-error')) error = true;
     return input.prop('name').replace('.', ':') + '=' + encodeURIComponent(value);
   }).get().join('&');
+  if (error) {
+    alert(tr('Row has errors and cannot be inserted'));
+    return;
+  }
   table = tables[row.closest('table').attr('id')].data;
   if (table.options.insert.hidden) {
     if (typeof(table.options.insert.hidden[0]) == 'object') { // Multiple hidden fields (array of arrays)

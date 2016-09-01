@@ -317,8 +317,10 @@ switch ($mode) {
     if (empty($edit['#' . $_GET['col']])) fatalerr('No edit option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
     if (!is_array($edit['#' . $_GET['col']])) fatalerr('No editselect option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
     if (count($edit['#' . $_GET['col']]) < 2) fatalerr('No valid editselect option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
-    $target = $edit['#' . $_GET['col']][0];
-    $query = $edit['#' . $_GET['col']][1];
+    if (!empty($edit['#' . $_GET['col']]['target'])) $target = $edit['#' . $_GET['col']]['target'];
+    else $target = $edit['#' . $_GET['col']][0];
+    if (!empty($edit['#' . $_GET['col']]['query'])) $query = $edit['#' . $_GET['col']]['query'];
+    else $query = $edit['#' . $_GET['col']][1];
     if (!preg_match('/^[a-z0-9_-]+\.[a-z0-9_-]+$/', $target)) fatalerr('Invalid target specified for column ' . $_GET['col'] . ' in table ' . $_GET['src'] . ' (' . $target . ')');
     $target = explode('.', $target);
 
