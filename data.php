@@ -142,9 +142,11 @@ switch ($mode) {
     if (empty($_GET['block'])) fatalerr('No blockname specified in mode getblock');
     if (!allowed_block($_GET['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     if (preg_match('/(\.\.|\\|\/)/', $_GET['block'])) fatalerr('Invalid blockname in mode getblock');
-    if (empty($_GET['params'])) $params = array();
-    else if (!($params = json_decode(base64_decode($_GET['params'])))) fatalerr('Invalid params in mode getblock');
-    lt_print_block($_GET['block'], $params);
+    if (empty($_GET['params'])) lt_print_block($_GET['block']);
+    else {
+      if (!($params = json_decode(base64_decode($_GET['params'])))) fatalerr('Invalid params in mode getblock');
+      lt_print_block($_GET['block'], $params);
+    }
   break;
   case 'gettable':
     if (empty($_GET['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_GET['src'])) fatalerr('Invalid src in mode gettable');
