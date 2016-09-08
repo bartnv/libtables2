@@ -594,8 +594,6 @@ function renderCell(options, row, c) {
     var mouseover = ' title="' + row[c+1] + '"';
   }
   else var mouseover = '';
-  if (options.format) var colid = ' data-colid="' + c + '"';
-  else var colid = '';
   if (options.style && options.style['#'+c]) var style = ' style="' + replaceHashes(options.style['#'+c], row) + '"';
   else var style = '';
 
@@ -609,7 +607,7 @@ function renderCell(options, row, c) {
     var content = '<div class="lt-div" data-source="' + options.subtables['#'+c] + '" data-params="' + params + '">Loading subtable ' + options.subtables['#'+c] + '</div>';
   }
   else var content = row[c] === null ? '' : row[c];
-  return '<td class="' + classes.join(' ') + '"' + colid + style + onclick + mouseover + '>' + content + '</td>';
+  return '<td class="' + classes.join(' ') + '"' + style + onclick + mouseover + '>' + content + '</td>';
 }
 
 function calcSums(tfoot, data, update) {
@@ -715,7 +713,7 @@ function updateRow(options, tbody, oldrow, newrow) {
     if (options.mouseover && options.mouseover['#'+c]) {
       offset++;
       if (oldrow[c] != newrow[c]) {
-        if (options.format) var cell = tbody.find('[data-colid="' + oldrow[0] + '"]');
+        if (options.format) var cell = tbody.find('.lt-data').eq(c-1);
         else var cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').children().eq(c-offset);
         if (cell) {
           cell.attr('title', newrow[c]?newrow[c]:(newrow[c]===false?'false':''));
@@ -725,7 +723,7 @@ function updateRow(options, tbody, oldrow, newrow) {
       }
     }
     else if (oldrow[c] != newrow[c]) {
-      if (options.format) cell = tbody.find('[data-colid="' + c + '"]');
+      if (options.format) cell = tbody.find('.lt-data').eq(c-1);
       else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').children().eq(c-offset);
       if (cell) {
         cell.html(newrow[c]?newrow[c]:(newrow[c]===false?'false':''));
@@ -737,7 +735,7 @@ function updateRow(options, tbody, oldrow, newrow) {
 
     if (options.style && options.style['#'+c]) {
       if (!cell) {
-        if (options.format) cell = tbody.find('[data-colid="' + c + '"]');
+        if (options.format) cell = tbody.find('.lt-data').eq(c-1);
         else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').children().eq(c-offset);
       }
       if (cell) cell.attr('style', replaceHashes(options.style['#'+c], newrow));
