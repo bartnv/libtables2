@@ -578,8 +578,7 @@ function renderTbody(tbody, data) {
 }
 
 function renderCell(options, row, c) {
-  var classes = [ "lt-cell" ];
-  if (options.format) classes.push('lt-data');
+  var classes = [ "lt-cell", "lt-data" ];
   if (options.class && options.class['#'+c]) classes.push(options.class['#'+c]);
   if (options.edit && options.edit['#'+c]) {
     if (typeof(options.edit['#'+c]) == 'string') var onclick = ' onclick="doEdit(this)"';
@@ -771,7 +770,7 @@ function doEdit(cell) {
   var content = cell.html();
   var data = tables[cell.closest('table').attr('id')].data;
   if (data.options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
-  else var c = cell.index()+1;
+  else var c = cell.parent().children('.lt-data').index(cell)+1;
   if ((typeof(data.options.edit['#'+c]) == 'object') && data.options.edit['#'+c].type == 'multiline') {
     edit = $('<textarea id="editbox" name="input">');
     edit.html(content);
@@ -844,7 +843,7 @@ function doEditSelect(cell) {
   var key = cell.closest('table').attr('id');
   var content = cell.html();
   if (tables[key].data.options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
-  else var c = cell.index()+1;
+  else var c = cell.parent().children('.lt-data').index(cell)+1;
   $.ajax({
     method: 'get',
     url: 'data.php',
@@ -937,7 +936,7 @@ function checkEdit(cell, edit, oldvalue) {
   var key = cell.closest('table').attr('id');
   var options = tables[key].data.options;
   if (options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
-  else var c = cell.index()+1;
+  else var c = cell.parent().children('.lt-data').index(cell)+1;
   if (options.edit['#'+c].type == 'checkbox') {
     if (edit.prop('checked')) {
       if (options.edit['#'+c].truevalue) newvalue = options.edit['#'+c].truevalue;
