@@ -45,6 +45,7 @@ function tr(str) {
         case "Insert": return "Toevoegen";
         case "Export as": return "Exporteren als";
         case "Row has errors and cannot be inserted": return "Rij heeft fouten en kan niet worden toegevoegd";
+        case "Select": return "Selecteren";
         default: return str;
       }
     default: return str;
@@ -388,6 +389,10 @@ function renderTableGrid(table, data, sub) {
   }
   if (data.rows.length) {
     var row = $('<tr class="lt-row"/>');
+    if (data.options.selectone) {
+      if (data.options.selectone.name) row.append('<td class="lt-head">' + data.options.selectone.name + '</td>');
+      else row.append('<td class="lt-head">' + tr('Select') + '</td>');
+    }
     for (var c = 0; c < data.headers.length; c++) { // Loop over the columns for the headers
       if (data.options.sortby) {
         if (data.options.sortby == data.headers[c]) {
@@ -561,6 +566,7 @@ function renderTbody(tbody, data) {
     if (data.options.limit && (offset+data.options.limit < rowcount)) continue;
     if ((rowcount == offset) && data.options.pagetitle) document.title = replaceHashes(data.options.pagetitle, data.rows[r]);
     row = $('<tr class="lt-row" data-rowid="'+data.rows[r][0]+'"/>');
+    if (data.options.selectone) row.append('<td><input type="radio" name="select"></td>');
     for (var c = 1; c < data.rows[r].length; c++) { // Loop over each column
       if (data.options.mouseover && data.options.mouseover['#'+c]) continue;
       row.append(renderCell(data.options, data.rows[r], c));
@@ -1212,6 +1218,7 @@ function calendarInsert(start, end) {
       mode: 'calendarinsert',
       src: this.calendar.options.src,
       param1: $('input[name=param1]:checked').val(),
+      // $('[name=select]:checked').closest('tr').data('rowid')
       param2: $('input[name=param2]:checked').val(),
       start: start.format(),
       end: end.format()
