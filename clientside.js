@@ -566,7 +566,11 @@ function renderTbody(tbody, data) {
     if (data.options.limit && (offset+data.options.limit < rowcount)) continue;
     if ((rowcount == offset) && data.options.pagetitle) document.title = replaceHashes(data.options.pagetitle, data.rows[r]);
     row = $('<tr class="lt-row" data-rowid="'+data.rows[r][0]+'"/>');
-    if (data.options.selectone) row.append('<td><input type="radio" name="select"></td>');
+    if (data.options.selectone) {
+      if (data.options.selectone.trigger) var trigger = ' data-trigger="' + data.options.selectone.trigger + '"';
+      else var trigger = '';
+      row.append('<td><input type="radio" name="select" onchange="selectOne(this)"' + trigger + '></td>');
+    }
     for (var c = 1; c < data.rows[r].length; c++) { // Loop over each column
       if (data.options.mouseover && data.options.mouseover['#'+c]) continue;
       row.append(renderCell(data.options, data.rows[r], c));
@@ -656,6 +660,14 @@ function updateSums(tfoot, data) {
       }
     }
   }
+}
+
+function selectOne(el) {
+  console.log(el);
+  // if ($(el).data('trigger')) {
+//    if (table.options.trigger.indexOf(':') > 0) var triggered = document.getElementById(table.options.trigger);
+//    else var triggered = document.getElementById(table.block + ':' + table.options.trigger);
+//    loadOrRefreshCollection($(triggered).parent());
 }
 
 function updateTable(tbody, data, newrows) {
