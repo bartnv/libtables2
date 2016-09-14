@@ -414,6 +414,17 @@ function renderTableGrid(table, data, sub) {
     }
     thead.append(row);
   }
+  else if (data.options.textifempty) {
+    var tbody = '<td>' + data.options.textifempty + '</td>';
+    table.append(thead, tbody);
+    table.parent().data('crc', data.crc);
+    return;
+  }
+  else if (data.options.hideifempty) {
+    table.hide();
+    return;
+  }
+
   if (typeof data.options.filter == 'object') {
     var row = $('<tr class="lt-row"/>');
     for (var c = 1; c < data.headers.length; c++) {
@@ -623,7 +634,9 @@ function calcSums(tfoot, data, update) {
     if (data.options.class && data.options.class['#'+c]) classes.push(data.options.class['#'+c]);
     if (data.options.sum['#'+c]) {
       var sum = 0;
-      for (var r = 0; r < data.rows.length; r++) sum += data.rows[r][c];
+      for (var r = 0; r < data.rows.length; r++) {
+        if (data.rows[r][c]) sum += parseFloat(data.rows[r][c]);
+      }
       row.append('<td class="' + classes.join(' ') + '">' + (Math.round(sum*1000000)/1000000) + '</td>');
     }
     else if (!labeldone) {
@@ -1204,6 +1217,12 @@ function calendarUpdate(event, delta, revertFunc) {
   });
 }
 function calendarInsert(start, end) {
+  if (this.calendar.options.allDayOnly && start.hasTime()) return;
+  if (this.calendar.options.insertTitle) {
+    var title = this.calendar.options.insertTitle();
+    if (!title) return;
+  }
+  else var title = '';
   $.ajax({
     url: 'data.php',
     type: 'POST',
@@ -1214,7 +1233,8 @@ function calendarInsert(start, end) {
       param1: $('input[name=param1]:checked').val(),
       param2: $('input[name=param2]:checked').val(),
       start: start.format(),
-      end: end.format()
+      end: end.format(),
+      title: title
     },
     context: this,
     success: function(data) {
