@@ -344,9 +344,12 @@ switch ($mode) {
     $table = lt_find_table($_GET['src']);
     if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
 
-    $data = lt_query($table['query'], $params);
+    $data = lt_query($table['query']);
     if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
+//    $types = str_replace([ 'int4', 'int8', 'float4', 'float8', 'bool', 'text' ], [ 'integer', 'integer', 'numeric', 'numeric', 'boolean', 'string' ], $data['types']);
+//    $headers = array_combine($data['headers'], $types);
     $writer = new XLSXWriter();
+//    $writer->writeSheetHeader('Sheet1', $headers);
     $writer->writeSheetRow('Sheet1', $data['headers']);
     foreach ($data['rows'] as $row) {
       $writer->writeSheetRow('Sheet1', $row);
