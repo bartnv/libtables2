@@ -183,9 +183,11 @@ function lt_query($query, $params = array(), $id = 0) {
   }
   else {
     $ret['headers'] = array();
+    $ret['types'] = array();
     for ($i = 0; $i < $res->columnCount(); $i++) {
       $col = $res->getColumnMeta($i);
       $ret['headers'][] = $col['name'];
+      $ret['types'][] = $col['native_type'];
     }
     $ret['rows'] = $res->fetchAll(PDO::FETCH_NUM);
   }
