@@ -401,7 +401,7 @@ function renderTableGrid(table, data, sub) {
         }
       }
       if (c) {
-        if (data.options.mouseover && data.options.mouseover['#'+c]) continue;
+        if (data.options.mouseover && data.options.mouseover[c]) continue;
         var onclick = "";
         var classes = [ "lt-head" ];
         if (data.options.sortable) {
@@ -422,7 +422,7 @@ function renderTableGrid(table, data, sub) {
   if (data.options.filter && (typeof data.options.filter != 'function')) {
     var row = $('<tr class="lt-row"/>');
     for (var c = 1; c < data.headers.length; c++) {
-      if ((data.options.filter === true) || data.options.filter['#'+c]) row.append('<td class="lt-filter"><input type="text" size="5" oninput="updateFilter(this);"></td>');
+      if ((data.options.filter === true) || data.options.filter[c]) row.append('<td class="lt-filter"><input type="text" size="5" oninput="updateFilter(this);"></td>');
       else row.append('<td/>');
     }
     row.find('td').first().prepend('<span class="lt-label-filter"><img src="filter.svg" style="width: 15px; height: 15px;" title="Use these fields to filter the table\nMultiple filtered columns combine with AND logic\nNumeric matching is supported by starting with =, <, >, <= or >=\nRegular expressions can also be used, for example:\n   \'^text\' to match at the start\n   \'text$\' to match at the end\n   \'(one|two)\' to match one or two"></span>');
@@ -442,13 +442,13 @@ function renderTableGrid(table, data, sub) {
 
     row = $('<tr class="lt-row"/>');
     for (var c = 1; ; c++) {
-      if (data.options.mouseover && data.options.mouseover['#'+c]) continue;
-      if (!fields['#'+c]) {
+      if (data.options.mouseover && data.options.mouseover[c]) continue;
+      if (!fields[c]) {
         if (c == data.headers.length) break;
         str = '<td class="lt-head">' + data.headers[c] + '</td>';
       }
       else {
-        if ((typeof(fields['#'+c]) == 'object') && fields['#'+c].label) str = '<td class="lt-head">' + fields['#'+c].label + '</td>';
+        if ((typeof(fields[c]) == 'object') && fields[c].label) str = '<td class="lt-head">' + fields[c].label + '</td>';
         else str = '<td class="lt-head">' + data.headers[c] + '</td>';
       }
       row.append(str);
@@ -457,7 +457,7 @@ function renderTableGrid(table, data, sub) {
 
     row = $('<tr class="lt-row"/>');
     for (var c = 1; ; c++) {
-      if (!fields['#'+c]) {
+      if (!fields[c]) {
         if (c >= data.headers.length-1) break;
         else {
           row.append('<td/>');
@@ -465,15 +465,15 @@ function renderTableGrid(table, data, sub) {
         }
       }
       var cell = $('<td class="lt-cell"></td>');
-      if (typeof(fields['#'+c]) == 'string') var input = $('<input type="text" name="' + fields['#'+c] + '">');
-      else if (Object.keys(fields['#'+c]).length == 1) var input = $('<input type="text" name="' + fields['#'+c][0] + '">');
-      else if (fields['#'+c].type == 'multiline') var input = $('<textarea class="lt_insert" name="' + fields['#'+c].target + '" oninput="$(this).textareaAutoSize();"/>');
-      else if (fields['#'+c].type == 'checkbox') var input = $('<input type="checkbox" name="' + fields['#'+c].target + '">');
-      else if (fields['#'+c].type == 'password') var input = $('<input type="password" name="' + fields['#'+c].target + '">');
-      else if (fields['#'+c].target && !fields['#'+c].query) var input = $('<input type="text" name="' + fields['#'+c].target + '">');
+      if (typeof(fields[c]) == 'string') var input = $('<input type="text" name="' + fields[c] + '">');
+      else if (Object.keys(fields[c]).length == 1) var input = $('<input type="text" name="' + fields[c][0] + '">');
+      else if (fields[c].type == 'multiline') var input = $('<textarea class="lt_insert" name="' + fields[c].target + '" oninput="$(this).textareaAutoSize();"/>');
+      else if (fields[c].type == 'checkbox') var input = $('<input type="checkbox" name="' + fields[c].target + '">');
+      else if (fields[c].type == 'password') var input = $('<input type="password" name="' + fields[c].target + '">');
+      else if (fields[c].target && !fields[c].query) var input = $('<input type="text" name="' + fields[c].target + '">');
       else {
-        if (fields['#'+c].target) var input = $('<select name="' + fields['#'+c].target + '"/>');
-        else var input = $('<select name="' + fields['#'+c][0] + '"/>');
+        if (fields[c].target) var input = $('<select name="' + fields[c].target + '"/>');
+        else var input = $('<select name="' + fields[c][0] + '"/>');
         $.ajax({
           method: 'get',
           url: 'data.php',
@@ -494,9 +494,9 @@ function renderTableGrid(table, data, sub) {
           }
         });
       }
-      if ((typeof fields['#'+c] == 'object') && fields['#'+c].required) {
+      if ((typeof fields[c] == 'object') && fields[c].required) {
         input.addClass('lt-input-required');
-        input.on('input', fields['#'+c].required, function(evt) {
+        input.on('input', fields[c].required, function(evt) {
           if (evt.data === true) {
             var input = $(this);
             if ((input.val() === '') || (input.val() === null)) input.addClass('lt-input-error');
@@ -572,7 +572,7 @@ function renderTbody(tbody, data) {
       row.append('<td><input type="radio" name="select" onchange="selectOne(this)"' + trigger + '></td>');
     }
     for (var c = 1; c < data.rows[r].length; c++) { // Loop over each column
-      if (data.options.mouseover && data.options.mouseover['#'+c]) continue;
+      if (data.options.mouseover && data.options.mouseover[c]) continue;
       row.append(renderCell(data.options, data.rows[r], c));
     }
     if (data.options.appendcell) row.append('<td class="lt-cell">' + replaceHashes(data.options.appendcell, data.rows[r]) + '</td>');
@@ -589,31 +589,31 @@ function renderTbody(tbody, data) {
 
 function renderCell(options, row, c) {
   var classes = [ "lt-cell", "lt-data" ];
-  if (options.class && options.class['#'+c]) classes.push(options.class['#'+c]);
-  if (options.edit && options.edit['#'+c]) {
-    if (typeof(options.edit['#'+c]) == 'string') var onclick = ' onclick="doEdit(this)"';
-    else if (typeof(options.edit['#'+c]) == 'object') {
-      if (options.edit['#'+c].query || (!options.edit['#'+c].target && (options.edit['#'+c].length == 2))) var onclick = ' onclick="doEditSelect(this)"';
+  if (options.class && options.class[c]) classes.push(options.class[c]);
+  if (options.edit && options.edit[c]) {
+    if (typeof(options.edit[c]) == 'string') var onclick = ' onclick="doEdit(this)"';
+    else if (typeof(options.edit[c]) == 'object') {
+      if (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length == 2))) var onclick = ' onclick="doEditSelect(this)"';
       else var onclick = ' onclick="doEdit(this)"';
     }
     classes.push('lt-edit');
   }
   else var onclick = "";
-  if (options.mouseover && options.mouseover['#'+(c+1)] && row[c+1]) {
+  if (options.mouseover && options.mouseover[c+1] && row[c+1]) {
     var mouseover = ' title="' + row[c+1] + '"';
   }
   else var mouseover = '';
-  if (options.style && options.style['#'+c]) var style = ' style="' + replaceHashes(options.style['#'+c], row) + '"';
+  if (options.style && options.style[c]) var style = ' style="' + replaceHashes(options.style[c], row) + '"';
   else var style = '';
 
-  if (options.subtables && (options.subtables['#'+c])) {
+  if (options.subtables && (options.subtables[c])) {
     if (typeof(row[c]) == 'string') {
       if (row[c].startswith('[')) var params = btoa(row[c]);
       else var params = btoa('[ "' + row[c] + '" ]');
     }
     else if (typeof(row[c]) == 'number') var params = btoa('[ ' + row[c] + ' ]');
     else var params = '';
-    var content = '<div class="lt-div" data-source="' + options.subtables['#'+c] + '" data-params="' + params + '">Loading subtable ' + options.subtables['#'+c] + '</div>';
+    var content = '<div class="lt-div" data-source="' + options.subtables[c] + '" data-params="' + params + '">Loading subtable ' + options.subtables[c] + '</div>';
   }
   else var content = row[c] === null ? '' : row[c];
   return '<td class="' + classes.join(' ') + '"' + style + onclick + mouseover + '>' + content + '</td>';
@@ -630,8 +630,8 @@ function calcSums(tfoot, data, update) {
   var row = $('<tr class="lt-sums">');
   for (var c = 1; c < data.headers.length; c++) {
     var classes = [ "lt-cell", "lt-sum" ];
-    if (data.options.class && data.options.class['#'+c]) classes.push(data.options.class['#'+c]);
-    if (data.options.sum['#'+c]) {
+    if (data.options.class && data.options.class[c]) classes.push(data.options.class[c]);
+    if (data.options.sum[c]) {
       var sum = 0;
       for (var r = 0; r < data.rows.length; r++) sum += data.rows[r][c];
       row.append('<td class="' + classes.join(' ') + '">' + (Math.round(sum*1000000)/1000000) + '</td>');
@@ -647,7 +647,7 @@ function calcSums(tfoot, data, update) {
 function updateSums(tfoot, data) {
   var row = tfoot.find('tr.lt-sums');
   for (var c = 1; c < data.headers.length; c++) {
-    if (data.options.sum['#'+c]) {
+    if (data.options.sum[c]) {
       var sum = 0;
       for (var r = 0; r < data.rows.length; r++) sum += data.rows[r][c];
       sum = String(Math.round(sum*1000000)/1000000);
@@ -709,7 +709,7 @@ function updateTable(tbody, data, newrows) {
     for (var i = 0; i < newrows.length; i++) { // Row added
       var row = $('<tr class="lt-row" data-rowid="'+newrows[i][0]+'"/>');
       for (c = 1; c < newrows[i].length; c++) {
-        if (data.options.mouseover && data.options.mouseover['#'+(c)]) continue;
+        if (data.options.mouseover && data.options.mouseover[c]) continue;
         row.append($(renderCell(data.options, newrows[i], c)));
       }
       if (data.options.appendcell) row.append('<td class="lt-cell">' + replaceHashes(data.options.appendcell, newrows[i]) + '</td>');
@@ -727,7 +727,7 @@ function updateRow(options, tbody, oldrow, newrow) {
   var offset = 1;
   for (var c = 1; c < oldrow.length; c++) {
     var cell = null;
-    if (options.mouseover && options.mouseover['#'+c]) {
+    if (options.mouseover && options.mouseover[c]) {
       offset++;
       if (oldrow[c] != newrow[c]) {
         if (options.format) var cell = tbody.find('.lt-data').eq(c-1);
@@ -750,12 +750,12 @@ function updateRow(options, tbody, oldrow, newrow) {
       else appError('Updated cell not found', tbody);
     }
 
-    if (options.style && options.style['#'+c]) {
+    if (options.style && options.style[c]) {
       if (!cell) {
         if (options.format) cell = tbody.find('.lt-data').eq(c-1);
         else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').children().eq(c-offset);
       }
-      if (cell) cell.attr('style', replaceHashes(options.style['#'+c], newrow));
+      if (cell) cell.attr('style', replaceHashes(options.style[c], newrow));
     }
   }
 }
@@ -789,19 +789,19 @@ function doEdit(cell) {
   var data = tables[cell.closest('table').attr('id')].data;
   if (data.options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
   else var c = cell.parent().children('.lt-data').index(cell)+1;
-  if ((typeof(data.options.edit['#'+c]) == 'object') && data.options.edit['#'+c].type == 'multiline') {
+  if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'multiline') {
     edit = $('<textarea id="editbox" name="input">');
     edit.html(content);
     edit.css({ width: cell.width() + 'px', height: cell.height() + 'px' });
   }
-  else if ((typeof(data.options.edit['#'+c]) == 'object') && data.options.edit['#'+c].type == 'checkbox') {
+  else if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'checkbox') {
     var truevalue;
     edit = $('<input type="checkbox" id="editbox" name="input">');
-    if (data.options.edit['#'+c].truevalue) truevalue = data.options.edit['#'+c].truevalue;
+    if (data.options.edit[c].truevalue) truevalue = data.options.edit[c].truevalue;
     else truevalue = 'true';
     if (content === truevalue) edit.prop('checked', true);
   }
-  else if ((typeof(data.options.edit['#'+c]) == 'object') && data.options.edit['#'+c].type == 'password') {
+  else if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'password') {
     edit = $('<input type="password" id="editbox" name="input">');
   }
   else {
@@ -839,7 +839,7 @@ function doEdit(cell) {
     checkEdit(evt.data, $(this), content);
     evt.data.removeClass('lt-editing');
   });
-  if ((typeof(data.options.edit['#'+c]) == 'object') && data.options.edit['#'+c].type == 'color') {
+  if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'color') {
     $(cell).colpick({
       color: content,
       layout: 'hex',
@@ -927,21 +927,21 @@ function doEditSelect(cell) {
 }
 
 function checkRequirements(options, c, value) {
-  if (options.edit['#'+c].required === true) {
+  if (options.edit[c].required === true) {
     if (value === '') {
       alert('Column ' + c + ' may not be empty');
       return false;
     }
   }
-  else if (typeof options.edit['#'+c].required == 'object') {
-    if (options.edit['#'+c].required.regex) {
-      if (value.search(new RegExp(options.edit['#'+c].required.regex))) return true;
-      if (options.edit['#'+c].required.message) alert(options.edit['#'+c].required.message);
+  else if (typeof options.edit[c].required == 'object') {
+    if (options.edit[c].required.regex) {
+      if (value.search(new RegExp(options.edit[c].required.regex))) return true;
+      if (options.edit[c].required.message) alert(options.edit[c].required.message);
       else alert('Invalid input for column ' + c);
       return false;
     }
     else if (value === '') {
-      if (options.edit['#'+c].required.message) alert(options.edit['#'+c].required.message);
+      if (options.edit[c].required.message) alert(options.edit[c].required.message);
       else alert('Column ' + c + ' may not be empty');
       return false;
     }
@@ -955,19 +955,19 @@ function checkEdit(cell, edit, oldvalue) {
   var options = tables[key].data.options;
   if (options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
   else var c = cell.parent().children('.lt-data').index(cell)+1;
-  if (options.edit['#'+c].type == 'checkbox') {
+  if (options.edit[c].type == 'checkbox') {
     if (edit.prop('checked')) {
-      if (options.edit['#'+c].truevalue) newvalue = options.edit['#'+c].truevalue;
+      if (options.edit[c].truevalue) newvalue = options.edit[c].truevalue;
       else newvalue = 'true';
     }
     else {
-      if (options.edit['#'+c].falsevalue) newvalue = options.edit['#'+c].falsevalue
+      if (options.edit[c].falsevalue) newvalue = options.edit[c].falsevalue
       else newvalue = 'false';
     }
   }
 
   if (newvalue !== oldvalue) {
-    if (options.edit['#'+c].required) {
+    if (options.edit[c].required) {
       if (!checkRequirements(options, c, newvalue)) return;
     }
     var data = { mode: 'inlineedit', src: tables[key].data.block + ':' + tables[key].data.tag, col: c, row: cell.parent().data('rowid'), val: newvalue };
@@ -982,7 +982,7 @@ function checkEdit(cell, edit, oldvalue) {
       success: function(data) {
         if (data.error) userError(data.error);
         else {
-          if (!options.style || !options.style['#'+c]) this.css({ backgroundColor: 'transparent' });
+          if (!options.style || !options.style[c]) this.css({ backgroundColor: 'transparent' });
           var rows = tables[key].data.rows;
           for (var r = 0; r < rows.length; r++) {
             if (rows[r][0] == this.parent().data('rowid')) break;
@@ -990,11 +990,11 @@ function checkEdit(cell, edit, oldvalue) {
           if (r == rows.length) console.log('Row not found in table data');
           else {
 //            var options = tables[key].data.options; // var options can be used from the closure
-            if ((data.input == 'true') || (data.input == options.edit['#'+c].truevalue)) data.input = true;
-            else if ((data.input == 'false') || (data.input == options.edit['#'+c].falsevalue)) data.input = false;
+            if ((data.input == 'true') || (data.input == options.edit[c].truevalue)) data.input = true;
+            else if ((data.input == 'false') || (data.input == options.edit[c].falsevalue)) data.input = false;
             if ((data.input === '') && (data.row[c] === null)) data.input = null;
 
-            if ((typeof(options.edit['#'+c]) == 'object') && (options.edit['#'+c].query || (!options.edit['#'+c].target && (options.edit['#'+c].length == 2)))) rows[r][c] = data.row[c];
+            if ((typeof(options.edit[c]) == 'object') && (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length == 2)))) rows[r][c] = data.row[c];
             else rows[r][c] = data.input;
             updateRow(options, this.closest('tbody'), rows[r], data.row);
             rows[r] = data.row;
@@ -1004,9 +1004,9 @@ function checkEdit(cell, edit, oldvalue) {
       }
     });
     if (edit.prop('nodeName') == 'SELECT') cell.html(edit.find('option:selected').text());
-    else if (options.edit['#'+c].type == 'password') cell.empty();
+    else if (options.edit[c].type == 'password') cell.empty();
     else cell.html(newvalue);
-    if (!options.style || !options.style['#'+c]) cell.css({ backgroundColor: '#ffa0a0' });
+    if (!options.style || !options.style[c]) cell.css({ backgroundColor: '#ffa0a0' });
   }
   else if (edit.prop('nodeName') == 'SELECT') cell.html(edit.find('option[value="' + oldvalue + '"]').text());
   else cell.html(oldvalue);

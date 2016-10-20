@@ -62,10 +62,21 @@ function lt_find_table($src) {
 
   $src = explode(':', $src);
 
-  if (!file_exists($lt_settings['blocks_dir'] . $src[0] . '.php')) fatalerr('Block ' . $lt_settings['blocks_dir'] . $src[0] . ' not found');
-  ob_start();
-  if (eval(file_get_contents($lt_settings['blocks_dir'] . $src[0] . '.php')) === FALSE) fatalerr('Syntax error in block ' . $src[0]);
-  ob_end_clean();
+  if (function_exists('yaml_parse_file') && file_exists($lt_settings['blocks_dir'] . $src[0] . '.yml')) {
+    $yaml = yaml_parse_file($lt_settings['blocks_dir'] . $src[0] . '.yml', -1);
+    if ($yaml === false) fatalerr('YAML syntax error in block ' . $src[0]);
+    else {
+      foreach ($yaml as $table) {
+        lt_table($table[0], $table[1], $table[2], $table[3]);
+      }
+    }
+  }
+  else {
+    if (!file_exists($lt_settings['blocks_dir'] . $src[0] . '.php')) fatalerr('Block ' . $lt_settings['blocks_dir'] . $src[0] . ' not found');
+    ob_start();
+    if (eval(file_get_contents($lt_settings['blocks_dir'] . $src[0] . '.php')) === FALSE) fatalerr('PHP syntax error in block ' . $src[0]);
+    ob_end_clean();
+  }
 
   if (!empty($error)) fatalerr($error, $redirect);
 
@@ -123,11 +134,11 @@ function lt_edit_from_query($query) {
     if (strpos($cols[$i], '.') === false) continue;
     $val = explode('.', $cols[$i]);
     if ($val[0] == $firsttable) {
-      if ($i) $edit['#'.$i] = $cols[$i];
+      if ($i) $edit[$i] = $cols[$i];
     }
     elseif ($i == 0) return false;
     elseif ($joins[$val[0]]) {
-      $edit['#'.$i] = array($joins[$val[0]]['fk'], 'SELECT id, ' . $val[1] . ' FROM ' . $val[0]);
+      $edit[$i] = array($joins[$val[0]]['fk'], 'SELECT id, ' . $val[1] . ' FROM ' . $val[0]);
     }
   }
   return $edit;
@@ -156,7 +167,7 @@ switch ($mode) {
     $table = lt_find_table($_GET['src']);
     if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     $data = lt_query($table['query'], $params);
-    if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $src[0] . " returned error:\n\n" . $data['error']);
+    if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $table['block'] . " returned error:\n\n" . $data['error']);
     $data['block'] = $table['block'];
     $data['tag'] = $table['tag'];
     $data['title'] = $table['title'];
@@ -164,7 +175,7 @@ switch ($mode) {
     if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows']));
     elseif ($lt_settings['checksum'] == 'psql') {
       $data['crc'] = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM (" . $table['query'] . ") AS q)");
-      if (strpos($data['crc'], 'Error:') === 0) fatalerr('<p>Checksum query for table ' . $table['title'] . ' in block ' . $basename . ' returned error: ' . substr($data['crc'], 6));
+      if (strpos($data['crc'], 'Error:') === 0) fatalerr('<p>Checksum query for table ' . $table['title'] . ' in block ' . $table['block'] . ' returned error: ' . substr($data['crc'], 6));
     }
     if ($params) $data['params'] = base64_encode(json_encode($params));
     header('Content-type: application/json; charset=utf-8');
@@ -222,8 +233,8 @@ switch ($mode) {
     else {
       $table = lt_find_table($_POST['src']);
       if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
-      if (empty($table['options']['edit']['#' . $_POST['col']])) fatalerr('No edit option found for column ' . $_POST['col'] . ' in table ' . $_POST['src']);
-      $edit = $table['options']['edit']['#' . $_POST['col']];
+      if (empty($table['options']['edit'][$_POST['col']])) fatalerr('No edit option found for column ' . $_POST['col'] . ' in table ' . $_POST['src']);
+      $edit = $table['options']['edit'][$_POST['col']];
     }
 
     $type = 'default';
@@ -316,13 +327,13 @@ switch ($mode) {
       $edit = $table['options']['edit'];
     }
 
-    if (empty($edit['#' . $_GET['col']])) fatalerr('No edit option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
-    if (!is_array($edit['#' . $_GET['col']])) fatalerr('No editselect option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
-    if (count($edit['#' . $_GET['col']]) < 2) fatalerr('No valid editselect option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
-    if (!empty($edit['#' . $_GET['col']]['target'])) $target = $edit['#' . $_GET['col']]['target'];
-    else $target = $edit['#' . $_GET['col']][0];
-    if (!empty($edit['#' . $_GET['col']]['query'])) $query = $edit['#' . $_GET['col']]['query'];
-    else $query = $edit['#' . $_GET['col']][1];
+    if (empty($edit[$_GET['col']])) fatalerr('No edit option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
+    if (!is_array($edit[$_GET['col']])) fatalerr('No editselect option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
+    if (count($edit[$_GET['col']]) < 2) fatalerr('No valid editselect option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
+    if (!empty($edit[$_GET['col']]['target'])) $target = $edit[$_GET['col']]['target'];
+    else $target = $edit[$_GET['col']][0];
+    if (!empty($edit[$_GET['col']]['query'])) $query = $edit[$_GET['col']]['query'];
+    else $query = $edit[$_GET['col']][1];
     if (!preg_match('/^[a-z0-9_-]+\.[a-z0-9_-]+$/', $target)) fatalerr('Invalid target specified for column ' . $_GET['col'] . ' in table ' . $_GET['src'] . ' (' . $target . ')');
     $target = explode('.', $target);
 
