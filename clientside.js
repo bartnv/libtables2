@@ -390,6 +390,8 @@ function renderTableGrid(table, data, sub) {
   if (data.rows.length) {
     var row = $('<tr class="lt-row"/>');
     if (data.options.selectone) {
+      if (typeof selectones == 'undefined') selectones = 1;
+      else selectones++;
       if (data.options.selectone.name) row.append('<td class="lt-head">' + data.options.selectone.name + '</td>');
       else row.append('<td class="lt-head">' + tr('Select') + '</td>');
     }
@@ -443,6 +445,10 @@ function renderTableGrid(table, data, sub) {
   var tbody = $('<tbody/>');
   var rowcount = renderTbody(tbody, data);
   if (data.options.limit) thead.find('.lt-pages').html(tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + Math.ceil(rowcount/data.options.limit));
+  if (data.options.selectone && data.options.selectone.default) {
+    if (data.options.selectone.default == 'first') tbody.find('input[name^=select]:first').prop('checked', true);
+    else if (data.options.selectone.default == 'first') tbody.find('input[name^=select]:last').prop('checked', true);
+  }
 
   var tfoot = $('<tfoot/>');
   if (data.options.sum) calcSums(tfoot, data);
@@ -580,7 +586,7 @@ function renderTbody(tbody, data) {
     if (data.options.selectone) {
       if (data.options.selectone.trigger) var trigger = ' data-trigger="' + data.options.selectone.trigger + '"';
       else var trigger = '';
-      row.append('<td><input type="radio" name="select" onchange="selectOne(this)"' + trigger + '></td>');
+      row.append('<td><input type="radio" name="select' + selectones + '" ' + trigger + '></td>');
     }
     for (var c = 1; c < data.rows[r].length; c++) { // Loop over each column
       if (data.options.mouseover && data.options.mouseover[c]) continue;
@@ -673,14 +679,6 @@ function updateSums(tfoot, data) {
       }
     }
   }
-}
-
-function selectOne(el) {
-  console.log(el);
-  // if ($(el).data('trigger')) {
-//    if (table.options.trigger.indexOf(':') > 0) var triggered = document.getElementById(table.options.trigger);
-//    else var triggered = document.getElementById(table.block + ':' + table.options.trigger);
-//    loadOrRefreshCollection($(triggered).parent());
 }
 
 function updateTable(tbody, data, newrows) {
@@ -1241,6 +1239,14 @@ function calendarInsert(start, end) {
     if (!title) return;
   }
   else var title = '';
+  for (var i = 1; this.calendar.options.params[i]; i++) {
+    var checked = $('input[name=select'+i+']:checked');
+    if (this.calendar.options.params[i].required && !checked.length) {
+      if (this.calendar.options.params[i].missingtext) userError(this.calendar.options.params[i].missingtext);
+      else userError(tr('Missing parameter'));
+      return;
+    }
+  }
   $.ajax({
     url: 'data.php',
     type: 'POST',
@@ -1248,9 +1254,8 @@ function calendarInsert(start, end) {
     data: {
       mode: 'calendarinsert',
       src: this.calendar.options.src,
-      param1: $('input[name=param1]:checked').val(),
-      // $('[name=select]:checked').closest('tr').data('rowid')
-      param2: $('input[name=param2]:checked').val(),
+      param1: $('input[name=select1]:checked').closest('tr').data('rowid'),
+      param2: $('input[name=select2]:checked').closest('tr').data('rowid'),
       start: start.format(),
       end: end.format(),
       title: title
