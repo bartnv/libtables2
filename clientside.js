@@ -596,7 +596,8 @@ function renderTbody(tbody, data) {
     if (data.options.delete) {
       if (data.options.delete.text) var value = data.options.delete.text;
       else var value = '✖';
-      row.append('<td class="lt-cell"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
+      if (data.options.delete.notids && (data.options.delete.notids.indexOf(data.rows[r][0]) >= 0));
+      else row.append('<td class="lt-cell"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
     }
     tbody.append(row);
   }
