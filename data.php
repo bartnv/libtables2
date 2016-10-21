@@ -282,6 +282,18 @@ switch ($mode) {
         fatalerr("SQL execute error: " . $err[2]);
       }
     }
+    elseif (!empty($edit['phpfunction'])) {
+      $func = 'return ' . str_replace('?', "'" . $_POST['val'] . "'", $edit['phpfunction']) . ';';
+      $ret = eval($func);
+      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = ? WHERE id = ?'))) {
+        $err = $dbh->errorInfo();
+        fatalerr("SQL prepare error: " . $err[2]);
+      }
+      if (!($stmt->execute(array($ret, $_POST['row'])))) {
+        $err = $stmt->errorInfo();
+        fatalerr("SQL execute error: " . $err[2]);
+      }
+    }
     elseif (!empty($edit['sqlfunction'])) {
       if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = ' . $edit['sqlfunction'] . ' WHERE id = ?'))) {
         $err = $dbh->errorInfo();
