@@ -381,6 +381,7 @@ switch ($mode) {
 //    $writer->writeSheetHeader('Sheet1', $headers);
     $writer->writeSheetRow('Sheet1', $data['headers']);
     foreach ($data['rows'] as $row) {
+      if (!empty($table['options']['export']['hideid']) && $table['options']['export']['hideid']) array_shift($row);
       $writer->writeSheetRow('Sheet1', $row);
     }
     header('Content-disposition: attachment; filename="'.XLSXWriter::sanitize_filename($table['title'] . '.xlsx').'"');
@@ -480,11 +481,14 @@ switch ($mode) {
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
       $results[] = array(
         'id' => $row['id'],
+        'subid' => isset($row['subid'])?$row['subid']:null,
         'src' => $_POST['src'],
         'title' => $row['title'],
         'start' => $row['start'],
         'end' => $row['end'],
-        'color' => $row['color']
+        'color' => $row['color'],
+        'subcolor' => isset($row['subcolor'])?$row['subcolor']:null,
+        'allDay' => isset($row['allday'])?$row['allday']:false
       );
     }
 
@@ -526,6 +530,7 @@ switch ($mode) {
       $params[] = $_POST['param1'];
       if (!empty($_POST['param2'])) $params[] = $_POST['param2'];
     }
+    if (!empty($_POST['title'])) $params[] = $_POST['title'];
     if (!($stmt->execute($params))) {
       $err = $stmt->errorInfo();
       fatalerr("SQL execute error: " . $err[2] . "\nwith params: " . json_encode($params));
