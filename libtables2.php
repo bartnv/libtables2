@@ -126,34 +126,39 @@ function lt_print_block($block, $params = array(), $options = array()) {
     }
   }
 
-  if (file_exists($lt_settings['blocks_dir'] . $basename . '.html')) {
-    readfile($lt_settings['blocks_dir'] . $basename . '.html');
-    return;
-  }
-  if (function_exists('yaml_parse_file') && file_exists($lt_settings['blocks_dir'] . $basename . '.yml')) {
-    $yaml = yaml_parse_file($lt_settings['blocks_dir'] . $basename . '.yml', -1);
-    if ($yaml === false) print("<p>YAML syntax error in block $basename</p>");
-    else {
-      foreach ($yaml as $table) {
-        lt_table($table[0], $table[1], $table[2], $table[3]);
-      }
+  if (is_array($lt_settings['blocks_dir'])) $dirs = $lt_settings['blocks_dir'];
+  else $dirs[] = $lt_settings['blocks_dir'];
+
+  foreach($dirs as $dir) {
+    if (file_exists($dir . $basename . '.html')) {
+      readfile($dir . $basename . '.html');
+      return;
     }
-    return;
-  }
-  if (!file_exists($lt_settings['blocks_dir'] . $basename . '.php')) {
-    print "Block $basename not found in directory " . $lt_settings['blocks_dir'];
-    return;
+    if (function_exists('yaml_parse_file') && file_exists($dir . $basename . '.yml')) {
+      $yaml = yaml_parse_file($dir . $basename . '.yml', -1);
+      if ($yaml === false) print("<p>YAML syntax error in block $basename</p>");
+      else {
+        foreach ($yaml as $table) {
+          lt_table($table[0], $table[1], $table[2], $table[3]);
+        }
+      }
+      return;
+    }
+    if (file_exists($dir . $basename . '.php')) {
+      if (!empty($params)) {
+        $block_options['params'] = $params;
+        print '<div id="block_' . $basename . '_' . base64_encode(json_encode($params)) . '"';
+      }
+      else print '<div id="block_' . $basename . '"';
+      if (!empty($block_options['style'])) print ' style="' . $block_options['style'] . '"';
+      print ">\n";
+      if (eval(file_get_contents($dir . $basename . '.php')) === FALSE) print "<p>PHP syntax error in block $basename</p>";
+      print "</div>\n";
+      return;
+    }
   }
 
-  if (!empty($params)) {
-    $block_options['params'] = $params;
-    print '<div id="block_' . $basename . '_' . base64_encode(json_encode($params)) . '"';
-  }
-  else print '<div id="block_' . $basename . '"';
-  if (!empty($block_options['style'])) print ' style="' . $block_options['style'] . '"';
-  print ">\n";
-  if (eval(file_get_contents($lt_settings['blocks_dir'] . $basename . '.php')) === FALSE) print "<p>PHP syntax error in block $basename</p>";
-  print "</div>\n";
+  print "Block $basename not found in blocks_dir " . implode(", ", $dirs);
 }
 
 function lt_query($query, $params = array(), $id = 0) {

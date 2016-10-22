@@ -61,24 +61,30 @@ function lt_find_table($src) {
   global $tables;
 
   $src = explode(':', $src);
+  if (is_array($lt_settings['blocks_dir'])) $dirs = $lt_settings['blocks_dir'];
+  else $dirs[] = $lt_settings['blocks_dir'];
 
-  if (function_exists('yaml_parse_file') && file_exists($lt_settings['blocks_dir'] . $src[0] . '.yml')) {
-    $yaml = yaml_parse_file($lt_settings['blocks_dir'] . $src[0] . '.yml', -1);
-    if ($yaml === false) fatalerr('YAML syntax error in block ' . $src[0]);
-    else {
-      foreach ($yaml as $table) {
-        lt_table($table[0], $table[1], $table[2], $table[3]);
+  foreach($dirs as $dir) {
+    if (function_exists('yaml_parse_file') && file_exists($dir . $src[0] . '.yml')) {
+      $yaml = yaml_parse_file($dir . $src[0] . '.yml', -1);
+      if ($yaml === false) fatalerr('YAML syntax error in block ' . $src[0]);
+      else {
+        foreach ($yaml as $table) {
+          lt_table($table[0], $table[1], $table[2], $table[3]);
+        }
       }
+      break;
     }
-  }
-  else {
-    if (!file_exists($lt_settings['blocks_dir'] . $src[0] . '.php')) fatalerr('Block ' . $lt_settings['blocks_dir'] . $src[0] . ' not found');
-    ob_start();
-    if (eval(file_get_contents($lt_settings['blocks_dir'] . $src[0] . '.php')) === FALSE) fatalerr('PHP syntax error in block ' . $src[0]);
-    ob_end_clean();
+    elseif (file_exists($dir . $src[0] . '.php')) {
+      ob_start();
+      if (eval(file_get_contents($dir . $src[0] . '.php')) === FALSE) fatalerr('PHP syntax error in block ' . $src[0]);
+      ob_end_clean();
+      break;
+    }
   }
 
   if (!empty($error)) fatalerr($error, $redirect);
+  if (count($tables) == 0) fatalerr('Block ' . $src[0] . ' not found');
 
   $table = 0;
   foreach ($tables as $atable) {
@@ -88,7 +94,7 @@ function lt_find_table($src) {
       return $atable;
     }
   }
-  fatalerr('Specified src not found in mode inlineedit');
+  fatalerr('Specified table not found in block ' . $src[0]);
 }
 
 function allowed_block($block) {
