@@ -1009,12 +1009,12 @@ function checkEdit(cell, edit, oldvalue) {
 //            var options = tables[key].data.options; // var options can be used from the closure
             if ((data.input == 'true') || (data.input == options.edit[c].truevalue)) data.input = true;
             else if ((data.input == 'false') || (data.input == options.edit[c].falsevalue)) data.input = false;
-            if ((data.input === '') && (data.row[c] === null)) data.input = null;
+            if ((data.input === '') && (data.rows[0][c] === null)) data.input = null;
 
-            if ((typeof(options.edit[c]) == 'object') && (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length == 2)))) rows[r][c] = data.row[c];
+            if ((typeof(options.edit[c]) == 'object') && (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length == 2)))) rows[r][c] = data.row[0][c];
             else rows[r][c] = data.input;
-            updateRow(options, this.closest('tbody'), rows[r], data.row);
-            rows[r] = data.row;
+            updateRow(options, this.closest('tbody'), rows[r], data.rows[0]);
+            rows[r] = data.rows[0];
             if (options.callbacks && options.callbacks.change) window.setTimeout(options.callbacks.change, 0);
           }
         }
