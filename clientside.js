@@ -559,6 +559,11 @@ function renderTbody(tbody, data) {
       for (i in data.filters) {
         if (data.filters[i] instanceof RegExp) {
           if ((typeof data.rows[r][i] == 'string') && (data.rows[r][i].search(data.filters[i]) >= 0)) continue;
+          if (typeof data.rows[r][i] == 'boolean') {
+            if (String(data.rows[r][i]).search(data.filters[i]) >= 0) continue;
+            if (data.rows[r][i] && data.options.edit && data.options.edit[i] && data.options.edit[i].truevalue && (data.options.edit[i].truevalue.search(data.filters[i]) >= 0)) continue;
+            if (!data.rows[r][i] && data.options.edit && data.options.edit[i] && data.options.edit[i].falsevalue && (data.options.edit[i].falsevalue.search(data.filters[i]) >= 0)) continue;
+          }
         }
         else if (data.filters[i].startsWith('>=')) {
           if (data.rows[r][i] >= parseFloat(data.filters[i].substring(2))) continue;
