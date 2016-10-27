@@ -190,11 +190,11 @@ function lt_query($query, $params = array(), $id = 0) {
   if ($id) {
     while ($row = $res->fetch(PDO::FETCH_NUM)) {
       if ($row[0] == $id) {
-        $ret['rows'] = $row;
+        $ret['rows'][0] = $row;
         break;
       }
     }
-    if (empty($ret['row'])) $ret['error'] = 'row id ' . $id . ' not found';
+    if (empty($ret['rows'][0])) $ret['error'] = 'row id ' . $id . ' not found';
   }
   else {
     $ret['headers'] = array();

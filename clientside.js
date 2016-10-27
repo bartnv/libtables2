@@ -86,6 +86,29 @@ function loadOrRefreshCollection(coll, sub) {
   });
 }
 
+function doFunction(button) {
+  button = $(button);
+  var key = button.closest('table').attr('id');
+
+  if (button.hasClass('lt-tablefunc')) {
+    $.ajax({
+      method: 'post',
+      url: 'data.php',
+      dataType: 'json',
+      context: button.closest('table'),
+      data: { mode: 'function', type: 'table', src: tables[key].data.block + ':' + tables[key].data.tag, params: tables[key].data.params },
+      success: function(data) {
+        if (data.error) appError(data.error, this);
+        else {
+          refreshTable(this, key);
+          if (tables[key].data.options.tablefunction.trigger) loadOrRefreshCollection($('#' + tables[key].data.options.tablefunction.trigger));
+          if (tables[key].data.options.tablefunction.replacetext) this.find('.lt-tablefunc').val(tables[key].data.options.tablefunction.replacetext);
+        }
+      }
+    });
+  }
+}
+
 function showTableInDialog(table) {
   if (!table.dialog) {
     appError('jQuery UI Dialog widget not loaded', table);
@@ -309,8 +332,7 @@ function renderTable(table, data, sub) {
 function renderTableFormat(table, data, sub) {
   if (data.options.classes && data.options.classes.table) table.addClass(data.options.classes.table);
   var headstr = '<thead><tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
-  if (data.options.popout && (data.options.popout.type == 'floating-div'))
-    headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"") + '" onclick="showTableInDialog($(this).closest(\'table\'));">';
+  if (data.options.popout && (data.options.popout.type == 'floating-div')) headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"") + '" onclick="showTableInDialog($(this).closest(\'table\'));">';
   headstr += '</th></tr></thead>';
   var thead = $(headstr);
 
@@ -378,6 +400,17 @@ function renderTableGrid(table, data, sub) {
   if (!sub) {
     headstr += '<tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
     if (data.options.popout && (data.options.popout.type == 'floating-div')) headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"") + '" onclick="showTableInDialog($(this).closest(\'table\'));">';
+    if (data.options.tablefunction && data.options.tablefunction.text) {
+      if (data.params) {
+        var params = JSON.parse(atob(data.params));
+        params.unshift('');
+      }
+      else var params = [];
+      if (data.options.tablefunction.hidecondition) var disp = ' style="display: none;"';
+      else var disp = '';
+      if (data.options.tablefunction.confirm) headstr += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="if (confirm(\'' + replaceHashes(data.options.tablefunction.confirm, params) + '\')) doFunction(this);" value="' + replaceHashes(data.options.tablefunction.text, params) + '">';
+      else headstr += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="doFunction(this);" value="' + replaceHashes(data.options.tablefunction.text, params) + '">';
+    }
     headstr += '</th></tr>';
   }
   headstr += '</thead>';

@@ -365,6 +365,29 @@ switch ($mode) {
     header('Content-type: application/json; charset=utf-8');
     print json_encode($data);
     break;
+  case 'function':
+    if (empty($_POST['type'])) fatalerr('No type specified for mode function');
+    if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode function');
+    if (!empty($_POST['params'])) $params = json_decode(base64_decode($_POST['params']));
+    else $params = array();
+
+    $table = lt_find_table($_POST['src']);
+    if ($_POST['type'] == 'table') {
+      if (empty($table['options']['tablefunction'])) fatalerr('No tablefunction defined in block ' . $_POST['src']);
+      if (empty($table['options']['tablefunction']['query'])) fatalerr('No tablefunction query defined in block ' . $_POST['src']);
+
+      if (!($stmt = $dbh->prepare($table['options']['tablefunction']['query']))) {
+        $err = $dbh->errorInfo();
+        fatalerr("SQL prepare error: " . $err[2]);
+      }
+      if (!($stmt->execute())) {
+        $err = $stmt->errorInfo();
+        fatalerr("SQL execute error: " . $err[2]);
+      }
+      print '{ "status": "ok" }';
+    }
+    else fatalerr('Invalid type in mode function');
+    break;
   case 'excelexport':
     include('3rdparty/xlsxwriter.class.php');
 
