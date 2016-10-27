@@ -70,7 +70,7 @@ function lt_find_table($src) {
       if ($yaml === false) fatalerr('YAML syntax error in block ' . $src[0]);
       else {
         foreach ($yaml as $table) {
-          lt_table($table[0], $table[1], $table[2], $table[3]);
+          lt_table($table[0], $table[1], $table[2], isset($table[3])?$table[3]:array());
         }
       }
       break;

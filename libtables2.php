@@ -139,7 +139,7 @@ function lt_print_block($block, $params = array(), $options = array()) {
       if ($yaml === false) print("<p>YAML syntax error in block $basename</p>");
       else {
         foreach ($yaml as $table) {
-          lt_table($table[0], $table[1], $table[2], $table[3]);
+          lt_table($table[0], $table[1], $table[2], isset($table[3])?$table[3]:array());
         }
       }
       return;
