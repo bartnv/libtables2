@@ -1032,6 +1032,7 @@ function checkEdit(cell, edit, oldvalue) {
       success: function(data) {
         if (data.error) userError(data.error);
         else {
+          tables[key].data.crc = '-';
           if (!options.style || !options.style[c]) this.css({ backgroundColor: 'transparent' });
           var rows = tables[key].data.rows;
           for (var r = 0; r < rows.length; r++) {
