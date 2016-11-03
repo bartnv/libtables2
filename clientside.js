@@ -304,8 +304,6 @@ function goPage(tableId, which) {
     data.options.page = old;
     return;
   }
-//  table.empty();
-//  renderTable(table, data);
   var tbody = table.find('tbody');
   tbody.empty();
   var rowcount = renderTbody(tbody, data);
@@ -1040,12 +1038,11 @@ function checkEdit(cell, edit, oldvalue) {
           }
           if (r == rows.length) console.log('Row not found in table data');
           else {
-//            var options = tables[key].data.options; // var options can be used from the closure
             if ((data.input == 'true') || (data.input == options.edit[c].truevalue)) data.input = true;
             else if ((data.input == 'false') || (data.input == options.edit[c].falsevalue)) data.input = false;
             if ((data.input === '') && (data.rows[0][c] === null)) data.input = null;
 
-            if ((typeof(options.edit[c]) == 'object') && (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length == 2)))) rows[r][c] = data.row[0][c];
+            if ((typeof(options.edit[c]) == 'object') && (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length == 2)))) rows[r][c] = data.rows[0][c];
             else rows[r][c] = data.input;
             updateRow(options, this.closest('tbody'), rows[r], data.rows[0]);
             rows[r] = data.rows[0];
