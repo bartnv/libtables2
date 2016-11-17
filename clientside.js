@@ -464,6 +464,7 @@ function renderTableGrid(table, data, sub) {
   if (data.options.filter && (typeof data.options.filter != 'function')) {
     var row = $('<tr class="lt-row"/>');
     for (var c = 1; c < data.headers.length; c++) {
+      if (data.options.mouseover && data.options.mouseover[c]) continue;
       if ((data.options.filter === true) || data.options.filter[c]) row.append('<td class="lt-filter"><input type="text" size="5" oninput="updateFilter(this);"></td>');
       else row.append('<td/>');
     }
