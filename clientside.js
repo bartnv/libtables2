@@ -260,6 +260,14 @@ function sortOnColumn(a, b, index) {
   else return 1;
 }
 
+function colVisualToReal(data, idx) {
+  if (!data.options.mouseover) return idx;
+  for (c = 1; c <= data.headers.length; c++) {
+    if (data.options.mouseover[c]) idx++;
+    if (c == idx) return c;
+  }
+}
+
 function sortBy(tableId, el) {
   el = $(el);
   var table = tables[tableId].table;
@@ -274,7 +282,7 @@ function sortBy(tableId, el) {
   }
   console.log('Sort table ' + tableId + ' on column ' + el.html() + ' ' + data.options.sortdir);
 
-  var c = el.index()+1;
+  var c = colVisualToReal(data, el.index()+1);
   if (data.options.sortdir == 'ascending') {
     data.rows.sort(function(a, b) { return sortOnColumn(a, b, c); });
     el.siblings().removeClass('lt-sorted-asc lt-sorted-desc');
@@ -810,9 +818,9 @@ function updateRow(options, tbody, oldrow, newrow) {
 
 function updateFilter(edit) {
   edit = $(edit);
-  var c = edit.parent().index()+1;
   var table = edit.closest('table');
   var data = tables[table.attr('id')].data;
+  var c = colVisualToReal(data, edit.parent().index()+1);
   if (!data.filters) data.filters = {};
   edit.css('background-color', '');
   if (edit.val() === "") delete data.filters[c];
