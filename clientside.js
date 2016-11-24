@@ -476,7 +476,12 @@ function renderTableGrid(table, data, sub) {
       if ((data.options.filter === true) || data.options.filter[c]) row.append('<td class="lt-filter"><input type="text" size="5" oninput="updateFilter(this);"></td>');
       else row.append('<td/>');
     }
-    row.find('td').first().prepend('<span class="lt-label-filter"><img src="filter.svg" style="width: 15px; height: 15px;" title="Use these fields to filter the table\nMultiple filtered columns combine with AND logic\nNumeric matching is supported by starting with =, <, >, <= or >=\nRegular expressions can also be used, for example:\n   \'^text\' to match at the start\n   \'text$\' to match at the end\n   \'(one|two)\' to match one or two"></span>');
+    row.find('td').first()
+      .css('position', 'relative')
+      .prepend('<span class="lt-label-filter"><img src="filter.svg" style="width: 15px; height: 15px;" title="Use these fields to filter the table\nMultiple filtered columns combine with AND logic\nNumeric matching is supported by starting with =, <, >, <= or >=\nRegular expressions can also be used, for example:\n   \'^text\' to match at the start\n   \'text$\' to match at the end\n   \'(one|two)\' to match one or two"></span>');
+    row.find('td').last()
+      .css('position', 'relative')
+      .append('<span class="lt-label-clear"><a href="javascript:clearFilters(\'' + table.attr('id') + '\');"><img src="clear.svg"></a></span>');
     thead.append(row);
   }
 
@@ -830,10 +835,20 @@ function updateFilter(edit) {
     try { data.filters[c] = new RegExp(edit.val(), 'i'); }
     catch (e) { edit.css('background-color', 'rgba(255,0,0,0.5)'); }
   }
+  runFilters(table, data);
+}
+function runFilters(table, data) {
   if (data.options.page > 1) data.options.page = 1;
   var tbody = table.find('tbody');
   var rowcount = renderTbody(tbody, data);
   if (data.options.limit) table.find('.lt-pages').html(tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + Math.ceil(rowcount/data.options.limit));
+}
+function clearFilters(key) {
+  var table = $(document.getElementById(key));
+  var data = tables[table.attr('id')].data;
+  table.find('.lt-filter').children('input').css('background-color', '').val('');
+  data.filters = {};
+  runFilters(table, data);
 }
 
 function doEdit(cell) {
