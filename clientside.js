@@ -718,7 +718,9 @@ function updateSums(tfoot, data) {
   for (var c = 1; c < data.headers.length; c++) {
     if (data.options.sum[c]) {
       var sum = 0;
-      for (var r = 0; r < data.rows.length; r++) sum += data.rows[r][c];
+      for (var r = 0; r < data.rows.length; r++) {
+        if (data.rows[r][c]) sum += parseFloat(data.rows[r][c]);
+      }
       sum = String(Math.round(sum*1000000)/1000000);
       var oldsum = row.children().eq(c-1).html();
       if (sum != oldsum) {
