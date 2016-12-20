@@ -261,7 +261,9 @@ function sortOnColumn(a, b, index) {
 }
 
 function colVisualToReal(data, idx) {
-  if (!data.options.mouseover && !data.options.hidecolumn) return idx;
+  if (!data.options.mouseover && !data.options.hidecolumn && !data.options.selectone && !data.options.selectany) return idx;
+  if (data.options.selectone) idx--;
+  if (data.options.selectany) idx--;
   for (c = 1; c <= data.headers.length; c++) {
     if (data.options.mouseover && data.options.mouseover[c]) idx++;
     else if (data.options.hidecolumn && data.options.hidecolumn[c]) idx++;
@@ -433,6 +435,10 @@ function renderTableGrid(table, data, sub) {
       if (data.options.selectone.name) row.append('<td class="lt-head">' + data.options.selectone.name + '</td>');
       else row.append('<td class="lt-head">' + tr('Select') + '</td>');
     }
+    if (data.options.selectany) {
+      if (data.options.selectany.name) row.append('<td class="lt-head">' + data.options.selectany.name + '</td>');
+      else row.append('<td class="lt-head">' + tr('Select') + '</td>');
+    }
     for (var c = 0; c < data.headers.length; c++) { // Loop over the columns for the headers
       if (data.options.sortby) {
         if (data.options.sortby == data.headers[c]) {
@@ -473,6 +479,8 @@ function renderTableGrid(table, data, sub) {
 
   if (data.options.filter && (typeof data.options.filter != 'function')) {
     var row = $('<tr class="lt-row"/>');
+    if (data.options.selectone) row.append('<td/>');
+    if (data.options.selectany) row.append('<td/>');
     for (var c = 1; c < data.headers.length; c++) {
       if (data.options.mouseover && data.options.mouseover[c]) continue;
       if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
@@ -641,6 +649,11 @@ function renderTbody(tbody, data) {
       else var trigger = '';
       row.push('<td><input type="radio" name="select' + selectones + '" ' + trigger + '></td>');
     }
+    if (data.options.selectany) {
+      if (data.options.selectany.links && (data.options.selectany.links.indexOf(data.rows[r][0]) >= 0)) var checked = ' checked';
+      else var checked = '';
+      row.push('<td class="lt-cell"><input type="checkbox" onchange="doSelect(this)"' + checked + '></td>');
+    }
     for (var c = 1; c < data.rows[r].length; c++) { // Loop over each column
       if (data.options.mouseover && data.options.mouseover[c]) continue;
       if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
@@ -657,6 +670,25 @@ function renderTbody(tbody, data) {
   }
   tbody[0].innerHTML = rows.join('');
   return rowcount;
+}
+
+function doSelect(el) {
+  input = $(el);
+  input.parent().css('background-color', 'red');
+  key = input.closest('table').attr('id');
+  id = input.closest('tr').data('rowid');
+  $.ajax({
+    method: 'post',
+    url: 'data.php',
+    dataType: 'json',
+    context: input,
+    data: { mode: 'select', src: tables[key].data.block + ':' + tables[key].data.tag, params: tables[key].data.params, id: id, link: input.prop('checked') },
+    success: function(data) {
+      console.log(this);
+      if (data.error) appError(data.error, this);
+      else this.parent().css('background-color', '');
+    }
+  });
 }
 
 function renderCell(options, row, c) {

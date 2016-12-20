@@ -178,6 +178,10 @@ switch ($mode) {
     $data['tag'] = $table['tag'];
     $data['title'] = $table['title'];
     $data['options'] = $table['options'];
+    if (!empty($data['options']['selectany'])) {
+      $tmp = lt_query('SELECT ' . $data['options']['selectany']['fields'][1] . ' FROM ' . $data['options']['selectany']['linktable'] . ' WHERE ' . $data['options']['selectany']['fields'][0] . ' = ?', $params);
+      $data['options']['selectany']['links'] = array_column($tmp['rows'], 0);
+    }
     if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows']));
     elseif ($lt_settings['checksum'] == 'psql') {
       $data['crc'] = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM (" . $table['query'] . ") AS q)");
@@ -224,6 +228,40 @@ switch ($mode) {
       $data['crc'] = $crc;
       print json_encode($data);
     }
+    break;
+  case 'select':
+    if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode select');
+    if (empty($_POST['id']) || !is_numeric($_POST['id'])) fatalerr('Invalid row id in mode select');
+    if (empty($_POST['link'])) fatalerr('Invalid link data in mode select');
+    if (empty($_POST['params'])) fatalerr('Invalid params in mode select');
+    $params = json_decode(base64_decode($_POST['params']));
+
+    $table = lt_find_table($_POST['src']);
+    if (empty($table['options']['selectany'])) fatalerr('No selectany option found for table ' . $_POST['src']);
+    if (empty($table['options']['selectany']['linktable'])) fatalerr('No linktable found for table ' . $_POST['src']);
+    if (empty($table['options']['selectany']['fields'][0])) fatalerr('No left field found for table ' . $_POST['src']);
+    if (empty($table['options']['selectany']['fields'][1])) fatalerr('No right field found for table ' . $_POST['src']);
+    if ($_POST['link'] === "true") {
+      if (!($stmt = $dbh->prepare("INSERT INTO " . $table['options']['selectany']['linktable'] . " (" . $table['options']['selectany']['fields'][0] . ", " . $table['options']['selectany']['fields'][1] . ") VALUES (?, " . $_POST['id'] . ")"))) {
+        $err = $dbh->errorInfo();
+        fatalerr("SQL prepare error: " . $err[2]);
+      }
+      if (!$stmt->execute($params)) {
+        $err = $stmt->errorInfo();
+        fatalerr("SQL execute error: " . $err[2]);
+      }
+    }
+    else {
+      if (!($stmt = $dbh->prepare("DELETE FROM " . $table['options']['selectany']['linktable'] . " WHERE " . $table['options']['selectany']['fields'][0] . " = ? AND " . $table['options']['selectany']['fields'][1] . " = " . $_POST['id']))) {
+        $err = $dbh->errorInfo();
+        fatalerr("SQL prepare error: " . $err[2]);
+      }
+      if (!$stmt->execute($params)) {
+        $err = $stmt->errorInfo();
+        fatalerr("SQL execute error: " . $err[2]);
+      }
+    }
+    print '{ "status": "ok" }';
     break;
   case 'inlineedit':
     if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode inlineedit');
