@@ -261,9 +261,10 @@ function sortOnColumn(a, b, index) {
 }
 
 function colVisualToReal(data, idx) {
-  if (!data.options.mouseover) return idx;
+  if (!data.options.mouseover && !data.options.hidecolumn) return idx;
   for (c = 1; c <= data.headers.length; c++) {
-    if (data.options.mouseover[c]) idx++;
+    if (data.options.mouseover && data.options.mouseover[c]) idx++;
+    else if (data.options.hidecolumn && data.options.hidecolumn[c]) idx++;
     if (c == idx) return c;
   }
 }
@@ -441,6 +442,7 @@ function renderTableGrid(table, data, sub) {
       }
       if (c) {
         if (data.options.mouseover && data.options.mouseover[c]) continue;
+        if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
         var onclick = "";
         var classes = [ "lt-head" ];
         if (data.options.sortable) {
@@ -473,6 +475,7 @@ function renderTableGrid(table, data, sub) {
     var row = $('<tr class="lt-row"/>');
     for (var c = 1; c < data.headers.length; c++) {
       if (data.options.mouseover && data.options.mouseover[c]) continue;
+      if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
       if ((data.options.filter === true) || data.options.filter[c]) row.append('<td class="lt-filter"><input type="text" size="5" oninput="updateFilter(this);"></td>');
       else row.append('<td/>');
     }
@@ -503,6 +506,7 @@ function renderTableGrid(table, data, sub) {
     row = $('<tr class="lt-row"/>');
     for (var c = 1; ; c++) {
       if (data.options.mouseover && data.options.mouseover[c]) continue;
+      if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
       if (!fields[c]) {
         if (c == data.headers.length) break;
         str = '<td class="lt-head">' + data.headers[c] + '</td>';
@@ -639,6 +643,7 @@ function renderTbody(tbody, data) {
     }
     for (var c = 1; c < data.rows[r].length; c++) { // Loop over each column
       if (data.options.mouseover && data.options.mouseover[c]) continue;
+      if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
       row.push(renderCell(data.options, data.rows[r], c));
     }
     if (data.options.appendcell) row.push('<td class="lt-cell">' + replaceHashes(data.options.appendcell, data.rows[r]) + '</td>');
@@ -771,6 +776,7 @@ function updateTable(tbody, data, newrows) {
       var row = $('<tr class="lt-row" data-rowid="'+newrows[i][0]+'"/>');
       for (c = 1; c < newrows[i].length; c++) {
         if (data.options.mouseover && data.options.mouseover[c]) continue;
+        if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
         row.append($(renderCell(data.options, newrows[i], c)));
       }
       if (data.options.appendcell) row.append('<td class="lt-cell">' + replaceHashes(data.options.appendcell, newrows[i]) + '</td>');
@@ -800,6 +806,7 @@ function updateRow(options, tbody, oldrow, newrow) {
         }
       }
     }
+    else if (options.hidecolumn && options.hidecolumn[c]) offset++;
     else if (oldrow[c] != newrow[c]) {
       if (options.format) cell = tbody.find('.lt-data').eq(c-1);
       else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').children().eq(c-offset);
