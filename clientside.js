@@ -1143,21 +1143,9 @@ function doInsert(el) {
   table = tables[row.closest('table').attr('id')].data;
   if (table.options.insert.hidden) {
     if (typeof(table.options.insert.hidden[0]) == 'object') { // Multiple hidden fields (array of arrays)
+      for (i = 0; table.options.insert.hidden[i]; i++) processHiddenInsert(table.options.insert.hidden[i], row.closest('.lt-div').data('params'));
     }
-    else {
-      if (!table.options.insert.hidden['target'] || !table.options.insert.hidden['value']) appError('No target or value defined in insert hidden');
-      value = String(table.options.insert.hidden['value']);
-      if (value.indexOf('#') >= 0) {
-        if (row.closest('.lt-div').data('params')) {
-          params = JSON.parse(atob(row.closest('.lt-div').data('params')));
-          for (var i = 0; params[i]; i++) {
-            value = value.replace('#param' + (i+1), params[i]);
-          }
-          postdata = 'params=' + row.closest('.lt-div').data('params') + '&' + postdata;
-        }
-      }
-      postdata += '&' + table.options.insert.hidden['target'].replace('.', ':') + '=' + value;
-    }
+    else processHiddenInsert(table.options.insert.hidden, row.closest('.lt-div').data('params'));
   }
   $.ajax({
     dataType: 'json',
@@ -1183,6 +1171,21 @@ function doInsert(el) {
       }
     }
   });
+}
+
+function processHiddenInsert(hidden, paramstr) {
+  if (!hidden.target || !hidden.value) appError('No target or value defined in insert hidden');
+  value = String(hidden.value);
+  if (value.indexOf('#') >= 0) {
+    if (paramstr) {
+      params = JSON.parse(atob(paramstr));
+      for (var i = 0; params[i]; i++) {
+        value = value.replace('#param' + (i+1), params[i]);
+      }
+      postdata = 'params=' + paramstr + '&' + postdata;
+    }
+  }
+  postdata += '&' + hidden.target.replace('.', ':') + '=' + value;
 }
 
 function doDelete(el) {
