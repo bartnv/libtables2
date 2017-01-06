@@ -472,10 +472,17 @@ switch ($mode) {
       }
     }
 
+    foreach ($tableinfo['options']['insert']['keys'] as $pkey => $fkey) {
+      list($ptable, $pcolumn) = explode('.', $pkey);
+      list($ftable, $fcolumn) = explode('.', $fkey);
+      if (!isset($tables[$ftable]['columns'])) fatalerr('Invalid sequence in insert keys option to block ' . $_POST['src']);
+      $tables[$ftable]['columns'][$fcolumn] = lt_run_insert($ptable, $tables[$ptable], $pcolumn);
+      unset($tables[$ptable]['columns']);
+    }
     foreach ($tables as $name => $value) {
       if (!isset($tables[$name]['columns'])) continue;
-      $tables[$name]['insert_id'] = lt_run_query($name, $tables[$name]);
-      unset($tables[$name]['columns']);
+      lt_run_insert($name, $tables[$name]);
+      unset($tables[$name]['columns']); // May not be necessary
     }
 
     $data = lt_query($tableinfo['query'], $params);
@@ -497,7 +504,7 @@ switch ($mode) {
     if (empty($table['options']['delete']['table'])) fatalerr('No table defined in delete option in block ' . $_POST['src']);
     $target = $table['options']['delete']['table'];
 
-    if ($table['options']['delete']['update']) {
+    if (!empty($table['options']['delete']['update'])) {
       if (empty($table['options']['delete']['update']['column'])) fatalerr('No column defined in update setting for delete option in block ' . $_POST['src']);
       if (!isset($table['options']['delete']['update']['value'])) fatalerr('No value defined in update setting for delete option in block ' . $_POST['src']);
       if (!($stmt = $dbh->prepare("UPDATE " . $target . " SET " . $table['options']['delete']['update']['column'] . " = ? WHERE id = ?"))) {
@@ -619,10 +626,12 @@ switch ($mode) {
     fatalerr('Invalid mode specified');
 }
 
-function lt_run_query($table, $data) {
+function lt_run_insert($table, $data, $idcolumn = '') {
   global $dbh;
+  $driver = $dbh->getAttribute(PDO::ATTR_DRIVER_NAME);
 
   $query = "INSERT INTO $table (" . implode(',', array_keys($data['columns'])) . ") VALUES (" . rtrim(str_repeat('?, ', count($data['columns'])), ', ') . ")";
+  if ($idcolumn && ($driver == 'pgsql')) $query .= " RETURNING $idcolumn";
 
   if (!($stmt = $dbh->prepare($query))) {
     $err = $dbh->errorInfo();
@@ -633,5 +642,15 @@ function lt_run_query($table, $data) {
     fatalerr("SQL execute error: " . $err[2]);
   }
 
-  return $dbh->lastInsertId();
+  if ($idcolumn) {
+    if ($driver == 'pgsql') {
+      $row = $stmt->fetch(PDO::FETCH_NUM);
+      if (empty($row) || empty($row[0])) fatalerr("lastInsertId requested but not available");
+      $id = $row[0];
+    }
+    else $id = $dbh->lastInsertId();
+  }
+  else $id = 0;
+
+  return $id;
 }
