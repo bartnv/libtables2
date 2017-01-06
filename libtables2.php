@@ -205,12 +205,12 @@ function lt_query($query, $params = array(), $id = 0) {
       $ret['types'][] = $col['native_type'];
     }
     $ret['rows'] = $res->fetchAll(PDO::FETCH_NUM);
-  }
 
-  // Do datatype correction because PHP PDO is dumb about floating point values
-  for ($i = 0; $i < $res->columnCount(); $i++) {
-    if ($ret['types'][$i] == 'float4') {
-      foreach ($ret['rows'] as &$row) $row[$i] = floatval($row[$i]);
+    // Do datatype correction because PHP PDO is dumb about floating point values
+    for ($i = 0; $i < $res->columnCount(); $i++) {
+      if ($ret['types'][$i] == 'float4') {
+        foreach ($ret['rows'] as &$row) $row[$i] = floatval($row[$i]);
+      }
     }
   }
 
