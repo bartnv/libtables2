@@ -440,6 +440,7 @@ function renderTableGrid(table, data, sub) {
       else {
         headstr += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="doFunction(this);" value="';
         headstr += replaceHashes(data.options.tablefunction.text, params) + '">';
+      }
     }
     headstr += '</th></tr>';
   }
@@ -535,7 +536,7 @@ function renderTableGrid(table, data, sub) {
   if (data.options.limit) thead.find('.lt-pages').html(tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + Math.ceil(rowcount/data.options.limit));
   if (data.options.selectone && data.options.selectone.default) {
     if (data.options.selectone.default == 'first') tbody.find('input[name^=select]:first').prop('checked', true);
-    else if (data.options.selectone.default == 'first') tbody.find('input[name^=select]:last').prop('checked', true);
+    else if (data.options.selectone.default == 'last') tbody.find('input[name^=select]:last').prop('checked', true);
   }
 
   var tfoot = $('<tfoot/>');
@@ -1288,26 +1289,6 @@ function findNextEdit(el, evt) {
   el.removeClass('lt-editing');
 }
 
-var sqlregex = new RegExp("^\s*select\s+(\*|([a-z_]+\.)?[a-z_]+|count\s*\(\*\)|case\s+when\s+([a-z_]+\.)?[a-z_]+\s+(=|<=?|>=?|<>)\s+" +
-                          "(\d+|'[^']+'|(true|false))\s+then\s+(\d+|'[^']+'|(true|false))\s+else\s+(\d+|'[^']+'|(true|false))\s+end)" +
-                          "(\s+as\s+("[a-z_]+"|[a-z_]+))?(\s*,\s*(\*|([a-z_]+\.)?[a-z_]+|count\s*\(\*\)|case\s+when\s+([a-z_]+\.)?[a-z_]+\s+" +
-                          "(=|<=?|>=?|<>)\s+(\d+|'[^']+'|(true|false))\s+then\s+(\d+|'[^']+'|(true|false))\s+else\s+(\d+|'[^']+'|(true|false))" +
-                          "\s+end)(\s+as\s+("[a-z_]+"|[a-z_]+))?)*\s+from\s+[a-z_]+(\s+(left\s+)?join\s+[a-z_]+\s+on\s+([a-z_]+\.)?[a-z_]+\s*" +
-                          "(=|<=?|>=?|<>)\s*([a-z_]+\.)?[a-z_]+(\s+(and|or)\s+([a-z_]+\.)?[a-z_]+\s*(=|<=?|>=?|<>)\s*([a-z_]+\.)?[a-z_]+)*)*" +
-                          "(\s+where\s+([a-z_]+\.)?[a-z_]+\s*(=|<=?|>=?|<>)\s*(\d+|'[^']+'|(true|false))(\s+(and|or)\s+([a-z_]+\.)?[a-z_]+\s*" +
-                          "(=|<=?|>=?|<>)\s*(\d+|'[^']+'|(true|false)))*)?(\s+group\s+by\s+([a-z_]+\.)?[a-z_]+(\s*,\s*([a-z_]+\.)?[a-z_]+)*)?" +
-                          "(\s+order\s+by\s+(([a-z_]+\.)?[a-z_]+|\d+)(\s*,\s*(([a-z_]+\.)?[a-z_]+|\d+))*)?(\s+limit\s+\d+)?\s*;?$", "i");
-function check_sql(textarea) {
-  textarea = $(textarea);
-  var str = textarea.val();
-  if (str.length && (str.indexOf(';') != -1)) {
-    str = str.replace(';', '');
-    textarea.val(str);
-    run_sql(textarea.parent());
-  }
-  if (str.search(sqlregex) >= 0) textarea.css('border-color', 'green');
-  else textarea.css('border-color', 'red');
-}
 function run_sql(form) {
   var textarea = $(form).find('textarea');
   $.ajax({
