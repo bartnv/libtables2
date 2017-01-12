@@ -50,7 +50,7 @@ function tr(str) {
       }
     default: return str;
   }
-};
+}
 
 function userError(msg) {
   alert(tr('Error') + ': ' + msg);
@@ -213,7 +213,8 @@ function refreshTable(table, key) {
   $.ajax({
     dataType: "json",
     url: "data.php",
-    data: "mode=refreshtable&src=" + tables[key].data.block + ':' + tables[key].data.tag + "&crc=" + tables[key].data.crc + (tables[key].data.params ? "&params=" + tables[key].data.params : ""),
+    data: "mode=refreshtable&src=" + tables[key].data.block + ':' + tables[key].data.tag +
+          "&crc=" + tables[key].data.crc + (tables[key].data.params ? "&params=" + tables[key].data.params : ""),
     context: table,
     success: function(data) {
       if (data.error) appError(data.error, this);
@@ -333,25 +334,35 @@ function renderTable(table, data, sub) {
   var start = Date.now();
   if (data.options.format) renderTableFormat(table, data, sub);
   else renderTableGrid(table, data, sub);
-  console.log('Load timings for ' + (sub?'sub':'') + 'table ' + data.tag + ': sql ' + data.querytime + ' download ' + (data.downloadtime?data.downloadtime:'n/a') + ' render ' + (Date.now()-start) + ' ms');
+  console.log('Load timings for ' + (sub?'sub':'') + 'table ' + data.tag + ': sql ' + data.querytime +
+              ' download ' + (data.downloadtime?data.downloadtime:'n/a') + ' render ' + (Date.now()-start) + ' ms');
 }
 
 function renderTableFormat(table, data, sub) {
   if (data.options.classes && data.options.classes.table) table.addClass(data.options.classes.table);
   var headstr = '<thead><tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
-  if (data.options.popout && (data.options.popout.type == 'floating-div')) headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"") + '" onclick="showTableInDialog($(this).closest(\'table\'));">';
+  if (data.options.popout && (data.options.popout.type == 'floating-div')) {
+    headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"");
+    headstr += '" onclick="showTableInDialog($(this).closest(\'table\'));">';
+  }
   headstr += '</th></tr></thead>';
-  var thead = $(headstr);
 
   if (!data.options.page) data.options.page = 1;
   var offset = data.options.page - 1;
 
-  if (data.rows.length > 1) thead.append('<tr class="lt-limit"><th colspan="' + data.headers.length + '"><a href="javascript:goPage(\'' + table.attr('id') + '\', \'prev\')">&lt;</a> ' + tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + data.rows.length + ' <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')">&gt;</a></th></tr>');
+  if (data.rows.length > 1) {
+    headstr += '<tr class="lt-limit"><th colspan="' + data.headers.length + '">';
+    headstr += '<a href="javascript:goPage(\'' + table.attr('id') + '\', \'prev\')">&lt;</a> ';
+    headstr += tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + data.rows.length;
+    headstr += ' <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')">&gt;</a></th></tr>';
+  }
+
+  var thead = $(headstr);
 
   if (data.options.pagetitle) document.title = replaceHashes(data.options.pagetitle, data.rows[offset]);
 
   var tbody = $('<tbody/>');
-  if (typeof(data.options.format) == 'string') var fmt = data.options.format.split('\n')
+  if (typeof(data.options.format) == 'string') var fmt = data.options.format.split('\n');
   else var fmt = data.options.format;
   var headcount = 0;
   var colcount = 0;
@@ -369,7 +380,9 @@ function renderTableFormat(table, data, sub) {
           }
           for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
           for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
-          row.append('<td class="lt-head"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>' + data.headers[headcount] + '</td>');
+          var tdstr = '<td class="lt-head"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
+          tdstr += data.headers[headcount] + '</td>';
+          row.append(tdstr);
         }
         else if (fmt[r][c] == 'C') {
           if (colcount++ >= data.rows[offset].length) {
@@ -386,7 +399,9 @@ function renderTableFormat(table, data, sub) {
         else if ((fmt[r][c] == 'A') && data.options.appendcell) {
           for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
           for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
-          row.append('<td class="lt-cell"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>' + replaceHashes(data.options.appendcell, data.rows[offset]) + '</td>');
+          var tdstr = '<td class="lt-cell"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
+          tdstr += replaceHashes(data.options.appendcell, data.rows[offset]) + '</td>';
+          row.append(tdstr);
         }
         else if (fmt[r][c] == 'x') row.append('<td class="lt-unused"/>');
       }
@@ -406,7 +421,10 @@ function renderTableGrid(table, data, sub) {
   var headstr = '<thead>';
   if (!sub) {
     headstr += '<tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
-    if (data.options.popout && (data.options.popout.type == 'floating-div')) headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"") + '" onclick="showTableInDialog($(this).closest(\'table\'));">';
+    if (data.options.popout && (data.options.popout.type == 'floating-div')) {
+      headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"");
+      headstr += '" onclick="showTableInDialog($(this).closest(\'table\'));">';
+    }
     if (data.options.tablefunction && data.options.tablefunction.text) {
       if (data.params) {
         var params = JSON.parse(atob(data.params));
@@ -415,8 +433,13 @@ function renderTableGrid(table, data, sub) {
       else var params = [];
       if (data.options.tablefunction.hidecondition) var disp = ' style="display: none;"';
       else var disp = '';
-      if (data.options.tablefunction.confirm) headstr += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="if (confirm(\'' + replaceHashes(data.options.tablefunction.confirm, params) + '\')) doFunction(this);" value="' + replaceHashes(data.options.tablefunction.text, params) + '">';
-      else headstr += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="doFunction(this);" value="' + replaceHashes(data.options.tablefunction.text, params) + '">';
+      if (data.options.tablefunction.confirm) {
+        headstr += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="if (confirm(\'' + replaceHashes(data.options.tablefunction.confirm, params);
+        headstr += '\')) doFunction(this);" value="' + replaceHashes(data.options.tablefunction.text, params) + '">';
+      }
+      else {
+        headstr += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="doFunction(this);" value="';
+        headstr += replaceHashes(data.options.tablefunction.text, params) + '">';
     }
     headstr += '</th></tr>';
   }
@@ -425,7 +448,9 @@ function renderTableGrid(table, data, sub) {
 
   if (data.options.limit) {
     if (!data.options.page) data.options.page = 1;
-    thead.append('<tr class="lt-limit"><th colspan="' + data.headers.length + '"><a href="javascript:goPage(\'' + table.attr('id') + '\', \'prev\')">&lt;</a> <span class="lt-pages"></span> <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')">&gt;</a></th></tr>');
+    var trstr = '<tr class="lt-limit"><th colspan="' + data.headers.length + '"><a href="javascript:goPage(\'' + table.attr('id');
+    trstr += '\', \'prev\')">&lt;</a> <span class="lt-pages"></span> <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')">&gt;</a></th></tr>';
+    thead.append(trstr);
   }
   if (data.rows.length) {
     var row = $('<tr class="lt-row"/>');
@@ -484,12 +509,21 @@ function renderTableGrid(table, data, sub) {
     for (var c = 1; c < data.headers.length; c++) {
       if (data.options.mouseover && data.options.mouseover[c]) continue;
       if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
-      if ((data.options.filter === true) || data.options.filter[c]) row.append('<td class="lt-filter"><input type="text" size="5" oninput="updateFilter(this);"></td>');
+      if ((data.options.filter === true) || data.options.filter[c]) {
+        row.append('<td class="lt-filter"><input type="text" size="5" oninput="updateFilter(this);"></td>');
+      }
       else row.append('<td/>');
     }
+    var filtertext = "Use these fields to filter the table\n" +
+                     "Multiple filtered columns combine with AND logic\n" +
+                     "Numeric matching is supported by starting with =, <, >, <= or >=\n" +
+                     "Regular expressions can also be used, for example:\n" +
+                     "  '^text' to match at the start\n" +
+                     "  'text$' to match at the end\n" +
+                     "  '(one|two)' to match one or two";
     row.find('td').first()
       .css('position', 'relative')
-      .prepend('<span class="lt-label-filter"><img src="filter.svg" style="width: 15px; height: 15px;" title="Use these fields to filter the table\nMultiple filtered columns combine with AND logic\nNumeric matching is supported by starting with =, <, >, <= or >=\nRegular expressions can also be used, for example:\n   \'^text\' to match at the start\n   \'text$\' to match at the end\n   \'(one|two)\' to match one or two"></span>');
+      .prepend('<span class="lt-label-filter"><img src="filter.svg" style="width: 15px; height: 15px;" title="' + filtertext + '"></span>');
     row.find('td').last()
       .css('position', 'relative')
       .append('<span class="lt-label-clear"><a href="javascript:clearFilters(\'' + table.attr('id') + '\');"><img src="clear.svg"></a></span>');
@@ -539,7 +573,9 @@ function renderTableGrid(table, data, sub) {
       var cell = $('<td class="lt-cell"></td>');
       if (typeof(fields[c]) == 'string') var input = $('<input type="text" name="' + fields[c] + '">');
       else if (Object.keys(fields[c]).length == 1) var input = $('<input type="text" name="' + fields[c][0] + '">');
-      else if (fields[c].type == 'multiline') var input = $('<textarea class="lt_insert" name="' + fields[c].target + '" oninput="$(this).textareaAutoSize();"/>');
+      else if (fields[c].type == 'multiline') {
+        var input = $('<textarea class="lt_insert" name="' + fields[c].target + '" oninput="$(this).textareaAutoSize();"/>');
+      }
       else if (fields[c].type == 'checkbox') var input = $('<input type="checkbox" name="' + fields[c].target + '">');
       else if (fields[c].type == 'password') var input = $('<input type="password" name="' + fields[c].target + '">');
       else if (fields[c].target && !fields[c].query) var input = $('<input type="text" name="' + fields[c].target + '">');
@@ -555,7 +591,7 @@ function renderTableGrid(table, data, sub) {
           success: function(data) {
             if (data.error) {
               this.parent().css({ backgroundColor: '#ffa0a0' });
-              appError(data.error, cell)
+              appError(data.error, cell);
             }
             else {
               var items = data.items;
@@ -595,9 +631,8 @@ function renderTableGrid(table, data, sub) {
   }
 
   if (data.options.export) {
-    if (data.options.export.xlsx) {
-      tfoot.append('<tr><td colspan="' + data.headers.length + '">' + tr('Export as') + ': <a href="data.php?mode=excelexport&src=' + data.block + ':' + data.tag + '">Excel</a></td></tr>');
-    }
+    if (data.options.export.xlsx) tfoot.append('<tr><td colspan="' + data.headers.length + '">' + tr('Export as') + ': <a href="data.php?mode=excelexport&src=' +
+                                               data.block + ':' + data.tag + '">Excel</a></td></tr>');
   }
 
   table.append(thead, tbody, tfoot);
@@ -617,8 +652,10 @@ function renderTbody(tbody, data) {
           if ((typeof data.rows[r][i] == 'string') && (data.rows[r][i].search(data.filters[i]) >= 0)) continue;
           if (typeof data.rows[r][i] == 'boolean') {
             if (String(data.rows[r][i]).search(data.filters[i]) >= 0) continue;
-            if (data.rows[r][i] && data.options.edit && data.options.edit[i] && data.options.edit[i].truevalue && (data.options.edit[i].truevalue.search(data.filters[i]) >= 0)) continue;
-            if (!data.rows[r][i] && data.options.edit && data.options.edit[i] && data.options.edit[i].falsevalue && (data.options.edit[i].falsevalue.search(data.filters[i]) >= 0)) continue;
+            if (data.rows[r][i] && data.options.edit && data.options.edit[i] && data.options.edit[i].truevalue &&
+                 (data.options.edit[i].truevalue.search(data.filters[i]) >= 0)) continue;
+            if (!data.rows[r][i] && data.options.edit && data.options.edit[i] && data.options.edit[i].falsevalue &&
+                 (data.options.edit[i].falsevalue.search(data.filters[i]) >= 0)) continue;
           }
         }
         else if (data.filters[i].startsWith('>=')) {
@@ -1072,7 +1109,7 @@ function checkEdit(cell, edit, oldvalue) {
       else newvalue = 'true';
     }
     else {
-      if (options.edit[c].falsevalue) newvalue = options.edit[c].falsevalue
+      if (options.edit[c].falsevalue) newvalue = options.edit[c].falsevalue;
       else newvalue = 'false';
     }
   }
@@ -1105,7 +1142,9 @@ function checkEdit(cell, edit, oldvalue) {
             else if ((data.input == 'false') || (data.input == options.edit[c].falsevalue)) data.input = false;
             if ((data.input === '') && (data.rows[0][c] === null)) data.input = null;
 
-            if ((typeof(options.edit[c]) == 'object') && (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length == 2)))) rows[r][c] = data.rows[0][c];
+            if ((typeof(options.edit[c]) == 'object') && (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length == 2)))) {
+              rows[r][c] = data.rows[0][c];
+            }
             else rows[r][c] = data.input;
             updateRow(options, this.closest('tbody'), rows[r], data.rows[0]);
             rows[r] = data.rows[0];
@@ -1249,7 +1288,15 @@ function findNextEdit(el, evt) {
   el.removeClass('lt-editing');
 }
 
-var sqlregex = /^\s*select\s+(\*|([a-z_]+\.)?[a-z_]+|count\s*\(\*\)|case\s+when\s+([a-z_]+\.)?[a-z_]+\s+(=|<=?|>=?|<>)\s+(\d+|'[^']+'|(true|false))\s+then\s+(\d+|'[^']+'|(true|false))\s+else\s+(\d+|'[^']+'|(true|false))\s+end)(\s+as\s+("[a-z_]+"|[a-z_]+))?(\s*,\s*(\*|([a-z_]+\.)?[a-z_]+|count\s*\(\*\)|case\s+when\s+([a-z_]+\.)?[a-z_]+\s+(=|<=?|>=?|<>)\s+(\d+|'[^']+'|(true|false))\s+then\s+(\d+|'[^']+'|(true|false))\s+else\s+(\d+|'[^']+'|(true|false))\s+end)(\s+as\s+("[a-z_]+"|[a-z_]+))?)*\s+from\s+[a-z_]+(\s+(left\s+)?join\s+[a-z_]+\s+on\s+([a-z_]+\.)?[a-z_]+\s*(=|<=?|>=?|<>)\s*([a-z_]+\.)?[a-z_]+(\s+(and|or)\s+([a-z_]+\.)?[a-z_]+\s*(=|<=?|>=?|<>)\s*([a-z_]+\.)?[a-z_]+)*)*(\s+where\s+([a-z_]+\.)?[a-z_]+\s*(=|<=?|>=?|<>)\s*(\d+|'[^']+'|(true|false))(\s+(and|or)\s+([a-z_]+\.)?[a-z_]+\s*(=|<=?|>=?|<>)\s*(\d+|'[^']+'|(true|false)))*)?(\s+group\s+by\s+([a-z_]+\.)?[a-z_]+(\s*,\s*([a-z_]+\.)?[a-z_]+)*)?(\s+order\s+by\s+(([a-z_]+\.)?[a-z_]+|\d+)(\s*,\s*(([a-z_]+\.)?[a-z_]+|\d+))*)?(\s+limit\s+\d+)?\s*;?$/i;
+var sqlregex = new RegExp("^\s*select\s+(\*|([a-z_]+\.)?[a-z_]+|count\s*\(\*\)|case\s+when\s+([a-z_]+\.)?[a-z_]+\s+(=|<=?|>=?|<>)\s+" +
+                          "(\d+|'[^']+'|(true|false))\s+then\s+(\d+|'[^']+'|(true|false))\s+else\s+(\d+|'[^']+'|(true|false))\s+end)" +
+                          "(\s+as\s+("[a-z_]+"|[a-z_]+))?(\s*,\s*(\*|([a-z_]+\.)?[a-z_]+|count\s*\(\*\)|case\s+when\s+([a-z_]+\.)?[a-z_]+\s+" +
+                          "(=|<=?|>=?|<>)\s+(\d+|'[^']+'|(true|false))\s+then\s+(\d+|'[^']+'|(true|false))\s+else\s+(\d+|'[^']+'|(true|false))" +
+                          "\s+end)(\s+as\s+("[a-z_]+"|[a-z_]+))?)*\s+from\s+[a-z_]+(\s+(left\s+)?join\s+[a-z_]+\s+on\s+([a-z_]+\.)?[a-z_]+\s*" +
+                          "(=|<=?|>=?|<>)\s*([a-z_]+\.)?[a-z_]+(\s+(and|or)\s+([a-z_]+\.)?[a-z_]+\s*(=|<=?|>=?|<>)\s*([a-z_]+\.)?[a-z_]+)*)*" +
+                          "(\s+where\s+([a-z_]+\.)?[a-z_]+\s*(=|<=?|>=?|<>)\s*(\d+|'[^']+'|(true|false))(\s+(and|or)\s+([a-z_]+\.)?[a-z_]+\s*" +
+                          "(=|<=?|>=?|<>)\s*(\d+|'[^']+'|(true|false)))*)?(\s+group\s+by\s+([a-z_]+\.)?[a-z_]+(\s*,\s*([a-z_]+\.)?[a-z_]+)*)?" +
+                          "(\s+order\s+by\s+(([a-z_]+\.)?[a-z_]+|\d+)(\s*,\s*(([a-z_]+\.)?[a-z_]+|\d+))*)?(\s+limit\s+\d+)?\s*;?$", "i");
 function check_sql(textarea) {
   textarea = $(textarea);
   var str = textarea.val();
