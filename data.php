@@ -172,7 +172,11 @@ switch ($mode) {
 
     $table = lt_find_table($_GET['src']);
     if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
-    $data = lt_query($table['query'], $params);
+    if (isset($table['options']['export']['nopreview']) && $table['options']['export']['nopreview']) {
+      $data = lt_query($table['query'] . ' LIMIT 0', $params);
+      $data['rowcount'] = lt_query_single('SELECT COUNT(*) FROM (' . $table['query'] . ') AS tmp', $params);
+    }
+    else $data = lt_query($table['query'], $params);
     if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $table['block'] . " returned error:\n\n" . $data['error']);
     $data['block'] = $table['block'];
     $data['tag'] = $table['tag'];

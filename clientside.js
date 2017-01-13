@@ -1,6 +1,6 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Libtables2: framework for building web-applications on relational databases *
- * Copyright (C) 2016  Bart Noordervliet, MMVI                                 *
+ * Copyright (C) 2017  Bart Noordervliet, MMVI                                 *
  *                                                                             *
  * This program is free software: you can redistribute it and/or modify        *
  * it under the terms of the GNU Affero General Public License as              *
@@ -46,6 +46,7 @@ function tr(str) {
         case "Export as": return "Exporteren als";
         case "Row has errors and cannot be inserted": return "Rij heeft fouten en kan niet worden toegevoegd";
         case "Select": return "Selecteren";
+        case "rows for export": return "rijen om te exporteren";
         default: return str;
       }
     default: return str;
@@ -73,6 +74,7 @@ function refreshAll() {
     var table = $(this);
     var key = $(this).attr('id');
     if (!table.length || !tables[key]) return;
+    if (tables[key].data.rowcount) return; // rowcount is set for exports with nopreview=true
     refreshTable(table, key);
   });
 }
@@ -453,7 +455,7 @@ function renderTableGrid(table, data, sub) {
     trstr += '\', \'prev\')">&lt;</a> <span class="lt-pages"></span> <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')">&gt;</a></th></tr>';
     thead.append(trstr);
   }
-  if (data.rows.length) {
+  if (data.rows.length || data.rowcount) { // rowcount is set for exports with nopreview=true
     var row = $('<tr class="lt-row"/>');
     if (data.options.selectone) {
       if (typeof selectones == 'undefined') selectones = 1;
@@ -501,6 +503,11 @@ function renderTableGrid(table, data, sub) {
   else if (data.options.hideifempty) {
     table.hide();
     return;
+  }
+
+  if (data.rowcount) { // rowcount is set for exports with nopreview=true
+    var tbody = '<td colspan="' + data.headers.length + '" class="lt-cell"> ... ' + data.rowcount + ' ' + tr('rows for export') + ' ... </td>';
+    table.append(thead, tbody);
   }
 
   if (data.options.filter && (typeof data.options.filter != 'function')) {
