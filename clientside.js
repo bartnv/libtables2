@@ -1216,6 +1216,7 @@ function doInsert(el) {
         tables[table.attr('id')].data.rows = data.rows;
         tables[table.attr('id')].data.crc = data.crc;
         if (tables[table.attr('id')].data.options.sum) updateSums(table.find('tfoot'), tables[table.attr('id')].data);
+        if (tables[table.attr('id')].data.options.edit.trigger) loadOrRefreshCollection($('#' + tables[table.attr('id')].data.options.edit.trigger));
       }
     }
   });
