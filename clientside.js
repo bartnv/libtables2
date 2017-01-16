@@ -1157,6 +1157,7 @@ function checkEdit(cell, edit, oldvalue) {
             updateRow(options, this.closest('tbody'), rows[r], data.rows[0]);
             rows[r] = data.rows[0];
             if (options.callbacks && options.callbacks.change) window.setTimeout(options.callbacks.change, 0);
+            if (options.edit.trigger) loadOrRefreshCollection($('#' + options.edit.trigger));
           }
         }
       }
