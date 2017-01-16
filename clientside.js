@@ -1025,14 +1025,14 @@ function doEditSelect(cell) {
     context: cell,
     data: { mode: 'selectbox', src: tables[key].data.block + ':' + tables[key].data.tag, col: c },
     success: function(data) {
-      if (data.error) appError(data.error, cell)
+      if (data.error) appError(data.error, cell);
       else {
         var oldvalue = null;
         this.css({ backgroundColor: 'transparent' });
         var items = data.items;
         var selectbox = $('<select id="editbox"></select>');
         selectbox.css({ width: this.width() + 'px', maxHeight: this.height() + 'px' });
-        var selected = 0
+        var selected = 0;
         if (data.null) selectbox.append('<option value=""></option>');
         for (var i = 0; items[i]; i++) {
           if (items[i][1] == content) {

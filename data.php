@@ -180,7 +180,8 @@ switch ($mode) {
     if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $table['block'] . " returned error:\n\n" . $data['error']);
     $data['block'] = $table['block'];
     $data['tag'] = $table['tag'];
-    $data['title'] = $table['title'];
+    if (!empty($table['options']['titlequery'])) $data['title'] = lt_query_single($table['options']['titlequery'], $params);
+    else $data['title'] = $table['title'];
     $data['options'] = $table['options'];
     if (!empty($data['options']['selectany'])) {
       $tmp = lt_query('SELECT ' . $data['options']['selectany']['fields'][1] . ' FROM ' . $data['options']['selectany']['linktable'] . ' WHERE ' . $data['options']['selectany']['fields'][0] . ' = ?', $params);
