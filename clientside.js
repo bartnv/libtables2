@@ -585,6 +585,7 @@ function renderTableGrid(table, data, sub) {
         var input = $('<textarea class="lt_insert" name="' + fields[c].target + '" oninput="$(this).textareaAutoSize();"/>');
       }
       else if (fields[c].type == 'checkbox') var input = $('<input type="checkbox" name="' + fields[c].target + '">');
+      else if (fields[c].type == 'date') var input = $('<input type="date" name="' + fields[c].target + '" value="' + new Date().toISOString().slice(0, 10) + '">');
       else if (fields[c].type == 'password') var input = $('<input type="password" name="' + fields[c].target + '">');
       else if (fields[c].target && !fields[c].query) var input = $('<input type="text" name="' + fields[c].target + '">');
       else {
@@ -960,6 +961,12 @@ function doEdit(cell) {
   else if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'password') {
     edit = $('<input type="password" id="editbox" name="input">');
   }
+  else if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'date') {
+    edit = $('<input type="date" id="editbox" name="input">');
+    var res;
+    if (res = content.match(/^([0-9]{2})-([0-9]{2})-([0-9]{4})$/)) edit.val(res[3] + '-' + res[2] + '-' + res[1]);
+    else edit.val(content);
+  }
   else {
     edit = $('<input type="text" id="editbox" name="input">');
     edit.val(content);
@@ -1207,6 +1214,7 @@ function doInsert(el) {
         this.find('input,select,textarea').each(function() {
           var el = $(this);
           if (el.prop('type') == 'button');
+          else if (el.prop('type') == 'date') el.val(new Date().toISOString().slice(0, 10));
           else if (el.prop('type') == 'checkbox') el.prop('checked', false);
           else if (el.prop('nodeName') == 'select') el.prop('selectedIndex', -1);
           else el.val('');
