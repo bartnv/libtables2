@@ -32,6 +32,7 @@
  *             if the table has been passed parameters             *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+var ajaxUrl = "data.php";
 var tables = {};
 
 function tr(str) {
@@ -95,7 +96,7 @@ function doFunction(button) {
   if (button.hasClass('lt-tablefunc')) {
     $.ajax({
       method: 'post',
-      url: 'data.php',
+      url: ajaxUrl,
       dataType: 'json',
       context: button.closest('table'),
       data: { mode: 'function', type: 'table', src: tables[key].data.block + ':' + tables[key].data.tag, params: tables[key].data.params },
@@ -183,7 +184,7 @@ function loadTable(div, attr, sub) {
     tables[key].doingajax = true;
     $.ajax({
       dataType: "json",
-      url: "data.php",
+      url: ajaxUrl,
       data: "mode=gettable&src=" + attr.source + (attr.params ? "&params=" + attr.params : ""),
       context: div,
       success: function(data) {
@@ -214,7 +215,7 @@ function refreshTable(table, key) {
   tables[key].doingajax = true;
   $.ajax({
     dataType: "json",
-    url: "data.php",
+    url: ajaxUrl,
     data: "mode=refreshtable&src=" + tables[key].data.block + ':' + tables[key].data.tag +
           "&crc=" + tables[key].data.crc + (tables[key].data.params ? "&params=" + tables[key].data.params : ""),
     context: table,
@@ -582,7 +583,9 @@ function renderTableGrid(table, data, sub) {
           continue;
         }
       }
-      var cell = $('<td class="lt-cell"></td>');
+      var cell = $('<td/>');
+      var classes = [ 'lt-cell' ];
+      if (data.options.class && data.options.class[c]) classes.push(data.options.class[c]);
       if (typeof(fields[c]) == 'string') var input = $('<input type="text" name="' + fields[c] + '">');
       else if (Object.keys(fields[c]).length == 1) var input = $('<input type="text" name="' + fields[c][0] + '">');
       else if (fields[c].type == 'multiline') {
@@ -597,7 +600,7 @@ function renderTableGrid(table, data, sub) {
         else var input = $('<select name="' + fields[c][0] + '"/>');
         $.ajax({
           method: 'get',
-          url: 'data.php',
+          url: ajaxUrl,
           dataType: 'json',
           context: input,
           data: { mode: 'selectbox', src: data.block + ':' + data.tag, col: c },
@@ -636,20 +639,46 @@ function renderTableGrid(table, data, sub) {
           }
         });
       }
+      cell.addClass(classes.join(' '));
       cell.append(input);
       row.append(cell);
     }
-    row.append('<td class="lt-cell"><input type="button" value="' + tr('Insert') + '" onclick="doInsert(this)"></td>');
+    row.append('<td class="lt-cell"><input type="button" class="lt-insert-button" value="' + tr('Insert') + '" onclick="doInsert(this)"></td>');
     tfoot.append(row);
   }
 
   if (data.options.export) {
-    if (data.options.export.xlsx) tfoot.append('<tr><td colspan="' + data.headers.length + '">' + tr('Export as') + ': <a href="data.php?mode=excelexport&src=' +
-                                               data.block + ':' + data.tag + '">Excel</a></td></tr>');
+    if (data.options.export.xlsx) {
+      tfoot.append('<tr><td class="lt-exports" colspan="' + data.headers.length + '">' + tr('Export as') + ': <a href="' + ajaxUrl + '?mode=excelexport&src=' + data.block + ':' + data.tag + '">Excel</a></td></tr>');
+    }
+    else if (data.options.export.image) {
+      tfoot.append('<tr><td class="lt-exports" colspan="' + data.headers.length + '">' + tr('Export as') + ': <a href="#" onclick="exportToPng(this);">' + tr('Image') + '</a></td></tr>');
+    }
   }
 
   table.append(thead, tbody, tfoot);
   table.parent().data('crc', data.crc);
+}
+
+function exportToPng(el) {
+  var exports = $(el);
+  var div = exports.closest('table');
+  exports.closest('tr').css('display', 'none');
+  if (!domtoimage) $.ajax({
+    url: 'https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.5.2/dom-to-image.min.js',
+    dataType: "script",
+    async: false
+  });
+  domtoimage.toPng(div.get(0), { height: div.height()+10, width: div.width()+10 })
+            .then(function(url) {
+              var link = document.createElement('a');
+              link.download = div.find('.lt-title').html() + '.png';
+              link.href = url;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              exports.closest('tr').css('display', 'table-row');
+            });
 }
 
 function renderTbody(tbody, data) {
@@ -729,7 +758,7 @@ function doSelect(el) {
   id = input.closest('tr').data('rowid');
   $.ajax({
     method: 'post',
-    url: 'data.php',
+    url: ajaxUrl,
     dataType: 'json',
     context: input,
     data: { mode: 'select', src: tables[key].data.block + ':' + tables[key].data.tag, params: tables[key].data.params, id: id, link: input.prop('checked') },
@@ -1031,7 +1060,7 @@ function doEditSelect(cell) {
   else var c = cell.parent().children('.lt-data').index(cell)+1;
   $.ajax({
     method: 'get',
-    url: 'data.php',
+    url: ajaxUrl,
     dataType: 'json',
     context: cell,
     data: { mode: 'selectbox', src: tables[key].data.block + ':' + tables[key].data.tag, col: c },
@@ -1142,7 +1171,7 @@ function checkEdit(cell, edit, oldvalue) {
     if (options.sql) data['sql'] = options.sql;
     $.ajax({
       method: 'post',
-      url: 'data.php',
+      url: ajaxUrl,
       dataType: 'json',
       context: cell,
       data: data,
@@ -1208,7 +1237,7 @@ function doInsert(el) {
   }
   $.ajax({
     dataType: 'json',
-    url: 'data.php',
+    url: ajaxUrl,
     method: 'post',
     context: row,
     data: 'mode=insertrow&src=' + table.block + ':' + table.tag + '&' + postdata,
@@ -1265,7 +1294,7 @@ function doDelete(el) {
   }
   $.ajax({
     dataType: 'json',
-    url: 'data.php',
+    url: ajaxUrl,
     method: 'post',
     context: el.closest('tbody'),
     data: 'mode=deleterow&src=' + table.block + ':' + table.tag + '&id=' + rowid,
@@ -1314,7 +1343,7 @@ function run_sql(form) {
   var textarea = $(form).find('textarea');
   $.ajax({
     dataType: "json",
-    url: "data.php",
+    url: ajaxUrl,
     method: "post",
     data: "mode=sqlrun&sql=" + encodeURIComponent(textarea.val()),
     context: this,
@@ -1345,7 +1374,7 @@ function run_sql(form) {
 
 function calendarSelect(start, end, timezone, callback) {
   $.ajax({
-    url: 'data.php',
+    url: ajaxUrl,
     type: 'POST',
     dataType: 'json',
     data: {
@@ -1368,7 +1397,7 @@ function calendarSelect(start, end, timezone, callback) {
 }
 function calendarUpdate(event, delta, revertFunc) {
   $.ajax({
-    url: 'data.php',
+    url: ajaxUrl,
     type: 'POST',
     dataType: 'json',
     data: {
@@ -1400,7 +1429,7 @@ function calendarInsert(start, end) {
     }
   }
   $.ajax({
-    url: 'data.php',
+    url: ajaxUrl,
     type: 'POST',
     dataType: 'json',
     data: {
@@ -1424,7 +1453,7 @@ function calendarInsert(start, end) {
 }
 function calendarDelete(src, id, successFunc) {
   $.ajax({
-    url: 'data.php',
+    url: ajaxUrl,
     type: 'POST',
     dataType: 'json',
     data: {
