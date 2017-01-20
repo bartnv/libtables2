@@ -639,6 +639,7 @@ function renderTableGrid(table, data, sub) {
           }
         });
       }
+      if (fields[c].placeholder) input.attr('placeholder', fields[c].placeholder);
       cell.addClass(classes.join(' '));
       cell.append(input);
       row.append(cell);
