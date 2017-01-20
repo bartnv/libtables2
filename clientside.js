@@ -650,10 +650,10 @@ function renderTableGrid(table, data, sub) {
 
   if (data.options.export) {
     if (data.options.export.xlsx) {
-      tfoot.append('<tr><td class="lt-exports" colspan="' + data.headers.length + '">' + tr('Export as') + ': <a href="' + ajaxUrl + '?mode=excelexport&src=' + data.block + ':' + data.tag + '">Excel</a></td></tr>');
+      tfoot.append('<tr><td class="lt-exports" colspan="' + data.headers.length + '" class="lt-foot">' + tr('Export as') + ': <a href="' + ajaxUrl + '?mode=excelexport&src=' + data.block + ':' + data.tag + '">Excel</a></td></tr>');
     }
     else if (data.options.export.image) {
-      tfoot.append('<tr><td class="lt-exports" colspan="' + data.headers.length + '">' + tr('Export as') + ': <a href="#" onclick="exportToPng(this);">' + tr('Image') + '</a></td></tr>');
+      tfoot.append('<tr><td class="lt-exports" colspan="' + data.headers.length + '" class="lt-foot">' + tr('Export as') + ': <a href="#" onclick="exportToPng(this);">' + tr('Image') + '</a></td></tr>');
     }
   }
 
