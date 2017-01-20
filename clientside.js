@@ -579,7 +579,7 @@ function renderTableGrid(table, data, sub) {
       if (!fields[c]) {
         if (c >= data.headers.length-1) break;
         else {
-          row.append('<td/>');
+          row.append('<td class="lt-cell"></td>');
           continue;
         }
       }
