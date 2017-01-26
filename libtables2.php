@@ -248,7 +248,7 @@ function lt_query_to_string($query, $format) {
   while ($row = $res->fetch(PDO::FETCH_NUM)) {
     $str = $format;
     $n++;
-    for ($i = $res->columnCount(); $i >= 0; $i--) {
+    for ($i = $res->columnCount()-1; $i >= 0; $i--) {
       $str = str_replace('#'.$i, $row[$i], $str);
     }
     $str = str_replace('##', $n, $str);

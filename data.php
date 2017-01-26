@@ -477,12 +477,14 @@ switch ($mode) {
       }
     }
 
-    foreach ($tableinfo['options']['insert']['keys'] as $pkey => $fkey) {
-      list($ptable, $pcolumn) = explode('.', $pkey);
-      list($ftable, $fcolumn) = explode('.', $fkey);
-      if (!isset($tables[$ftable]['columns'])) fatalerr('Invalid sequence in insert keys option to block ' . $_POST['src']);
-      $tables[$ftable]['columns'][$fcolumn] = lt_run_insert($ptable, $tables[$ptable], $pcolumn);
-      unset($tables[$ptable]['columns']);
+    if (!empty($tableinfo['options']['insert']['keys'])) {
+      foreach ($tableinfo['options']['insert']['keys'] as $pkey => $fkey) {
+        list($ptable, $pcolumn) = explode('.', $pkey);
+        list($ftable, $fcolumn) = explode('.', $fkey);
+        if (!isset($tables[$ftable]['columns'])) fatalerr('Invalid sequence in insert keys option to block ' . $_POST['src']);
+        $tables[$ftable]['columns'][$fcolumn] = lt_run_insert($ptable, $tables[$ptable], $pcolumn);
+        unset($tables[$ptable]['columns']);
+      }
     }
     foreach ($tables as $name => $value) {
       if (!isset($tables[$name]['columns'])) continue;
