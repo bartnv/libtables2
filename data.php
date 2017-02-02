@@ -344,7 +344,19 @@ switch ($mode) {
       }
     }
     elseif (!empty($edit['sqlfunction'])) {
-      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = ' . $edit['sqlfunction'] . ' WHERE id = ?'))) {
+      if (strpos($edit['sqlfunction'], '#') >= 0) {
+        if (!empty($_POST['params'])) $params = json_decode(base64_decode($_POST['params']));
+        else $params = array();
+        $data = lt_query($table['query'], $params, $_POST['row']);
+        // Do search-and-replace of # here
+        if ($data['error']) fatalerr($data['error']);
+        $sqlfunc = str_replace('#id', $data['rows'][0][0], $edit['sqlfunction']);
+        for ($i = count($data['rows'][0]); $i >= 0; $i--) {
+          if (strpos($sqlfunc, '#'.$i) >= 0) $sqlfunc = str_replace('#'.$i, $data['rows'][0][$i], $sqlfunc);
+        }
+      }
+      else $sqlfunc = $edit['sqlfunction'];
+      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = ' . $sqlfunc . ' WHERE id = ?'))) {
         $err = $dbh->errorInfo();
         fatalerr("SQL prepare error: " . $err[2]);
       }
