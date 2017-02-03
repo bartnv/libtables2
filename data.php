@@ -469,6 +469,36 @@ switch ($mode) {
     header('Pragma: public');
     $writer->writeToStdOut();
     break;
+  case 'addoption':
+    if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode addoption');
+    if (empty($_POST['col']) || !is_numeric($_POST['col'])) fatalerr('No (valid) column value passed in mode addoption');
+    if (empty($_POST['option'])) fatalerr('No option value passed in mode addoption');
+    $table = lt_find_table($_POST['src']);
+    if (!allowed_block($table['block'])) fatalerr('Access to block ' . $table['block'] . ' denied');
+    if (empty($table['options']['insert'])) fatalerr('Table ' . $_POST['src'] . ' has no insert option configured');
+    if (!empty($table['options']['insert'][$_POST['col']])) $edit = $table['options']['insert'][$_POST['col']];
+    elseif (!empty($table['options']['insert']['include']) && ($table['options']['insert']['include'] == 'edit') && !empty($table['options']['edit'][$_POST['col']])) {
+      $edit = $table['options']['edit'][$_POST['col']];
+    }
+    else fatalerr('No matching insert/edit option found for table ' . $_POST['src'] . ' column ' . $_POST['col'] . ' in mode addoption');
+    if (!empty($edit['insert'])) $insert = $edit['insert'];
+    elseif (!empty($edit[2])) $insert = $edit[2];
+    else fatalerr('No insert suboption within select option of table ' . $_POST['src'] . ' column ' . $_POST['col'] . ' in mode addoption');
+    if (!empty($insert['idcolumn']) && !empty($insert['valuecolumn'])) {
+      list($idtable, $idcolumn) = explode('.', $insert['idcolumn']);
+      list($valuetable, $valuecolumn) = explode('.', $insert['valuecolumn']);
+    }
+    elseif (!empty($insert[0]) && !empty($insert[1])) {
+      list($idtable, $idcolumn) = explode('.', $insert[0]);
+      list($valuetable, $valuecolumn) = explode('.', $insert[1]);
+    }
+    else fatalerr('Invalid insert suboption found within select option of table ' . $_POST['src'] . ' column ' . $_POST['col'] . ' in mode addoption');
+    if (!$idtable || !$idcolumn || !$valuetable || !$valuecolumn) fatalerr('Invalid data found in insert suboption within select option of table ' . $_POST['src'] . ' column ' . $_POST['col'] . ' in mode addoption');
+    if ($idtable != $valuetable) fatalerr('Different id and value tables specified in insert suboption within select option of table ' . $_POST['src'] . ' column ' . $_POST['col'] . ' in mode addoption');
+    $query['columns'][$valuecolumn] = $_POST['option'];
+    $data['insertid'] = lt_run_insert($idtable, $query, $idcolumn);
+    print json_encode($data);
+    break;
   case 'insertrow':
     if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode insertrow');
     if (!empty($_POST['params'])) $params = json_decode(base64_decode($_POST['params']));

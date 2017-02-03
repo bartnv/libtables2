@@ -599,6 +599,7 @@ function renderTableGrid(table, data, sub) {
       else {
         if (fields[c].target) var input = $('<select name="' + fields[c].target + '"/>');
         else var input = $('<select name="' + fields[c][0] + '"/>');
+        if (fields[c].insert || fields[c][2]) var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="addOption(this, ' + c + ');">');
         $.ajax({
           method: 'get',
           url: ajaxUrl,
@@ -643,6 +644,7 @@ function renderTableGrid(table, data, sub) {
       if (fields[c].placeholder) input.attr('placeholder', fields[c].placeholder);
       cell.addClass(classes.join(' '));
       cell.append(input);
+      if (insert) cell.append(insert);
       row.append(cell);
     }
     row.append('<td class="lt-cell"><input type="button" class="lt-insert-button" value="' + tr('Insert') + '" onclick="doInsert(this)"></td>');
@@ -661,6 +663,24 @@ function renderTableGrid(table, data, sub) {
 
   table.append(thead, tbody, tfoot);
   table.parent().data('crc', data.crc);
+}
+
+function addOption(el, c) {
+  var option = prompt(tr('New entry:'));
+  if (!option) return;
+  var key = $(el).closest('table').attr('id');
+  $.ajax({
+    method: 'post',
+    url: ajaxUrl,
+    dataType: 'json',
+    context: el,
+    data: { mode: 'addoption', src: tables[key].data.block + ':' + tables[key].data.tag, params: tables[key].data.params, col: c, option: option },
+    success: function(data) {
+      if (data.error) return appError(data.error, this);
+      if (!data.insertid) return appError("Mode addoption didn't return an insert id");
+      $(el).siblings('select').append('<option value="' + data.insertid + '" selected>' + option + '</option>');
+    }
+  });
 }
 
 function exportToPng(el) {
@@ -766,7 +786,6 @@ function doSelect(el) {
     context: input,
     data: { mode: 'select', src: tables[key].data.block + ':' + tables[key].data.tag, params: tables[key].data.params, id: id, link: input.prop('checked') },
     success: function(data) {
-      console.log(this);
       if (data.error) appError(data.error, this);
       else this.parent().css('background-color', '');
     }
