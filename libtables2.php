@@ -25,8 +25,16 @@ function lt_table($tag, $title, $query, $options = array()) {
     print "<p>Table in block $basename has no tag specified</p>";
     return;
   }
+  if (!is_string($tag)) {
+    print "<p>Table in block $basename has an invalid tag specified (is not a string)</p>";
+    return;
+  }
   if (empty($title)) {
     print "<p>Table $tag in block $basename has no title specified</p>";
+    return;
+  }
+  if (!is_string($title)) {
+    print "<p>Table in block $basename has an invalid title specified (is not a string)</p>";
     return;
   }
   if (empty($query)) {

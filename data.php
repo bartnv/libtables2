@@ -88,7 +88,7 @@ function lt_find_table($src) {
 
   $table = 0;
   foreach ($tables as $atable) {
-    if (isset($atable['tag']) && ($atable['tag'] == $src[1])) {
+    if (isset($atable['tag']) && ($atable['tag'] === $src[1])) {
       $atable['block'] = $src[0];
       if (!empty($lt_settings['default_options'])) $atable['options'] = array_merge($lt_settings['default_options'], $atable['options']);
       return $atable;
