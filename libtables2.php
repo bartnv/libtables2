@@ -25,8 +25,16 @@ function lt_table($tag, $title, $query, $options = array()) {
     print "<p>Table in block $basename has no tag specified</p>";
     return;
   }
+  if (!is_string($tag)) {
+    print "<p>Table in block $basename has an invalid tag specified (is not a string)</p>";
+    return;
+  }
   if (empty($title)) {
     print "<p>Table $tag in block $basename has no title specified</p>";
+    return;
+  }
+  if (!is_string($title)) {
+    print "<p>Table in block $basename has an invalid title specified (is not a string)</p>";
     return;
   }
   if (empty($query)) {
@@ -129,9 +137,16 @@ function lt_print_block($block, $params = array(), $options = array()) {
   if (is_array($lt_settings['blocks_dir'])) $dirs = $lt_settings['blocks_dir'];
   else $dirs[] = $lt_settings['blocks_dir'];
 
+  if (!empty($options['wrapperdiv']) && $options['wrapperdiv']) {
+    if (!empty($params)) print '<div id="block_' . $basename . '_' . base64_encode(json_encode($params)) . '"';
+    else print '<div id="block_' . $basename . '"';
+    if (!empty($block_options['style'])) print ' style="' . $block_options['style'] . '"';
+    print ">\n";
+  }
   foreach($dirs as $dir) {
     if (file_exists($dir . $basename . '.html')) {
       readfile($dir . $basename . '.html');
+      if (!empty($options['wrapperdiv']) && $options['wrapperdiv']) print "</div>\n";
       return;
     }
     if (function_exists('yaml_parse_file') && file_exists($dir . $basename . '.yml')) {
@@ -142,18 +157,13 @@ function lt_print_block($block, $params = array(), $options = array()) {
           lt_table($table[0], $table[1], $table[2], isset($table[3])?$table[3]:array());
         }
       }
+      if (!empty($options['wrapperdiv']) && $options['wrapperdiv']) print "</div>\n";
       return;
     }
     if (file_exists($dir . $basename . '.php')) {
-      if (!empty($params)) {
-        $block_options['params'] = $params;
-        print '<div id="block_' . $basename . '_' . base64_encode(json_encode($params)) . '"';
-      }
-      else print '<div id="block_' . $basename . '"';
-      if (!empty($block_options['style'])) print ' style="' . $block_options['style'] . '"';
-      print ">\n";
+      if (!empty($params)) $block_options['params'] = $params;
       if (eval(file_get_contents($dir . $basename . '.php')) === FALSE) print "<p>PHP syntax error in block $basename</p>";
-      print "</div>\n";
+      if (!empty($options['wrapperdiv']) && $options['wrapperdiv']) print "</div>\n";
       return;
     }
   }
