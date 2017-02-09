@@ -417,6 +417,7 @@ switch ($mode) {
     $data = array();
     $data['items'] = $res->fetchAll(PDO::FETCH_NUM);
     $data['null'] = lt_col_allow_null($target[0], $target[1]);
+    if (!empty($edit[$_GET['col']['insert']]) || !empty($edit[$_GET['col'][2]])) $data['insert'] = true;
     header('Content-type: application/json; charset=utf-8');
     print json_encode($data);
     break;

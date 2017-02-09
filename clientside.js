@@ -91,21 +91,29 @@ function loadOrRefreshCollection(coll, sub) {
 
 function doFunction(button) {
   button = $(button);
-  var key = button.closest('table').attr('id');
+  var fullscreen = button.closest('#lt-fullscreen-div');
+  if (fullscreen.length) {
+    var table = fullscreen.find('#lt-fullscreen-scroller table');
+    var thead = fullscreen.find('thead');
+  }
+  else {
+    var table = button.closest('table');
+    var thead = button.closest('thead');
+  }
+  var key = table.attr('id');
 
   if (button.hasClass('lt-tablefunc')) {
     $.ajax({
       method: 'post',
       url: ajaxUrl,
       dataType: 'json',
-      context: button.closest('table'),
       data: { mode: 'function', type: 'table', src: tables[key].data.block + ':' + tables[key].data.tag, params: tables[key].data.params },
       success: function(data) {
-        if (data.error) appError(data.error, this);
+        if (data.error) appError(data.error, table);
         else {
-          refreshTable(this, key);
+          refreshTable(table, key);
           if (tables[key].data.options.tablefunction.trigger) loadOrRefreshCollection($('#' + tables[key].data.options.tablefunction.trigger));
-          if (tables[key].data.options.tablefunction.replacetext) this.find('.lt-tablefunc').val(tables[key].data.options.tablefunction.replacetext);
+          if (tables[key].data.options.tablefunction.replacetext) thead.find('.lt-tablefunc').val(tables[key].data.options.tablefunction.replacetext);
         }
       }
     });
@@ -126,6 +134,47 @@ function showTableInDialog(table) {
       $(this).find('thead > tr:first').show();
     }
   });
+}
+function toggleTableFullscreen(table) {
+  var div = table.closest('#lt-fullscreen-div');
+  if (div.length) {
+    var id = div.find('#lt-fullscreen-scroller table').attr('id').split(':');
+    var origDiv = $('body').find('div#'+id[1]);
+    var origTable = div.find('#lt-fullscreen-scroller table');
+    origTable.prepend(table.find('thead'));
+    origTable.append(div.find('tfoot'));
+    origDiv.append(origTable);
+    div.remove();
+    $('body').children().show();
+    return;
+  }
+  div = $('<div id="lt-fullscreen-div"/>');
+  table.detach();
+  var thead = $('<table class="lt-table"/>');
+  table.find('thead').detach().appendTo(thead);
+  var tfoot = $('<table class="lt-table"/>');
+  table.find('tfoot').detach().appendTo(tfoot);
+  var scroller = $('<div id="lt-fullscreen-scroller"/>');
+  scroller.append(table);
+  div.append(thead, scroller, tfoot);
+  $('BODY').children().hide();
+  $('BODY').append(div);
+  scroller.css({ height: div.height()-thead.outerHeight()-tfoot.outerHeight() })
+  syncColumnWidths(div);
+}
+function syncColumnWidths(div) {
+  var head = div.find('thead .lt-head');
+  var cell = div.find('tbody tr:first-child .lt-cell');
+  for (var i = 0; i < head.length && i < cell.length; i++) {
+    if (head[i].offsetWidth > cell[i].offsetWidth) {
+      cell[i].style.minWidth = head[i].offsetWidth + 'px';
+      head[i].style.removeProperty('minWidth');
+    }
+    else {
+      head[i].style.minWidth = cell[i].offsetWidth + 'px';
+      cell[i].style.removeProperty('minWidth');
+    }
+  }
 }
 
 function changeParams(div, params) {
@@ -241,7 +290,7 @@ function refreshTable(table, key) {
         var options = tables[key].data.options;
         if (options.sum) updateSums(this.find('tfoot'), tables[key].data);
         if (options.callbacks && options.callbacks.change) window.setTimeout(options.callbacks.change.replace('#src', this.parent().data('source')), 0);
-        if (options.tablefunction && (data.options.tablefunction.hidecondition !== undefined)) {
+        if (options.tablefunction && data.options && data.options.tablefunction && (data.options.tablefunction.hidecondition !== undefined)) {
           options.tablefunction.hidecondition = data.options.tablefunction.hidecondition;
           if (options.tablefunction.hidecondition) this.find('.lt-tablefunc').hide();
           else this.find('.lt-tablefunc').show();
@@ -308,6 +357,8 @@ function sortBy(tableId, el) {
 
   var tbody = table.find('tbody');
   var rowcount = renderTbody(tbody, data);
+  var div = table.closest('#lt-fullscreen-div');
+  if (div.length) syncColumnWidths(div); // Table is in fullscreen mode
 }
 
 function goPage(tableId, which) {
@@ -431,7 +482,11 @@ function renderTableGrid(table, data, sub) {
     headstr += '<tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
     if (data.options.popout && (data.options.popout.type == 'floating-div')) {
       headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"");
-      headstr += '" onclick="showTableInDialog($(this).closest(\'table\'));">';
+      headstr += '" onclick="showTableInDialog($(this).closest(\'table\'));"></span>';
+    }
+    else if (data.options.popout && (data.options.popout.type == 'fullscreen')) {
+      headstr += '<span class="lt-fullscreen-button ' + (data.options.popout.icon_class?data.options.popout.icon_class:"") + '" ';
+      headstr += 'onclick="toggleTableFullscreen($(this).closest(\'table\'));"></span>';
     }
     if (data.options.tablefunction && data.options.tablefunction.text) {
       if (data.params) {
@@ -798,7 +853,7 @@ function renderCell(options, row, c) {
   if (options.edit && options.edit[c]) {
     if (typeof(options.edit[c]) == 'string') var onclick = ' onclick="doEdit(this)"';
     else if (typeof(options.edit[c]) == 'object') {
-      if (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length == 2))) var onclick = ' onclick="doEditSelect(this)"';
+      if (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length >= 2))) var onclick = ' onclick="doEditSelect(this)"';
       else var onclick = ' onclick="doEdit(this)"';
     }
     classes.push('lt-edit');
@@ -966,6 +1021,8 @@ function updateRow(options, tbody, oldrow, newrow) {
 function updateFilter(edit) {
   edit = $(edit);
   var table = edit.closest('table');
+  var fullscreen = table.closest('#lt-fullscreen-div');
+  if (fullscreen.length) table = fullscreen.find('#lt-fullscreen-scroller table');
   var data = tables[table.attr('id')].data;
   var c = colVisualToReal(data, edit.parent().index()+1);
   if (!data.filters) data.filters = {};
@@ -978,6 +1035,7 @@ function updateFilter(edit) {
     catch (e) { edit.css('background-color', 'rgba(255,0,0,0.5)'); }
   }
   runFilters(table, data);
+  if (fullscreen.length) syncColumnWidths(fullscreen);
 }
 function runFilters(table, data) {
   if (data.options.page > 1) data.options.page = 1;
@@ -991,6 +1049,11 @@ function clearFilters(key) {
   table.find('.lt-filter').children('input').css('background-color', '').val('');
   data.filters = {};
   runFilters(table, data);
+  var fullscreen = table.closest('#lt-fullscreen-div');
+  if (fullscreen.length) {
+    fullscreen.find('thead .lt-filter input').css('background-color', '').val('');
+    syncColumnWidths(fullscreen);
+  }
 }
 
 function doEdit(cell) {
@@ -1105,6 +1168,7 @@ function doEditSelect(cell) {
           else selectbox.append('<option value="' + items[i][0] + '">' + items[i][1] + '</option>');
         }
         this.empty().append(selectbox);
+        if (data.insert) this.append('<input type="button" class="lt-add-option" value="➕" onclick="addOption(this, ' + c + ');">');
         if (!selected) selectbox.prop('selectedIndex', -1);
         selectbox.focus();
         selectbox.on('keydown', this, function(evt) {
