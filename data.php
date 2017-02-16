@@ -291,7 +291,7 @@ switch ($mode) {
       if (!empty($edit)) {
         if (!empty($edit['type'])) $type = $edit['type'];
         if (!empty($edit['target'])) $target = $edit['target'];
-        elseif (count($edit) == 2) $target = $edit[0];
+        elseif (count($edit) >= 2) $target = $edit[0];
         else fatalerr('Invalid edit settings for column ' . $_POST['col'] . ' in table ' . $_POST['src']);
       }
       else $target = $edit[0];
@@ -349,10 +349,10 @@ switch ($mode) {
         else $params = array();
         $data = lt_query($table['query'], $params, $_POST['row']);
         // Do search-and-replace of # here
-        if ($data['error']) fatalerr($data['error']);
+        if (!empty($data['error'])) fatalerr($data['error']);
         $sqlfunc = str_replace('#id', $data['rows'][0][0], $edit['sqlfunction']);
         for ($i = count($data['rows'][0]); $i >= 0; $i--) {
-          if (strpos($sqlfunc, '#'.$i) >= 0) $sqlfunc = str_replace('#'.$i, $data['rows'][0][$i], $sqlfunc);
+          if ((strpos($sqlfunc, '#'.$i) >= 0) && !empty($data['rows'][0][$i])) $sqlfunc = str_replace('#'.$i, $data['rows'][0][$i], $sqlfunc);
         }
       }
       else $sqlfunc = $edit['sqlfunction'];
@@ -417,7 +417,7 @@ switch ($mode) {
     $data = array();
     $data['items'] = $res->fetchAll(PDO::FETCH_NUM);
     $data['null'] = lt_col_allow_null($target[0], $target[1]);
-    if (!empty($edit[$_GET['col']['insert']]) || !empty($edit[$_GET['col'][2]])) $data['insert'] = true;
+    if (!empty($edit[$_GET['col']]['insert']) || !empty($edit[$_GET['col']][2])) $data['insert'] = true;
     header('Content-type: application/json; charset=utf-8');
     print json_encode($data);
     break;
@@ -509,6 +509,7 @@ switch ($mode) {
     if (!allowed_block($tableinfo['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     $tables = array();
 
+    // Process the $_POST variables into a table -> column -> value multidimensional array
     foreach ($_POST as $key => $value) {
       if (strpos($key, ':')) {
         list($table, $column) = explode(':', $key);
@@ -520,8 +521,44 @@ switch ($mode) {
       }
     }
 
-    if (!empty($tableinfo['options']['insert']['keys'])) {
-      foreach ($tableinfo['options']['insert']['keys'] as $pkey => $fkey) {
+    // Check whether there is a matching insert field for each table.column combination
+    $fields = $tableinfo['options']['insert'];
+    if (!empty($fields['include']) && ($fields['include'] == 'edit')) $fields += $tableinfo['options']['edit'];
+    if (!empty($tableinfo['options']['insert']['keys'])) $keys = $tableinfo['options']['insert']['keys'];
+    else $keys = [];
+    $found = 0;
+    foreach ($tables as $tabname => $insert) {
+      foreach ($insert['columns'] as $colname => $value) {
+        foreach ($fields as $id => $options) {
+          if (is_string($options)) $target = $options;
+          elseif (!empty($options['target'])) $target = $options['target'];
+          elseif (!empty($options[0])) $target = $options[0];
+          if ($target == "$tabname.$colname") {
+            $found = 1;
+            break;
+          }
+          if (is_string($options)) continue;
+          elseif (!empty($options['insert'])) $newinsert = $options['insert'];
+          elseif (!empty($options[2])) $newinsert = $options[2];
+          else continue;
+          if (!empty($newinsert['target']) && ($newinsert['target'] == "$tabname.$colname")) {
+            if (!empty($newinsert['id']) && !empty($target)) $keys[$newinsert['id']] = $target;
+            $found = 1;
+            break;
+          }
+          if (!empty($newinsert[1]) && ($newinsert[1] == "$tabname.$colname")) {
+            if (!empty($newinsert[0]) && !empty($target)) $keys[$newinsert[0]] = $target;
+            $found = 1;
+            break;
+          }
+        }
+        if (!$found) fatalerr("No valid insert option found for table $tabname column $colname");
+      }
+    }
+
+    // First insert the values that have explicit ordering requirements in the `keys` option
+    if (!empty($keys)) {
+      foreach ($keys as $pkey => $fkey) {
         list($ptable, $pcolumn) = explode('.', $pkey);
         list($ftable, $fcolumn) = explode('.', $fkey);
         if (!isset($tables[$ftable]['columns'])) fatalerr('Invalid sequence in insert keys option to block ' . $_POST['src']);
@@ -529,6 +566,7 @@ switch ($mode) {
         unset($tables[$ptable]['columns']);
       }
     }
+    // Then run the rest of the inserts
     foreach ($tables as $name => $value) {
       if (!isset($tables[$name]['columns'])) continue;
       lt_run_insert($name, $tables[$name]);

@@ -654,26 +654,17 @@ function renderTableGrid(table, data, sub) {
       else {
         if (fields[c].target) var input = $('<select name="' + fields[c].target + '"/>');
         else var input = $('<select name="' + fields[c][0] + '"/>');
-        if (fields[c].insert || fields[c][2]) var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="addOption(this, ' + c + ');">');
-        $.ajax({
-          method: 'get',
-          url: ajaxUrl,
-          dataType: 'json',
-          context: input,
-          data: { mode: 'selectbox', src: data.block + ':' + data.tag, col: c },
-          success: function(data) {
-            if (data.error) {
-              this.parent().css({ backgroundColor: '#ffa0a0' });
-              appError(data.error, cell);
-            }
-            else {
-              var items = data.items;
-              if (data.null) this.append('<option value=""></option>');
-              for (var i = 0; items[i]; i++) this.append('<option value="' + items[i][0] + '">' + items[i][1] + '</option>');
-              this.prop('selectedIndex', -1); // This selects nothing, rather than the first option
-            }
+        if (fields[c].insert || fields[c][2]) {
+          if (fields[c].insert) var setting = fields[c].insert;
+          else var setting = fields[c][2];
+          if (setting.type == '2-step') var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="addOption(this, ' + c + ');">');
+          else {
+            if (setting.target) var target = setting.target;
+            else var target = setting[1];
+            var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="switchToText(this, \'' + target + '\');">');
           }
-        });
+        }
+        loadOptions(input, data, c);
       }
       if ((typeof fields[c] == 'object') && fields[c].required) {
         input.addClass('lt-input-required');
@@ -720,6 +711,27 @@ function renderTableGrid(table, data, sub) {
   table.parent().data('crc', data.crc);
 }
 
+function loadOptions(input, data, c) {
+  $.ajax({
+    method: 'get',
+    url: ajaxUrl,
+    dataType: 'json',
+    context: input,
+    data: { mode: 'selectbox', src: data.block + ':' + data.tag, col: c },
+    success: function(data) {
+      if (data.error) {
+        this.parent().css({ backgroundColor: '#ffa0a0' });
+        appError(data.error, cell);
+      }
+      else {
+        var items = data.items;
+        if (data.null) this.append('<option value=""></option>');
+        for (var i = 0; items[i]; i++) this.append('<option value="' + items[i][0] + '">' + items[i][1] + '</option>');
+        this.prop('selectedIndex', -1); // This selects nothing, rather than the first option
+      }
+    }
+  });
+}
 function addOption(el, c) {
   var option = prompt(tr('New entry:'));
   if (!option) return;
@@ -736,6 +748,21 @@ function addOption(el, c) {
       $(el).siblings('select').append('<option value="' + data.insertid + '" selected>' + option + '</option>');
     }
   });
+}
+function switchToText(el, target) {
+  var cell = $(el).closest('.lt-cell');
+  cell.children().hide().filter('select').empty();
+  cell.append('<input type="text" class="lt-addoption" name="' + target + '">').find('input').focus();
+}
+function switchToSelect(el) {
+  var cell = $(el).closest('.lt-cell');
+  var key = cell.closest('table').attr('id');
+  var data = tables[key].data;
+  var c = colVisualToReal(data, cell.index()+1);
+  console.log(cell, key, data, c);
+  cell.find('.lt-addoption').remove();
+  loadOptions(cell.find('select'), data, c);
+  cell.children().show();
 }
 
 function exportToPng(el) {
@@ -1336,6 +1363,7 @@ function doInsert(el) {
           else if (el.prop('type') == 'date') el.val(new Date().toISOString().slice(0, 10));
           else if (el.prop('type') == 'checkbox') el.prop('checked', false);
           else if (el.prop('nodeName') == 'select') el.prop('selectedIndex', -1);
+          else if (el.hasClass('lt-addoption')) switchToSelect(el);
           else el.val('');
         });
         var table = this.closest('table');
