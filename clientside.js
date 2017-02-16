@@ -1123,8 +1123,11 @@ function doEdit(cell) {
     edit.css({ width: cell.width() + 'px', maxHeight: cell.height() + 'px' });
   }
   cell.empty().append(edit);
-  if (edit.prop('nodeName') == 'TEXTAREA') edit.textareaAutoSize();
-  edit.select();
+  if (edit.prop('nodeName') == 'TEXTAREA') {
+    var len = edit.html().length;
+    edit.focus().textareaAutoSize()[0].setSelectionRange(len, len);
+  }
+  else edit.select();
   edit.on('keydown', cell, function(evt){
     var cell = evt.data;
     var edit = $(this);
@@ -1188,7 +1191,7 @@ function doEditSelect(cell) {
         this.css({ backgroundColor: 'transparent' });
         var items = data.items;
         var selectbox = $('<select id="editbox"></select>');
-        selectbox.css({ width: this.width() + 'px', maxHeight: this.height() + 'px' });
+        selectbox.css({ maxWidth: this.width() + 'px', maxHeight: this.height() + 'px' });
         var selected = 0;
         if (data.null) selectbox.append('<option value=""></option>');
         for (var i = 0; items[i]; i++) {
