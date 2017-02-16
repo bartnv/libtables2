@@ -654,6 +654,7 @@ function renderTableGrid(table, data, sub) {
       else {
         if (fields[c].target) var input = $('<select name="' + fields[c].target + '"/>');
         else var input = $('<select name="' + fields[c][0] + '"/>');
+        if (fields[c].defaultid) input.defaultid = fields[c].defaultid;
         if (fields[c].insert || fields[c][2]) {
           if (fields[c].insert) var setting = fields[c].insert;
           else var setting = fields[c][2];
@@ -726,8 +727,12 @@ function loadOptions(input, data, c) {
       else {
         var items = data.items;
         if (data.null) this.append('<option value=""></option>');
-        for (var i = 0; items[i]; i++) this.append('<option value="' + items[i][0] + '">' + items[i][1] + '</option>');
-        this.prop('selectedIndex', -1); // This selects nothing, rather than the first option
+        for (var i = 0; items[i]; i++) {
+          if (this.defaultid && (this.defaultid == items[i][0])) var selected = ' selected';
+          else var selected = '';
+          this.append('<option value="' + items[i][0] + '"' + selected + '>' + items[i][1] + '</option>');
+        }
+        if (!this.defaultid) this.prop('selectedIndex', -1); // This selects nothing, rather than the first option
       }
     }
   });
