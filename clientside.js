@@ -691,7 +691,10 @@ function renderTableGrid(table, data, sub) {
       if (fields[c].placeholder) input.attr('placeholder', fields[c].placeholder);
       cell.addClass(classes.join(' '));
       cell.append(input);
-      if (insert) cell.append(insert);
+      if (insert) {
+        cell.append(insert);
+        insert = null;
+      }
       row.append(cell);
     }
     row.append('<td class="lt-cell"><input type="button" class="lt-insert-button" value="' + tr('Insert') + '" onclick="doInsert(this)"></td>');
