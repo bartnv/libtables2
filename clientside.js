@@ -1606,12 +1606,20 @@ function calendarInsert(start, end) {
     if (!title) return;
   }
   else var title = '';
-  for (var i = 1; this.calendar.options.params[i]; i++) {
-    var checked = $('input[name=select'+i+']:checked');
-    if (this.calendar.options.params[i].required && !checked.length) {
-      if (this.calendar.options.params[i].missingtext) userError(this.calendar.options.params[i].missingtext);
-      else userError(tr('Missing parameter'));
-      return;
+  if (this.calendar.options.params) {
+    for (var i = 1; this.calendar.options.params[i]; i++) {
+      var checked = false;
+      var elem = $('input[name=select'+i+']:checked');
+      if (elem.length) checked = true;
+      if (!checked.length) {
+        elem = $('select[name=select'+i+']');
+        if (elem.prop('selectedIndex') >= 0) checked = true;
+      }
+      if (this.calendar.options.params[i].required && !checked) {
+        if (this.calendar.options.params[i].missingtext) userError(this.calendar.options.params[i].missingtext);
+        else userError(tr('Missing parameter'));
+        return;
+      }
     }
   }
   $.ajax({
@@ -1621,8 +1629,8 @@ function calendarInsert(start, end) {
     data: {
       mode: 'calendarinsert',
       src: this.calendar.options.src,
-      param1: $('input[name=select1]:checked').closest('tr').data('rowid'),
-      param2: $('input[name=select2]:checked').closest('tr').data('rowid'),
+      param1: $('input[name=select1]:checked').parent().parent().data('rowid') || $('select[name=select1]').val(),
+      param2: $('input[name=select2]:checked').parent().parent().data('rowid') || $('select[name=select2]').val(),
       start: start.format(),
       end: end.format(),
       title: title
