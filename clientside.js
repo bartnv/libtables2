@@ -213,7 +213,7 @@ function loadTable(div, attr, sub) {
     tables[key].table = table;
     console.log('Rendering table ' + key + ' from existing data');
     renderTable(table, tables[key].data);
-    div.empty().append(table);
+    div.empty().append(tables[key].table);
     refreshTable(table, key);
   }
   else if (attr.embedded) {
@@ -223,7 +223,7 @@ function loadTable(div, attr, sub) {
     var data = JSON.parse(json);
     tables[key].data = data;
     renderTable(table, data);
-    div.empty().append(table);
+    div.empty().append(tables[key].table);
     div.removeAttr('embedded');
   }
   else {
@@ -245,7 +245,7 @@ function loadTable(div, attr, sub) {
           data.downloadtime = Date.now() - tables[key].start - data.querytime;
           tables[key].data = data;
           renderTable(table, data, sub);
-          this.empty().append(table);
+          this.empty().append(tables[key].table);
           if (data.options.callbacks && data.options.callbacks.load) window.setTimeout(data.options.callbacks.load.replace('#src', this.data('source')), 0);
         }
         tables[key].doingajax = false;
@@ -391,10 +391,71 @@ function replaceHashes(str, row) {
 
 function renderTable(table, data, sub) {
   var start = Date.now();
-  if (data.options.format) renderTableFormat(table, data, sub);
+  if (data.options.display && (data.options.display == 'list')) renderTableList(table, data, sub);
+  else if (data.options.display && (data.options.display == 'select')) renderTableSelect(table, data, sub);
+  else if (data.options.format) renderTableFormat(table, data, sub);
   else renderTableGrid(table, data, sub);
   console.log('Load timings for ' + (sub?'sub':'') + 'table ' + data.tag + ': sql ' + data.querytime +
               ' download ' + (data.downloadtime?data.downloadtime:'n/a') + ' render ' + (Date.now()-start) + ' ms');
+}
+
+function renderTableSelect(table, data, sub) {
+  var section = $('<section class="lt-select"><h3>' + data.title + '</h3>');
+
+  if (data.options.selectone) {
+    if (typeof selectones == 'undefined') selectones = 1;
+    else selectones++;
+    var select = '<select name="select' + selectones + '">';
+  }
+  else var select = '<select>';
+
+  for (var r = 0; r < data.rows.length; r++) { // Main loop over the data rows
+    if (!data.rows[r][2]) select += '<option value="' + data.rows[r][0] + '">' + data.rows[r][1] + '</option>';
+    else select += '<option value="' + data.rows[r][0] + '">' + data.rows[r][1] + ' (' + data.rows[r][2] + ')</option>';
+  }
+  select += '</select>';
+  section.append(select);
+
+  if (data.options.selectone && data.options.selectone.default) {
+    if (data.options.selectone.default == 'first') section.find('select').prop('selectedIndex', 0);
+    else if (data.options.selectone.default == 'last') section.find('select').prop('selectedIndex', data.rows.length-1);
+  }
+  else section.find('select').prop('selectedIndex', -1);
+
+  var key = table.attr('id');
+  tables[key].table = section;
+}
+
+function renderTableList(table, data, sub) {
+  var section = $('<section class="lt-list"><h3>' + data.title + '</h3>');
+  var ul = '<ul>';
+
+  if (data.options.selectone) {
+    if (typeof selectones == 'undefined') selectones = 1;
+    else selectones++;
+  }
+
+  for (var r = 0; r < data.rows.length; r++) { // Main loop over the data rows
+    ul += '<li data-rowid="' + data.rows[r][0] + '">';
+    if (data.options.selectone) {
+      if (data.options.selectone.trigger) var trigger = ' data-trigger="' + data.options.selectone.trigger + '"';
+      else var trigger = '';
+      if (data.options.selectone.style) var style = ' style="' + replaceHashes(data.options.selectone.style, data.rows[r]) + '"';
+      else var style = '';
+      ul += '<span><input type="radio" name="select' + selectones + '" ' + trigger + style + '></span>';
+    }
+    ul += data.rows[r][1];
+  }
+  ul += '</ul>';
+  section.append(ul);
+
+  if (data.options.selectone && data.options.selectone.default) {
+    if (data.options.selectone.default == 'first') section.find('input[name^=select]:first').prop('checked', true);
+    else if (data.options.selectone.default == 'last') section.find('input[name^=select]:last').prop('checked', true);
+  }
+
+  var key = table.attr('id');
+  tables[key].table = section;
 }
 
 function renderTableFormat(table, data, sub) {
