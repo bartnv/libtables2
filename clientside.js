@@ -794,43 +794,43 @@ function exportToPng(el) {
             });
 }
 
+function isFiltered(filters, row, options) {
+  for (i in filters) {
+    if (filters[i] instanceof RegExp) {
+      if ((typeof row[i] == 'string') && (row[i].search(filters[i]) >= 0)) continue;
+      if (typeof row[i] == 'boolean') {
+        if (String(row[i]).search(filters[i]) >= 0) continue;
+        if (row[i] && options.edit && options.edit[i] && options.edit[i].truevalue && (options.edit[i].truevalue.search(filters[i]) >= 0)) continue;
+        if (!row[i] && options.edit && options.edit[i] && options.edit[i].falsevalue && (options.edit[i].falsevalue.search(filters[i]) >= 0)) continue;
+      }
+    }
+    else if (filters[i].startsWith('>=')) {
+      if (row[i] >= parseFloat(filters[i].substring(2))) continue;
+    }
+    else if (filters[i].startsWith('>')) {
+      if (row[i] > parseFloat(filters[i].substring(1))) continue;
+    }
+    else if (filters[i].startsWith('<=')) {
+      if (row[i] <= parseFloat(filters[i].substring(2))) continue;
+    }
+    else if (filters[i].startsWith('<')) {
+      if (row[i] < parseFloat(filters[i].substring(1))) continue;
+    }
+    else if (filters[i].startsWith('=')) {
+      if (row[i] == parseFloat(filters[i].substring(1))) continue;
+    }
+    return true;
+  }
+  return false;
+}
+
 function renderTbody(tbody, data) {
   if (data.options.page) var offset = data.options.limit * (data.options.page - 1);
   else var offset = 0;
   var rowcount = 0;
   rows = [];
-  mainloop:
   for (var r = 0; r < data.rows.length; r++) { // Main loop over the data rows
-    if (data.filters) {
-      for (i in data.filters) {
-        if (data.filters[i] instanceof RegExp) {
-          if ((typeof data.rows[r][i] == 'string') && (data.rows[r][i].search(data.filters[i]) >= 0)) continue;
-          if (typeof data.rows[r][i] == 'boolean') {
-            if (String(data.rows[r][i]).search(data.filters[i]) >= 0) continue;
-            if (data.rows[r][i] && data.options.edit && data.options.edit[i] && data.options.edit[i].truevalue &&
-                 (data.options.edit[i].truevalue.search(data.filters[i]) >= 0)) continue;
-            if (!data.rows[r][i] && data.options.edit && data.options.edit[i] && data.options.edit[i].falsevalue &&
-                 (data.options.edit[i].falsevalue.search(data.filters[i]) >= 0)) continue;
-          }
-        }
-        else if (data.filters[i].startsWith('>=')) {
-          if (data.rows[r][i] >= parseFloat(data.filters[i].substring(2))) continue;
-        }
-        else if (data.filters[i].startsWith('>')) {
-          if (data.rows[r][i] > parseFloat(data.filters[i].substring(1))) continue;
-        }
-        else if (data.filters[i].startsWith('<=')) {
-          if (data.rows[r][i] <= parseFloat(data.filters[i].substring(2))) continue;
-        }
-        else if (data.filters[i].startsWith('<')) {
-          if (data.rows[r][i] < parseFloat(data.filters[i].substring(1))) continue;
-        }
-        else if (data.filters[i].startsWith('=')) {
-          if (data.rows[r][i] == parseFloat(data.filters[i].substring(1))) continue;
-        }
-        continue mainloop;
-      }
-    }
+    if (data.filters && isFiltered(data.filters, data.rows[r], data.options)) continue;
     rowcount++;
     if (rowcount <= offset) continue;
     if (data.options.limit && (offset+data.options.limit < rowcount)) continue;
@@ -947,6 +947,7 @@ function updateSums(tfoot, data) {
     if (data.options.sum[c]) {
       var sum = 0;
       for (var r = 0; r < data.rows.length; r++) {
+        if (data.filters && isFiltered(data.filters, data.rows[r], data.options)) continue;
         if (data.rows[r][c]) sum += parseFloat(data.rows[r][c]);
       }
       sum = String(Math.round(sum*1000000)/1000000);
@@ -1071,6 +1072,7 @@ function updateFilter(edit) {
   }
   runFilters(table, data);
   if (fullscreen.length) syncColumnWidths(fullscreen);
+  if (data.options.sum) updateSums(table.find('tfoot'), data);
 }
 function runFilters(table, data) {
   if (data.options.page > 1) data.options.page = 1;
