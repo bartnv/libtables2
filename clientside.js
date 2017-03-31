@@ -383,10 +383,14 @@ function replaceHashes(str, row) {
   if (str.indexOf('#') >= 0) {
     str = str.replace(/#id/g, row[0]);
     for (var c = row.length-1; c >= 0; c--) {
-      if (str.indexOf('#'+c) >= 0) str = str.replace(new RegExp('#'+c, 'g'), row[c] === null ? '' : row[c]);
+      if (str.indexOf('#'+c) >= 0) {
+        if (row[c] === null) var content = '';
+        else var content = row[c].replace('#', '\0');
+        str = str.replace(new RegExp('#'+c, 'g'), content);
+      }
     }
   }
-  return str;
+  return str.replace('\0', '#');
 }
 
 function renderTable(table, data, sub) {
