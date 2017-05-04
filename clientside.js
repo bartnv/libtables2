@@ -1117,6 +1117,7 @@ function updateRow(options, tbody, oldrow, newrow) {
       if (cell) cell.attr('style', replaceHashes(options.style[c], newrow));
     }
   }
+  if (options.pagetitle) document.title = replaceHashes(options.pagetitle, newrow);
 }
 
 function updateFilter(edit) {
