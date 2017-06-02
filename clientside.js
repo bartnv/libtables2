@@ -448,8 +448,8 @@ function renderTableList(table, data, sub) {
     if (data.options.selectone) {
       if (data.options.selectone.trigger) var trigger = ' data-trigger="' + data.options.selectone.trigger + '"';
       else var trigger = '';
-      if (data.options.selectone.style) var style = ' style="' + replaceHashes(data.options.selectone.style, data.rows[r]) + '"';
-      else var style = '';
+      if (data.options.style && data.options.style.selectone) style = ' style="' + replaceHashes(data.options.style.selectone, data.rows[r]) + '"';
+      else style = '';
       ul += '<span><input type="radio" name="select' + selectones + '" ' + trigger + style + '></span>';
     }
     ul += data.rows[r][1];
