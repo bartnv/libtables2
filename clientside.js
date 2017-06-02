@@ -442,7 +442,9 @@ function renderTableList(table, data, sub) {
   }
 
   for (var r = 0; r < data.rows.length; r++) { // Main loop over the data rows
-    ul += '<li data-rowid="' + data.rows[r][0] + '">';
+    if (data.options.style && data.options.style.list) var style = ' style="' + replaceHashes(data.options.style.list, data.rows[r]) + '"';
+    else var style = '';
+    ul += '<li data-rowid="' + data.rows[r][0] + '"' + style + '>';
     if (data.options.selectone) {
       if (data.options.selectone.trigger) var trigger = ' data-trigger="' + data.options.selectone.trigger + '"';
       else var trigger = '';
