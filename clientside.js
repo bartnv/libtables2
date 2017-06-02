@@ -1620,7 +1620,7 @@ function calendarInsert(start, end) {
       if (elem.length) checked = true;
       if (!checked.length) {
         elem = $('select[name=select'+i+']');
-        if (elem.prop('selectedIndex') >= 0) checked = true;
+        if ((elem.prop('selectedIndex') >= 0) && ($('select[name=select'+i+'] option').eq($('select[name=select'+i+']').prop('selectedIndex')).attr('value') !== "")) checked = true;
       }
       if (this.calendar.options.params[i].required && !checked) {
         if (this.calendar.options.params[i].missingtext) userError(this.calendar.options.params[i].missingtext);
