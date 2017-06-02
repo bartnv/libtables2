@@ -413,6 +413,8 @@ function renderTableSelect(table, data, sub) {
   }
   else var select = '<select>';
 
+  if (data.options.placeholder) select += '<option value="" disabled selected hidden>' + data.options.placeholder + '</option>';
+
   for (var r = 0; r < data.rows.length; r++) { // Main loop over the data rows
     if (!data.rows[r][2]) select += '<option value="' + data.rows[r][0] + '">' + data.rows[r][1] + '</option>';
     else select += '<option value="' + data.rows[r][0] + '">' + data.rows[r][1] + ' (' + data.rows[r][2] + ')</option>';
@@ -424,7 +426,7 @@ function renderTableSelect(table, data, sub) {
     if (data.options.selectone.default == 'first') section.find('select').prop('selectedIndex', 0);
     else if (data.options.selectone.default == 'last') section.find('select').prop('selectedIndex', data.rows.length-1);
   }
-  else section.find('select').prop('selectedIndex', -1);
+  else if (!data.options.placeholder) section.find('select').prop('selectedIndex', -1);
 
   var key = table.attr('id');
   tables[key].table = section;
