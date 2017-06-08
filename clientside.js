@@ -374,8 +374,8 @@ function goPage(tableId, which) {
     data.options.page = old;
     return;
   }
-  var tbody = table.find('tbody');
-  var rowcount = renderTbody(tbody, data);
+  if (data.options.format) renderTableFormat(table.empty(), data);
+  else var rowcount = renderTbody(table.find('tbody'), data);
   if (data.options.limit) table.find('.lt-pages').html(tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + Math.ceil(rowcount/data.options.limit));
 }
 
