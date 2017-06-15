@@ -929,7 +929,8 @@ function renderTbody(tbody, data) {
     }
     rows.push(row.join(''));
   }
-  tbody[0].innerHTML = rows.join('');
+  tbody.html(rows.join(''));
+  tbody.width(); // Force a DOM reflow to fix an IE9-11 bug https://stackoverflow.com/a/21032333
   return rowcount;
 }
 
@@ -1681,6 +1682,13 @@ Array.prototype.remove = function(from, to) {
   this.length = from < 0 ? this.length + from : from;
   return this.push.apply(this, rest);
 };
+
+// ES6 String.startsWith() polyfill - Public domain - https://developer.mozilla.org/nl/docs/Web/JavaScript/Reference/Global_Objects/String/startsWith#Polyfill
+if (!String.prototype.startsWith) {
+    String.prototype.startsWith = function(searchString, position){
+      return this.substr(position || 0, searchString.length) === searchString;
+  };
+}
 
 // jQuery Textarea AutoSize plugin - By Javier Julio (MIT licensed) - https://github.com/javierjulio/textarea-autosize
 ;(function ($, window, document, undefined) {
