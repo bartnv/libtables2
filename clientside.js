@@ -468,12 +468,15 @@ function renderTableList(table, data, sub) {
 
 function renderTableFormat(table, data, sub) {
   if (data.options.classes && data.options.classes.table) table.addClass(data.options.classes.table);
-  var headstr = '<thead><tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
-  if (data.options.popout && (data.options.popout.type == 'floating-div')) {
-    headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"");
-    headstr += '" onclick="showTableInDialog($(this).closest(\'table\'));">';
+  if (data.options.hideheader) var headstr = '';
+  else {
+    var headstr = '<thead><tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
+    if (data.options.popout && (data.options.popout.type == 'floating-div')) {
+      headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"");
+      headstr += '" onclick="showTableInDialog($(this).closest(\'table\'));">';
+    }
+    headstr += '</th></tr></thead>';
   }
-  headstr += '</th></tr></thead>';
 
   if (!data.options.page) data.options.page = 1;
   var offset = data.options.page - 1;
