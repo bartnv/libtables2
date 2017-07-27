@@ -1167,7 +1167,7 @@ function clearFilters(key) {
   }
 }
 
-function doEdit(cell) {
+function doEdit(cell, newcontent) {
   if ($('#editbox').length) return;
   cell = $(cell);
   cell.addClass('lt-editing');
@@ -1177,7 +1177,8 @@ function doEdit(cell) {
   else var c = cell.parent().children('.lt-data').index(cell)+1;
   if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'multiline') {
     edit = $('<textarea id="editbox" name="input">');
-    edit.html(content);
+    if (newcontent) edit.html(newcontent);
+    else edit.html(content);
     edit.css({ width: cell.width() + 'px', height: cell.height() + 'px' });
   }
   else if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'checkbox') {
@@ -1198,7 +1199,8 @@ function doEdit(cell) {
   }
   else {
     edit = $('<input type="text" id="editbox" name="input">');
-    edit.val(content);
+    if (newcontent) edit.val(newcontent);
+    else edit.val(content);
     edit.css({ width: cell.width() + 'px', maxHeight: cell.height() + 'px' });
   }
   cell.empty().append(edit);
@@ -1210,6 +1212,18 @@ function doEdit(cell) {
   edit.on('keydown', cell, function(evt){
     var cell = evt.data;
     var edit = $(this);
+    if ((evt.altKey == true) && (evt.which == 40)) {
+      var content = edit.val();
+      edit.blur();
+      doEdit(cell.parent().next().children().eq(cell.index()).get(0), content);
+      return;
+    }
+    if ((evt.altKey == true) && (evt.which == 38)) {
+      var content = edit.val();
+      edit.blur();
+      doEdit(cell.parent().prev().children().eq(cell.index()).get(0), content);
+      return;
+    }
     if (edit.prop('nodeName') == 'TEXTAREA') edit.textareaAutoSize();
     if ((evt.which != 9) && (evt.which != 13) && (evt.which != 27) && (evt.which != 38) && (evt.which != 40)) return;
     if ((edit.prop('nodeName') == 'TEXTAREA') && ((evt.which == 13) || (evt.which == 38) || (evt.which == 40))) return;
