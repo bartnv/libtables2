@@ -298,7 +298,7 @@ switch ($mode) {
     }
     else $target = $edit;
 
-    if (!preg_match('/^[a-z0-9_-]+.[a-z0-9_-]+$/', $target)) fatalerr('Invalid target specified for column ' . $_POST['col'] . ' in table ' . $_POST['src'] . ' (' . $target . ')');
+    if (!preg_match('/^[a-z0-9_-]+\.[a-z0-9_-]+$/', $target)) fatalerr('Invalid target specified for column ' . $_POST['col'] . ' in table ' . $_POST['src'] . ' (' . $target . ')');
     $target = explode('.', $target);
 
     if ($_POST['val'] == '') {
