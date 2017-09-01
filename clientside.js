@@ -530,7 +530,7 @@ function renderTableFormat(table, data, sub) {
         else if ((fmt[r][c] == 'A') && data.options.appendcell) {
           for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
           for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
-          var tdstr = '<td class="lt-cell"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
+          var tdstr = '<td class="lt-cell lt-append"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
           tdstr += replaceHashes(data.options.appendcell, data.rows[offset]) + '</td>';
           row.append(tdstr);
         }
@@ -923,7 +923,7 @@ function renderTbody(tbody, data) {
       if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
       row.push(renderCell(data.options, data.rows[r], c));
     }
-    if (data.options.appendcell) row.push('<td class="lt-cell">' + replaceHashes(data.options.appendcell, data.rows[r]) + '</td>');
+    if (data.options.appendcell) row.push('<td class="lt-cell lt-append">' + replaceHashes(data.options.appendcell, data.rows[r]) + '</td>');
     if (data.options.delete) {
       if (data.options.delete.text) var value = data.options.delete.text;
       else var value = '✖';
@@ -1126,6 +1126,18 @@ function updateRow(options, tbody, oldrow, newrow) {
     }
   }
   if (options.pagetitle) document.title = replaceHashes(options.pagetitle, newrow);
+  if (options.appendcell) {
+    if (options.format) var cell = tbody.find('.lt-append');
+    else var cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').find('.lt-append');
+    if (cell.length) {
+      var content = replaceHashes(options.appendcell, newrow);
+      if (cell.html() !== content.replace(/&/g, '&amp;')) {
+        cell.html(content);
+        cell.css('background-color', 'green');
+        setTimeout(function(cell) { cell.css('background-color', 'rgba(0,255,0,0.25)'); }, 2000, cell);
+      }
+    }
+  }
 }
 
 function updateFilter(edit) {
