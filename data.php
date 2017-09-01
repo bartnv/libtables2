@@ -1,4 +1,4 @@
-<? require('libtables2.php');
+<?php require('libtables2.php');
 
 global $dbh;
 
