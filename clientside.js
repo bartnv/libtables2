@@ -1189,7 +1189,7 @@ function doEdit(cell, newcontent) {
   else var c = cell.parent().children('.lt-data').index(cell)+1;
   if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'multiline') {
     edit = $('<textarea id="editbox" name="input">');
-    if (newcontent) edit.html(newcontent);
+    if (typeof newcontent === 'string') edit.html(newcontent);
     else edit.html(content);
     edit.css({ width: cell.width() + 'px', height: cell.height() + 'px' });
   }
