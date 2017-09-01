@@ -385,7 +385,7 @@ function replaceHashes(str, row) {
     for (var c = row.length-1; c >= 0; c--) {
       if (str.indexOf('#'+c) >= 0) {
         if (row[c] === null) var content = '';
-        else var content = row[c].replace('#', '\0');
+        else var content = String(row[c]).replace('#', '\0');
         str = str.replace(new RegExp('#'+c, 'g'), content);
       }
     }
