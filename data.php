@@ -436,7 +436,7 @@ switch ($mode) {
         $err = $dbh->errorInfo();
         fatalerr("SQL prepare error: " . $err[2]);
       }
-      if (!($stmt->execute())) {
+      if (!($stmt->execute($params))) {
         $err = $stmt->errorInfo();
         fatalerr("SQL execute error: " . $err[2]);
       }
