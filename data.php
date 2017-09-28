@@ -644,7 +644,8 @@ switch ($mode) {
         'end' => $row['end'],
         'color' => $row['color'],
         'subcolor' => isset($row['subcolor'])?$row['subcolor']:null,
-        'allDay' => isset($row['allday'])?$row['allday']:false
+        'allDay' => isset($row['allday'])?$row['allday']:false,
+        'editable' => isset($row['editable'])?$row['editable']:null
       );
     }
 
