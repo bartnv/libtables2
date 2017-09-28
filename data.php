@@ -386,8 +386,8 @@ switch ($mode) {
 
     break;
   case 'selectbox':
-    if (empty($_GET['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_GET['src'])) fatalerr('Invalid src in mode inlineedit');
-    if (empty($_GET['col']) || !is_numeric($_GET['col'])) fatalerr('Invalid column id in mode inlineedit');
+    if (empty($_GET['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_GET['src'])) fatalerr('Invalid src in mode selectbox');
+    if (empty($_GET['col']) || !is_numeric($_GET['col'])) fatalerr('Invalid column id in mode selectbox');
 
     if (($_GET['src'] == 'sqlrun:table') && (!empty($_GET['sql']))) {
       if (!($edit = lt_edit_from_query($_GET['sql']))) fatalerr('Invalid SQL in sqlrun selectbox');
@@ -454,11 +454,11 @@ switch ($mode) {
 
     $data = lt_query($table['query']);
     if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
-//    $types = str_replace([ 'int4', 'int8', 'float4', 'float8', 'bool', 'text' ], [ 'integer', 'integer', 'numeric', 'numeric', 'boolean', 'string' ], $data['types']);
-//    $headers = array_combine($data['headers'], $types);
+    $types = str_replace([ 'int4', 'int8', 'float4', 'float8', 'bool', 'text' ], [ 'integer', 'integer', '#,##0.00', '#,##0.00', 'boolean', 'string' ], $data['types']);
+    $headers = array_combine($data['headers'], $types);
     $writer = new XLSXWriter();
-//    $writer->writeSheetHeader('Sheet1', $headers);
-    $writer->writeSheetRow('Sheet1', $data['headers']);
+    if (!empty($table['options']['export']['hideid']) && $table['options']['export']['hideid']) array_shift($headers);
+    $writer->writeSheetHeader('Sheet1', $headers, array('font-style' => 'bold', 'border' => 'bottom'));
     foreach ($data['rows'] as $row) {
       if (!empty($table['options']['export']['hideid']) && $table['options']['export']['hideid']) array_shift($row);
       $writer->writeSheetRow('Sheet1', $row);
