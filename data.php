@@ -526,10 +526,18 @@ switch ($mode) {
     if (!empty($fields['include']) && ($fields['include'] == 'edit')) $fields += $tableinfo['options']['edit'];
     if (!empty($tableinfo['options']['insert']['keys'])) $keys = $tableinfo['options']['insert']['keys'];
     else $keys = [];
-    $found = 0;
     foreach ($tables as $tabname => $insert) {
-      foreach ($insert['columns'] as $colname => $value) {
+      foreach ($insert['columns'] as $colname => &$value) {
+        $found = 0;
         foreach ($fields as $id => $options) {
+          if (!empty($options['phpfunction'])) {
+            // Not tested yet
+            $func = 'return ' . str_replace('?', "'" . $value . "'", $options['phpfunction']) . ';';
+            $value = eval($func);
+          }
+          if (!empty($options['sqlfunction'])) {
+            // Save sqlfunction here for use in lt_run-insert() later
+          }
           if (is_string($options)) $target = $options;
           elseif (!empty($options['target'])) $target = $options['target'];
           elseif (!empty($options[0])) $target = $options[0];
