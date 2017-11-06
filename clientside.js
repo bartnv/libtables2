@@ -374,8 +374,8 @@ function goPage(tableId, which) {
     data.options.page = old;
     return;
   }
-  var tbody = table.find('tbody');
-  var rowcount = renderTbody(tbody, data);
+  if (data.options.format) renderTableFormat(table.empty(), data);
+  else var rowcount = renderTbody(table.find('tbody'), data);
   if (data.options.limit) table.find('.lt-pages').html(tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + Math.ceil(rowcount/data.options.limit));
 }
 
@@ -385,7 +385,7 @@ function replaceHashes(str, row) {
     for (var c = row.length-1; c >= 0; c--) {
       if (str.indexOf('#'+c) >= 0) {
         if (row[c] === null) var content = '';
-        else var content = row[c].replace('#', '\0');
+        else var content = String(row[c]).replace('#', '\0');
         str = str.replace(new RegExp('#'+c, 'g'), content);
       }
     }
@@ -413,6 +413,8 @@ function renderTableSelect(table, data, sub) {
   }
   else var select = '<select>';
 
+  if (data.options.placeholder) select += '<option value="" disabled selected hidden>' + data.options.placeholder + '</option>';
+
   for (var r = 0; r < data.rows.length; r++) { // Main loop over the data rows
     if (!data.rows[r][2]) select += '<option value="' + data.rows[r][0] + '">' + data.rows[r][1] + '</option>';
     else select += '<option value="' + data.rows[r][0] + '">' + data.rows[r][1] + ' (' + data.rows[r][2] + ')</option>';
@@ -424,7 +426,7 @@ function renderTableSelect(table, data, sub) {
     if (data.options.selectone.default == 'first') section.find('select').prop('selectedIndex', 0);
     else if (data.options.selectone.default == 'last') section.find('select').prop('selectedIndex', data.rows.length-1);
   }
-  else section.find('select').prop('selectedIndex', -1);
+  else if (!data.options.placeholder) section.find('select').prop('selectedIndex', -1);
 
   var key = table.attr('id');
   tables[key].table = section;
@@ -440,12 +442,14 @@ function renderTableList(table, data, sub) {
   }
 
   for (var r = 0; r < data.rows.length; r++) { // Main loop over the data rows
-    ul += '<li data-rowid="' + data.rows[r][0] + '">';
+    if (data.options.style && data.options.style.list) var style = ' style="' + replaceHashes(data.options.style.list, data.rows[r]) + '"';
+    else var style = '';
+    ul += '<li data-rowid="' + data.rows[r][0] + '"' + style + '>';
     if (data.options.selectone) {
       if (data.options.selectone.trigger) var trigger = ' data-trigger="' + data.options.selectone.trigger + '"';
       else var trigger = '';
-      if (data.options.selectone.style) var style = ' style="' + replaceHashes(data.options.selectone.style, data.rows[r]) + '"';
-      else var style = '';
+      if (data.options.style && data.options.style.selectone) style = ' style="' + replaceHashes(data.options.style.selectone, data.rows[r]) + '"';
+      else style = '';
       ul += '<span><input type="radio" name="select' + selectones + '" ' + trigger + style + '></span>';
     }
     ul += data.rows[r][1];
@@ -464,12 +468,15 @@ function renderTableList(table, data, sub) {
 
 function renderTableFormat(table, data, sub) {
   if (data.options.classes && data.options.classes.table) table.addClass(data.options.classes.table);
-  var headstr = '<thead><tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
-  if (data.options.popout && (data.options.popout.type == 'floating-div')) {
-    headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"");
-    headstr += '" onclick="showTableInDialog($(this).closest(\'table\'));">';
+  if (data.options.hideheader) var headstr = '';
+  else {
+    var headstr = '<thead><tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
+    if (data.options.popout && (data.options.popout.type == 'floating-div')) {
+      headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"");
+      headstr += '" onclick="showTableInDialog($(this).closest(\'table\'));">';
+    }
+    headstr += '</th></tr></thead>';
   }
-  headstr += '</th></tr></thead>';
 
   if (!data.options.page) data.options.page = 1;
   var offset = data.options.page - 1;
@@ -523,7 +530,7 @@ function renderTableFormat(table, data, sub) {
         else if ((fmt[r][c] == 'A') && data.options.appendcell) {
           for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
           for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
-          var tdstr = '<td class="lt-cell"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
+          var tdstr = '<td class="lt-cell lt-append"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
           tdstr += replaceHashes(data.options.appendcell, data.rows[offset]) + '</td>';
           row.append(tdstr);
         }
@@ -916,7 +923,7 @@ function renderTbody(tbody, data) {
       if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
       row.push(renderCell(data.options, data.rows[r], c));
     }
-    if (data.options.appendcell) row.push('<td class="lt-cell">' + replaceHashes(data.options.appendcell, data.rows[r]) + '</td>');
+    if (data.options.appendcell) row.push('<td class="lt-cell lt-append">' + replaceHashes(data.options.appendcell, data.rows[r]) + '</td>');
     if (data.options.delete) {
       if (data.options.delete.text) var value = data.options.delete.text;
       else var value = '✖';
@@ -926,6 +933,7 @@ function renderTbody(tbody, data) {
     rows.push(row.join(''));
   }
   tbody[0].innerHTML = rows.join('');
+  tbody.width(); // Force a DOM reflow to fix an IE9-11 bug https://stackoverflow.com/a/21032333
   return rowcount;
 }
 
@@ -1117,6 +1125,19 @@ function updateRow(options, tbody, oldrow, newrow) {
       if (cell) cell.attr('style', replaceHashes(options.style[c], newrow));
     }
   }
+  if (options.pagetitle) document.title = replaceHashes(options.pagetitle, newrow);
+  if (options.appendcell) {
+    if (options.format) var cell = tbody.find('.lt-append');
+    else var cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').find('.lt-append');
+    if (cell.length) {
+      var content = replaceHashes(options.appendcell, newrow);
+      if (cell.html() !== content.replace(/&/g, '&amp;')) {
+        cell.html(content);
+        cell.css('background-color', 'green');
+        setTimeout(function(cell) { cell.css('background-color', 'rgba(0,255,0,0.25)'); }, 2000, cell);
+      }
+    }
+  }
 }
 
 function updateFilter(edit) {
@@ -1158,7 +1179,7 @@ function clearFilters(key) {
   }
 }
 
-function doEdit(cell) {
+function doEdit(cell, newcontent) {
   if ($('#editbox').length) return;
   cell = $(cell);
   cell.addClass('lt-editing');
@@ -1168,7 +1189,8 @@ function doEdit(cell) {
   else var c = cell.parent().children('.lt-data').index(cell)+1;
   if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'multiline') {
     edit = $('<textarea id="editbox" name="input">');
-    edit.html(content);
+    if (typeof newcontent === 'string') edit.html(newcontent);
+    else edit.html(content);
     edit.css({ width: cell.width() + 'px', height: cell.height() + 'px' });
   }
   else if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'checkbox') {
@@ -1189,7 +1211,8 @@ function doEdit(cell) {
   }
   else {
     edit = $('<input type="text" id="editbox" name="input">');
-    edit.val(content);
+    if (newcontent) edit.val(newcontent);
+    else edit.val(content);
     edit.css({ width: cell.width() + 'px', maxHeight: cell.height() + 'px' });
   }
   cell.empty().append(edit);
@@ -1201,6 +1224,18 @@ function doEdit(cell) {
   edit.on('keydown', cell, function(evt){
     var cell = evt.data;
     var edit = $(this);
+    if ((evt.altKey == true) && (evt.which == 40)) {
+      var content = edit.val();
+      edit.blur();
+      doEdit(cell.parent().next().children().eq(cell.index()).get(0), content);
+      return;
+    }
+    if ((evt.altKey == true) && (evt.which == 38)) {
+      var content = edit.val();
+      edit.blur();
+      doEdit(cell.parent().prev().children().eq(cell.index()).get(0), content);
+      return;
+    }
     if (edit.prop('nodeName') == 'TEXTAREA') edit.textareaAutoSize();
     if ((evt.which != 9) && (evt.which != 13) && (evt.which != 27) && (evt.which != 38) && (evt.which != 40)) return;
     if ((edit.prop('nodeName') == 'TEXTAREA') && ((evt.which == 13) || (evt.which == 38) || (evt.which == 40))) return;
@@ -1615,7 +1650,7 @@ function calendarInsert(start, end) {
       if (elem.length) checked = true;
       if (!checked.length) {
         elem = $('select[name=select'+i+']');
-        if (elem.prop('selectedIndex') >= 0) checked = true;
+        if ((elem.prop('selectedIndex') >= 0) && ($('select[name=select'+i+'] option').eq($('select[name=select'+i+']').prop('selectedIndex')).attr('value') !== "")) checked = true;
       }
       if (this.calendar.options.params[i].required && !checked) {
         if (this.calendar.options.params[i].missingtext) userError(this.calendar.options.params[i].missingtext);
@@ -1676,6 +1711,13 @@ Array.prototype.remove = function(from, to) {
   this.length = from < 0 ? this.length + from : from;
   return this.push.apply(this, rest);
 };
+
+// ES6 String.startsWith() polyfill - Public domain - https://developer.mozilla.org/nl/docs/Web/JavaScript/Reference/Global_Objects/String/startsWith#Polyfill
+if (!String.prototype.startsWith) {
+    String.prototype.startsWith = function(searchString, position){
+      return this.substr(position || 0, searchString.length) === searchString;
+  };
+}
 
 // jQuery Textarea AutoSize plugin - By Javier Julio (MIT licensed) - https://github.com/javierjulio/textarea-autosize
 ;(function ($, window, document, undefined) {
