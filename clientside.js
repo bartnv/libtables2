@@ -714,18 +714,18 @@ function renderTableGrid(table, data, sub) {
       var cell = $('<td/>');
       var classes = [ 'lt-cell' ];
       if (data.options.class && data.options.class[c]) classes.push(data.options.class[c]);
-      if (typeof(fields[c]) == 'string') var input = $('<input type="text" name="' + fields[c] + '">');
-      else if (Object.keys(fields[c]).length == 1) var input = $('<input type="text" name="' + fields[c][0] + '">');
+      if (typeof(fields[c]) == 'string') var input = $('<input type="text" class="lt-insert-input" name="' + fields[c] + '">');
+      else if (Object.keys(fields[c]).length == 1) var input = $('<input type="text" class="lt-insert-input" name="' + fields[c][0] + '">');
       else if (fields[c].type == 'multiline') {
-        var input = $('<textarea class="lt_insert" name="' + fields[c].target + '" oninput="$(this).textareaAutoSize();"/>');
+        var input = $('<textarea class="lt_insert" class="lt-insert-input" name="' + fields[c].target + '" oninput="$(this).textareaAutoSize();"/>');
       }
-      else if (fields[c].type == 'checkbox') var input = $('<input type="checkbox" name="' + fields[c].target + '">');
-      else if (fields[c].type == 'date') var input = $('<input type="date" name="' + fields[c].target + '" value="' + new Date().toISOString().slice(0, 10) + '">');
-      else if (fields[c].type == 'password') var input = $('<input type="password" name="' + fields[c].target + '">');
-      else if (fields[c].target && !fields[c].query) var input = $('<input type="text" name="' + fields[c].target + '">');
+      else if (fields[c].type == 'checkbox') var input = $('<input type="checkbox" class="lt-insert-input" name="' + fields[c].target + '">');
+      else if (fields[c].type == 'date') var input = $('<input type="date" class="lt-insert-input" name="' + fields[c].target + '" value="' + new Date().toISOString().slice(0, 10) + '">');
+      else if (fields[c].type == 'password') var input = $('<input type="password" class="lt-insert-input" name="' + fields[c].target + '">');
+      else if (fields[c].target && !fields[c].query) var input = $('<input type="text" class="lt-insert-input" name="' + fields[c].target + '">');
       else {
-        if (fields[c].target) var input = $('<select name="' + fields[c].target + '"/>');
-        else var input = $('<select name="' + fields[c][0] + '"/>');
+        if (fields[c].target) var input = $('<select class="lt-insert-input" name="' + fields[c].target + '"/>');
+        else var input = $('<select class="lt-insert-input" name="' + fields[c][0] + '"/>');
         if (fields[c].defaultid) input.defaultid = fields[c].defaultid;
         if (fields[c].insert || fields[c][2]) {
           if (fields[c].insert) var setting = fields[c].insert;
