@@ -928,7 +928,8 @@ function renderTbody(tbody, data) {
       if (data.options.delete.text) var value = data.options.delete.text;
       else var value = '✖';
       if (data.options.delete.notids && (data.options.delete.notids.indexOf(data.rows[r][0]) >= 0));
-      else row.push('<td class="lt-cell"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
+      else if (data.options.delete.html) row.push('<td class="lt-cell lt-append"><a onclick="doDelete(this)">' + data.options.delete.html + '</a></td>');
+      else row.push('<td class="lt-cell lt-append"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
     }
     rows.push(row.join(''));
   }
