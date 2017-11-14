@@ -907,53 +907,39 @@ function renderTbody(tbody, data) {
     if (rowcount <= offset) continue;
     if (data.options.limit && (offset+data.options.limit < rowcount)) continue;
     if ((rowcount == offset) && data.options.pagetitle) document.title = replaceHashes(data.options.pagetitle, data.rows[r]);
-    row = [ '<tr class="lt-row" data-rowid="'+data.rows[r][0]+'"/>' ];
-    if (data.options.selectone) {
-      if (data.options.selectone.trigger) var trigger = ' data-trigger="' + data.options.selectone.trigger + '"';
-      else var trigger = '';
-      row.push('<td><input type="radio" name="select' + selectones + '" ' + trigger + '></td>');
-    }
-    if (data.options.selectany) {
-      if (data.options.selectany.links && (data.options.selectany.links.indexOf(data.rows[r][0]) >= 0)) var checked = ' checked';
-      else var checked = '';
-      row.push('<td class="lt-cell"><input type="checkbox" onchange="doSelect(this)"' + checked + '></td>');
-    }
-    for (var c = 1; c < data.rows[r].length; c++) { // Loop over each column
-      if (data.options.mouseover && data.options.mouseover[c]) continue;
-      if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
-      row.push(renderCell(data.options, data.rows[r], c));
-    }
-    if (data.options.appendcell) row.push('<td class="lt-cell lt-append">' + replaceHashes(data.options.appendcell, data.rows[r]) + '</td>');
-    if (data.options.delete) {
-      if (data.options.delete.text) var value = data.options.delete.text;
-      else var value = '✖';
-      if (data.options.delete.notids && (data.options.delete.notids.indexOf(data.rows[r][0]) >= 0));
-      else if (data.options.delete.html) row.push('<td class="lt-cell lt-append"><a onclick="doDelete(this)">' + data.options.delete.html + '</a></td>');
-      else row.push('<td class="lt-cell lt-append"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
-    }
-    rows.push(row.join(''));
+    rows.push(renderRow(data.options, data.rows[r]));
   }
   tbody[0].innerHTML = rows.join('');
   tbody.width(); // Force a DOM reflow to fix an IE9-11 bug https://stackoverflow.com/a/21032333
   return rowcount;
 }
 
-function doSelect(el) {
-  input = $(el);
-  input.parent().css('background-color', 'red');
-  key = input.closest('table').attr('id');
-  id = input.closest('tr').data('rowid');
-  $.ajax({
-    method: 'post',
-    url: ajaxUrl,
-    dataType: 'json',
-    context: input,
-    data: { mode: 'select', src: tables[key].data.block + ':' + tables[key].data.tag, params: tables[key].data.params, id: id, link: input.prop('checked') },
-    success: function(data) {
-      if (data.error) appError(data.error, this);
-      else this.parent().css('background-color', '');
-    }
-  });
+function renderRow(options, row) {
+  let html = [ '<tr class="lt-row" data-rowid="'+ row[0]+'"/>' ];
+  if (options.selectone) {
+    if (options.selectone.trigger) var trigger = ' data-trigger="' + options.selectone.trigger + '"';
+    else var trigger = '';
+    html.push('<td><input type="radio" name="select' + selectones + '" ' + trigger + '></td>');
+  }
+  if (options.selectany) {
+    if (options.selectany.links && (options.selectany.links.indexOf(row[0]) >= 0)) var checked = ' checked';
+    else var checked = '';
+    html.push('<td class="lt-cell"><input type="checkbox" onchange="doSelect(this)"' + checked + '></td>');
+  }
+  for (var c = 1; c < row.length; c++) { // Loop over each column
+    if (options.mouseover && options.mouseover[c]) continue;
+    if (options.hidecolumn && options.hidecolumn[c]) continue;
+    html.push(renderCell(options, row, c));
+  }
+  if (options.appendcell) html.push('<td class="lt-cell lt-append">' + replaceHashes(options.appendcell, row) + '</td>');
+  if (options.delete) {
+    if (options.delete.text) var value = options.delete.text;
+    else var value = '✖';
+    if (options.delete.notids && (options.delete.notids.indexOf(row[0]) >= 0));
+    else if (options.delete.html) html.push('<td class="lt-cell lt-append"><a onclick="doDelete(this)">' + options.delete.html + '</a></td>');
+    else html.push('<td class="lt-cell lt-append"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
+  }
+  return html.join('');
 }
 
 function renderCell(options, row, c) {
@@ -1073,16 +1059,7 @@ function updateTable(tbody, data, newrows) {
   }
   else {
     for (var i = 0; i < newrows.length; i++) { // Row added
-      var row = $('<tr class="lt-row" data-rowid="'+newrows[i][0]+'"/>');
-      for (c = 1; c < newrows[i].length; c++) {
-        if (data.options.mouseover && data.options.mouseover[c]) continue;
-        if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
-        row.append($(renderCell(data.options, newrows[i], c)));
-      }
-      if (data.options.appendcell) row.append('<td class="lt-cell">' + replaceHashes(data.options.appendcell, newrows[i]) + '</td>');
-      if (data.options.delete && data.options.delete.text) var value = data.options.delete.text;
-      else var value = '✖';
-      if (data.options.delete) row.append('<td class="lt-cell"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
+      let row = $(renderRow(data.options, newrows[i]));
       row.css({ backgroundColor: 'green' });
       tbody.append(row);
       setTimeout(function(row) { row.css({ backgroundColor: 'transparent' }); }, 1000, row);
@@ -1276,6 +1253,23 @@ function doEdit(cell, newcontent) {
   else edit.focus();
 }
 
+function doSelect(el) {
+  input = $(el);
+  input.parent().css('background-color', 'red');
+  key = input.closest('table').attr('id');
+  id = input.closest('tr').data('rowid');
+  $.ajax({
+    method: 'post',
+    url: ajaxUrl,
+    dataType: 'json',
+    context: input,
+    data: { mode: 'select', src: tables[key].data.block + ':' + tables[key].data.tag, params: tables[key].data.params, id: id, link: input.prop('checked') },
+    success: function(data) {
+      if (data.error) appError(data.error, this);
+      else this.parent().css('background-color', '');
+    }
+  });
+}
 function doEditSelect(cell) {
   if ($('#editbox').length) return;
   cell = $(cell);
