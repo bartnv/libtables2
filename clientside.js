@@ -630,6 +630,11 @@ function renderTableGrid(table, data, sub) {
   else if (data.options.textifempty) {
     var tbody = '<td>' + data.options.textifempty + '</td>';
     table.append(thead, tbody);
+    if (data.options.insert && (typeof(data.options.insert) == 'object')) {
+      var tfoot = $('<tfoot/>');
+      tfoot.append(renderInsert(data));
+      table.append(tfoot);
+    }
     table.parent().data('crc', data.crc);
     return;
   }
@@ -683,95 +688,7 @@ function renderTableGrid(table, data, sub) {
   if (data.options.sum) calcSums(tfoot, data);
 
   if (data.options.insert && (typeof(data.options.insert) == 'object')) {
-    if (data.options.insert.include == 'edit') var fields = jQuery.extend({}, data.options.edit, data.options.insert);
-    else var fields = data.options.insert;
-
-    row = $('<tr class="lt-row"/>');
-    for (var c = 1; ; c++) {
-      if (data.options.mouseover && data.options.mouseover[c]) continue;
-      if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
-      if (!fields[c]) {
-        if (c == data.headers.length) break;
-        str = '<td class="lt-head">' + data.headers[c] + '</td>';
-      }
-      else {
-        if ((typeof(fields[c]) == 'object') && fields[c].label) str = '<td class="lt-head">' + fields[c].label + '</td>';
-        else str = '<td class="lt-head">' + data.headers[c] + '</td>';
-      }
-      row.append(str);
-    }
-    tfoot.append(row);
-
-    row = $('<tr class="lt-row"/>');
-    for (var c = 1; ; c++) {
-      if (!fields[c]) {
-        if (c >= data.headers.length-1) break;
-        else {
-          row.append('<td class="lt-cell"></td>');
-          continue;
-        }
-      }
-      var cell = $('<td/>');
-      var classes = [ 'lt-cell' ];
-      if (data.options.class && data.options.class[c]) classes.push(data.options.class[c]);
-      if (typeof(fields[c]) == 'string') var input = $('<input type="text" class="lt-insert-input" name="' + fields[c] + '">');
-      else if (Object.keys(fields[c]).length == 1) var input = $('<input type="text" class="lt-insert-input" name="' + fields[c][0] + '">');
-      else if (fields[c].type == 'multiline') {
-        var input = $('<textarea class="lt_insert" class="lt-insert-input" name="' + fields[c].target + '" oninput="$(this).textareaAutoSize();"/>');
-      }
-      else if (fields[c].type == 'checkbox') var input = $('<input type="checkbox" class="lt-insert-input" name="' + fields[c].target + '">');
-      else if (fields[c].type == 'date') var input = $('<input type="date" class="lt-insert-input" name="' + fields[c].target + '" value="' + new Date().toISOString().slice(0, 10) + '">');
-      else if (fields[c].type == 'password') var input = $('<input type="password" class="lt-insert-input" name="' + fields[c].target + '">');
-      else if (fields[c].target && !fields[c].query) var input = $('<input type="text" class="lt-insert-input" name="' + fields[c].target + '">');
-      else {
-        if (fields[c].target) var input = $('<select class="lt-insert-input" name="' + fields[c].target + '"/>');
-        else var input = $('<select class="lt-insert-input" name="' + fields[c][0] + '"/>');
-        if (fields[c].defaultid) input.defaultid = fields[c].defaultid;
-        if (fields[c].insert || fields[c][2]) {
-          if (fields[c].insert) var setting = fields[c].insert;
-          else var setting = fields[c][2];
-          if (setting.type == '2-step') var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="addOption(this, ' + c + ');">');
-          else {
-            if (setting.target) var target = setting.target;
-            else var target = setting[1];
-            var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="switchToText(this, \'' + target + '\');">');
-          }
-        }
-        loadOptions(input, data, c);
-      }
-      if ((typeof fields[c] == 'object') && fields[c].required) {
-        input.addClass('lt-input-required');
-        input.on('input', fields[c].required, function(evt) {
-          if (evt.data === true) {
-            var input = $(this);
-            if ((input.val() === '') || (input.val() === null)) input.addClass('lt-input-error');
-            else input.removeClass('lt-input-error');
-          }
-          else if (evt.data.regex) {
-            var input = $(this);
-            if (input.val().search(new RegExp(evt.data.regex)) >= 0) {
-              input.removeClass('lt-input-error');
-              input.attr('title', '');
-            }
-            else {
-              input.addClass('lt-input-error');
-              if (evt.data.message) input.attr('title', evt.data.message);
-            }
-          }
-        });
-      }
-      if (fields[c].placeholder) input.attr('placeholder', fields[c].placeholder);
-      cell.addClass(classes.join(' '));
-      cell.append(input);
-      if (insert) {
-        cell.append(insert);
-        insert = null;
-      }
-      row.append(cell);
-    }
-    row.append('<td class="lt-cell"><input type="button" class="lt-insert-button" value="' + (fields.submit?fields.submit:tr('Insert')) + '" onclick="doInsert(this)"></td>');
-    row.find('INPUT[type=text]').on('keyup', function(e) { if (e.keyCode == 13) $(this).parent().parent().find('.lt-insert-button').click(); });
-    tfoot.append(row);
+    tfoot.append(renderInsert(data));
   }
 
   if (data.options.export) {
@@ -787,6 +704,99 @@ function renderTableGrid(table, data, sub) {
   table.parent().data('crc', data.crc);
 }
 
+function renderInsert(data) {
+  if (data.options.insert.include == 'edit') var fields = jQuery.extend({}, data.options.edit, data.options.insert);
+  else var fields = data.options.insert;
+
+  rows = [];
+  row = $('<tr class="lt-row"/>');
+  for (var c = 1; ; c++) {
+    if (data.options.mouseover && data.options.mouseover[c]) continue;
+    if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
+    if (!fields[c]) {
+      if (c == data.headers.length) break;
+      str = '<td class="lt-head">' + data.headers[c] + '</td>';
+    }
+    else {
+      if ((typeof(fields[c]) == 'object') && fields[c].label) str = '<td class="lt-head">' + fields[c].label + '</td>';
+      else str = '<td class="lt-head">' + data.headers[c] + '</td>';
+    }
+    row.append(str);
+  }
+  rows.push(row);
+
+  row = $('<tr class="lt-row"/>');
+  for (var c = 1; ; c++) {
+    if (!fields[c]) {
+      if (c >= data.headers.length-1) break;
+      else {
+        row.append('<td class="lt-cell"></td>');
+        continue;
+      }
+    }
+    var cell = $('<td/>');
+    var classes = [ 'lt-cell' ];
+    if (data.options.class && data.options.class[c]) classes.push(data.options.class[c]);
+    if (typeof(fields[c]) == 'string') var input = $('<input type="text" class="lt-insert-input" name="' + fields[c] + '">');
+    else if (Object.keys(fields[c]).length == 1) var input = $('<input type="text" class="lt-insert-input" name="' + fields[c][0] + '">');
+    else if (fields[c].type == 'multiline') {
+      var input = $('<textarea class="lt_insert" class="lt-insert-input" name="' + fields[c].target + '" oninput="$(this).textareaAutoSize();"/>');
+    }
+    else if (fields[c].type == 'checkbox') var input = $('<input type="checkbox" class="lt-insert-input" name="' + fields[c].target + '">');
+    else if (fields[c].type == 'date') var input = $('<input type="date" class="lt-insert-input" name="' + fields[c].target + '" value="' + new Date().toISOString().slice(0, 10) + '">');
+    else if (fields[c].type == 'password') var input = $('<input type="password" class="lt-insert-input" name="' + fields[c].target + '">');
+    else if (fields[c].target && !fields[c].query) var input = $('<input type="text" class="lt-insert-input" name="' + fields[c].target + '">');
+    else {
+      if (fields[c].target) var input = $('<select class="lt-insert-input" name="' + fields[c].target + '"/>');
+      else var input = $('<select class="lt-insert-input" name="' + fields[c][0] + '"/>');
+      if (fields[c].defaultid) input.defaultid = fields[c].defaultid;
+      if (fields[c].insert || fields[c][2]) {
+        if (fields[c].insert) var setting = fields[c].insert;
+        else var setting = fields[c][2];
+        if (setting.type == '2-step') var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="addOption(this, ' + c + ');">');
+        else {
+          if (setting.target) var target = setting.target;
+          else var target = setting[1];
+          var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="switchToText(this, \'' + target + '\');">');
+        }
+      }
+      loadOptions(input, data, c);
+    }
+    if ((typeof fields[c] == 'object') && fields[c].required) {
+      input.addClass('lt-input-required');
+      input.on('input', fields[c].required, function(evt) {
+        if (evt.data === true) {
+          var input = $(this);
+          if ((input.val() === '') || (input.val() === null)) input.addClass('lt-input-error');
+          else input.removeClass('lt-input-error');
+        }
+        else if (evt.data.regex) {
+          var input = $(this);
+          if (input.val().search(new RegExp(evt.data.regex)) >= 0) {
+            input.removeClass('lt-input-error');
+            input.attr('title', '');
+          }
+          else {
+            input.addClass('lt-input-error');
+            if (evt.data.message) input.attr('title', evt.data.message);
+          }
+        }
+      });
+    }
+    if (fields[c].placeholder) input.attr('placeholder', fields[c].placeholder);
+    cell.addClass(classes.join(' '));
+    cell.append(input);
+    if (insert) {
+      cell.append(insert);
+      insert = null;
+    }
+    row.append(cell);
+  }
+  row.append('<td class="lt-cell"><input type="button" class="lt-insert-button" value="' + (fields.submit?fields.submit:tr('Insert')) + '" onclick="doInsert(this)"></td>');
+  row.find('INPUT[type=text]').on('keyup', function(e) { if (e.keyCode == 13) $(this).parent().parent().find('.lt-insert-button').click(); });
+  rows.push(row);
+  return rows;
+}
 function loadOptions(input, data, c) {
   $.ajax({
     method: 'get',
