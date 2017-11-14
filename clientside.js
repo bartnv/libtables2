@@ -925,7 +925,7 @@ function renderTbody(tbody, data) {
 }
 
 function renderRow(options, row) {
-  let html = [ '<tr class="lt-row" data-rowid="'+ row[0]+'"/>' ];
+  let html = [ '<tr class="lt-row" data-rowid="'+ row[0]+'">' ];
   if (options.selectone) {
     if (options.selectone.trigger) var trigger = ' data-trigger="' + options.selectone.trigger + '"';
     else var trigger = '';
@@ -949,6 +949,7 @@ function renderRow(options, row) {
     else if (options.delete.html) html.push('<td class="lt-cell lt-append"><a onclick="doDelete(this)">' + options.delete.html + '</a></td>');
     else html.push('<td class="lt-cell lt-append"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
   }
+  html.push('</tr>');
   return html.join('');
 }
 
