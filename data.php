@@ -530,6 +530,25 @@ switch ($mode) {
       foreach ($insert['columns'] as $colname => &$value) {
         $found = 0;
         foreach ($fields as $id => $options) {
+          if ($id == 'keys') continue;
+          if ($id == 'hidden') {
+            foreach ($options as $hidden) {
+              if (!empty($hidden['target']) && ($hidden['target'] == "$tabname.$colname")) {
+                if (!isset($hidden['value'])) fatalerr("Hidden insert field has no value entry in block " . $_POST['src']);
+                if (strpos($hidden['value'], '#') === FALSE) { // Hardcoded value, probably from $_SESSION
+                  if ($hidden['value'] != $value) fatalerr("Illegal hidden value override in mode insertrow for table $tabname column $colname");
+                }
+                elseif (strpos($hidden['value'], '#param') === 0) { // Parameter value
+                  $no = intval(substr($hidden['value'], 6));
+                  if ($no <= 0) fatalerr("Invalid #param entry in hidden insert field $colname in block" . $_POST['src']);
+                  if (!isset($params[$no-1])) fatalerr("Param no $no not found for hidden insert field $colname in block " . $_POST['src']);
+                  if ($params[$no-1] != $value) fatalerr("Illegal hidden value override in mode insertrow for table $tabname column $colname");
+                }
+                $found = 1;
+                break;
+              }
+            }
+          }
           if (!empty($options['phpfunction'])) {
             // Not tested yet
             $func = 'return ' . str_replace('?', "'" . $value . "'", $options['phpfunction']) . ';';
