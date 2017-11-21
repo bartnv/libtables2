@@ -273,6 +273,8 @@ switch ($mode) {
     if (empty($_POST['col']) || !is_numeric($_POST['col'])) fatalerr('Invalid column id in mode inlineedit');
     if (empty($_POST['row']) || !is_numeric($_POST['row'])) fatalerr('Invalid row id in mode inlineedit');
     if (!isset($_POST['val'])) fatalerr('No value specified in mode inlineedit');
+    if (!empty($_POST['params'])) $params = json_decode(base64_decode($_POST['params']));
+    else $params = array();
 
     if (($_POST['src'] == 'sqlrun:table') && (!empty($_POST['sql']))) {
       if (!($edit = lt_edit_from_query($_POST['sql']))) fatalerr('Invalid SQL in sqlrun inlineedit');
