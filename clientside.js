@@ -1363,7 +1363,7 @@ function checkRequirements(options, c, value) {
   }
   else if (typeof options.edit[c].required == 'object') {
     if (options.edit[c].required.regex) {
-      if (value.search(new RegExp(options.edit[c].required.regex))) return true;
+      if (value.search(new RegExp(options.edit[c].required.regex)) >= 0) return true;
       if (options.edit[c].required.message) alert(options.edit[c].required.message);
       else alert('Invalid input for column ' + c);
       return false;
