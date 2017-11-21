@@ -292,6 +292,34 @@ function lt_query_single($query, $params = array()) {
   return $row[0];
 }
 
+function lt_query_check($query, $localparams = array()) {
+  global $dbh;
+  global $params;
+
+  if (!empty($params)) $localparams = $params;
+
+  if (!empty($localparams)) {
+    if (!($res = $dbh->prepare($query))) {
+      error_log("Libtables error: query prepare failed: " . $dbh->errorInfo()[2]);
+      return false;
+    }
+    if (!$res->execute($localparams)) {
+      error_log("Libtables error: query execute failed: " . $res->errorInfo()[2]);
+      return false;
+    }
+    if (!($row = $res->fetch())) return false;
+  }
+  else {
+    if (!($res = $dbh->query($query))) {
+      error_log("Error: query failed: " . $dbh->errorInfo()[2]);
+      return false;
+    }
+    if ($res->rowCount() == 0) return false;
+    if (!($row = $res->fetch())) return false;
+  }
+  return true;
+}
+
 function lt_query_count($query) {
   global $dbh;
   if (!($res = $dbh->query('SELECT COUNT(*) FROM (' . $query . ') AS tmp'))) return -1;
