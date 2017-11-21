@@ -1467,6 +1467,7 @@ function doInsert(el) {
     }
     else processHiddenInsert(table.options.insert.hidden, row.closest('.lt-div').data('params'));
   }
+  postdata = 'params=' + row.closest('.lt-div').data('params') + '&' + postdata;
   $.ajax({
     dataType: 'json',
     url: ajaxUrl,
@@ -1505,7 +1506,6 @@ function processHiddenInsert(hidden, paramstr) {
       for (var i = 0; params[i]; i++) {
         value = value.replace('#param' + (i+1), params[i]);
       }
-      postdata = 'params=' + paramstr + '&' + postdata;
     }
   }
   postdata += '&' + hidden.target.replace('.', ':') + '=' + value;
@@ -1530,7 +1530,7 @@ function doDelete(el) {
     url: ajaxUrl,
     method: 'post',
     context: el.closest('tbody'),
-    data: 'mode=deleterow&src=' + table.block + ':' + table.tag + '&id=' + rowid,
+    data: 'mode=deleterow&src=' + table.block + ':' + table.tag + '&id=' + rowid + '&params=' + el.closest('.lt-div').data('params'),
     success: function(data) {
       if (data.error) userError(data.error);
       else {

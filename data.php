@@ -613,6 +613,8 @@ switch ($mode) {
   case 'deleterow':
     if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode deleterow');
     if (empty($_POST['id']) || !is_numeric($_POST['id'])) fatalerr('Invalid delete id in mode deleterow');
+    if (!empty($_POST['params'])) $params = json_decode(base64_decode($_POST['params']));
+    else $params = array();
 
     $table = lt_find_table($_POST['src']);
     if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
