@@ -714,8 +714,8 @@ function renderInsert(data) {
     if (data.options.mouseover && data.options.mouseover[c]) continue;
     if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
     if (!fields[c]) {
-      if (c == data.headers.length) break;
-      str = '<td class="lt-head">' + data.headers[c] + '</td>';
+      row.append('<td class="lt-head">' + tr('Insert') + '</td>');
+      break;
     }
     else {
       if ((typeof(fields[c]) == 'object') && fields[c].label) str = '<td class="lt-head">' + fields[c].label + '</td>';
