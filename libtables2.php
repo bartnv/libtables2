@@ -113,9 +113,11 @@ function lt_print_block($block, $params = array(), $options = array()) {
   global $lt_settings;
   global $basename;
   global $block_options;
+  global $block_params;
 
   $basename = $block;
   $block_options = $options;
+  $block_params = $params;
 
   if ($lt_settings['security'] == 'php') {
     if (empty($lt_settings['allowed_blocks_query'])) {
@@ -292,11 +294,13 @@ function lt_query_single($query, $params = array()) {
   return $row[0];
 }
 
-function lt_query_check($query, $localparams = array()) {
+function lt_query_check($query) {
   global $dbh;
   global $params;
+  global $block_params;
 
   if (!empty($params)) $localparams = $params;
+  elseif (!empty($block_params)) $localparams = $block_params;
 
   if (!empty($localparams)) {
     if (!($res = $dbh->prepare($query))) {
