@@ -3,7 +3,16 @@
 global $dbh;
 
 function fatalerr($msg, $redirect = "") {
+  global $lt_settings;
   $ret['error'] = $msg;
+  if (!empty($lt_settings['error_transl'])) {
+    foreach ($lt_settings['error_transl'] as $key => $value) {
+      if (strpos($msg, $key) !== FALSE) {
+        $ret['error'] = $value;
+        $ret['details'] = $msg;
+      }
+    }
+  }
   if (!empty($redirect)) $ret['redirect'] = $redirect;
   print json_encode($ret);
   exit;
