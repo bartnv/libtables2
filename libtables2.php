@@ -177,9 +177,10 @@ function lt_print_block($block, $params = array(), $options = array()) {
     }
     if (file_exists($dir . $basename . '.php')) {
       if (!empty($params)) $block_options['params'] = $params;
-      if (eval(file_get_contents($dir . $basename . '.php')) === FALSE) print "<p>PHP syntax error in block $basename</p>";
+      $ret = eval(file_get_contents($dir . $basename . '.php'));
+      if ($ret === FALSE) print "<p>PHP syntax error in block $basename</p>";
       if (!empty($options['wrapperdiv']) && $options['wrapperdiv']) print "</div>\n";
-      return;
+      return $ret;
     }
   }
 
