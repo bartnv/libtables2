@@ -696,6 +696,12 @@ function renderTableGrid(table, data, sub) {
   var tfoot = $('<tfoot/>');
   if (data.options.sum) calcSums(tfoot, data);
 
+  if (data.options.appendrow) {
+    var row = $('<tr class="lt-row"/>');
+    row.html(data.options.appendrow);
+    tfoot.append(row);
+  }
+
   if (data.options.insert && (typeof(data.options.insert) == 'object')) {
     tfoot.append(renderInsert(data));
   }
