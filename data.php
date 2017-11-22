@@ -539,9 +539,9 @@ switch ($mode) {
     else $keys = [];
     foreach ($tables as $tabname => $insert) {
       foreach ($insert['columns'] as $colname => &$value) {
-        $found = 0;
+        $found = null;
         foreach ($fields as $id => $options) {
-          if ($id == 'keys') continue;
+          if (($id == 'keys') || ($id == 'include')) continue;
           if ($id == 'hidden') {
             foreach ($options as $hidden) {
               if (!empty($hidden['target']) && ($hidden['target'] == "$tabname.$colname")) {
@@ -555,24 +555,16 @@ switch ($mode) {
                   if (!isset($params[$no-1])) fatalerr("Param no $no not found for hidden insert field $colname in block " . $_POST['src']);
                   if ($params[$no-1] != $value) fatalerr("Illegal hidden value override in mode insertrow for table $tabname column $colname");
                 }
-                $found = 1;
+                $found = $options;
                 break;
               }
             }
-          }
-          if (!empty($options['phpfunction'])) {
-            // Not tested yet
-            $func = 'return ' . str_replace('?', "'" . $value . "'", $options['phpfunction']) . ';';
-            $value = eval($func);
-          }
-          if (!empty($options['sqlfunction'])) {
-            // Save sqlfunction here for use in lt_run-insert() later
           }
           if (is_string($options)) $target = $options;
           elseif (!empty($options['target'])) $target = $options['target'];
           elseif (!empty($options[0])) $target = $options[0];
           if ($target == "$tabname.$colname") {
-            $found = 1;
+            $found = $options;
             break;
           }
           if (is_string($options)) continue;
@@ -581,16 +573,26 @@ switch ($mode) {
           else continue;
           if (!empty($newinsert['target']) && ($newinsert['target'] == "$tabname.$colname")) {
             if (!empty($newinsert['id']) && !empty($target)) $keys[$newinsert['id']] = $target;
-            $found = 1;
+            $found = $options;
             break;
           }
           if (!empty($newinsert[1]) && ($newinsert[1] == "$tabname.$colname")) {
             if (!empty($newinsert[0]) && !empty($target)) $keys[$newinsert[0]] = $target;
-            $found = 1;
+            $found = $options;
             break;
           }
         }
         if (!$found) fatalerr("No valid insert option found for table $tabname column $colname");
+        if (!empty($found['phpfunction'])) {
+          error_log("Running phpfunction for $colname");
+          // Not tested yet
+          $func = 'return ' . str_replace('?', "'" . $value . "'", $found['phpfunction']) . ';';
+          $value = eval($func);
+        }
+        if (!empty($found['sqlfunction'])) {
+          error_log("Running sqlfunction for $colname");
+          $tables[$tabname]['sqlfunction'][$colname] = $found['sqlfunction'];
+        }
       }
     }
 
@@ -759,8 +761,15 @@ function lt_run_insert($table, $data, $idcolumn = '') {
   global $dbh;
   $driver = $dbh->getAttribute(PDO::ATTR_DRIVER_NAME);
 
-  $query = "INSERT INTO $table (" . implode(',', array_keys($data['columns'])) . ") VALUES (" . rtrim(str_repeat('?, ', count($data['columns'])), ', ') . ")";
+  $values_str = "";
+  foreach (array_keys($data['columns']) as $column) {
+    if (!empty($data['sqlfunction'][$column])) $values_str .= $data['sqlfunction'][$column] . ", ";
+    else $values_str .= "?, ";
+  }
+  $query = "INSERT INTO $table (" . implode(',', array_keys($data['columns'])) . ") VALUES (" . rtrim($values_str, ', ') . ")";
   if ($idcolumn && ($driver == 'pgsql')) $query .= " RETURNING $idcolumn";
+  error_log("Constructed query: $query\n");
+  error_log("Parameters: " . json_encode(array_values($data['columns'])));
 
   if (!($stmt = $dbh->prepare($query))) {
     $err = $dbh->errorInfo();
