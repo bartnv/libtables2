@@ -753,6 +753,33 @@ switch ($mode) {
     }
     print '{ "status": "ok" }';
   break;
+  case 'ganttselect':
+    if (empty($_GET['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_GET['src'])) fatalerr('Invalid src in mode ganttselect');
+    $table = lt_find_table($_GET['src']);
+    if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
+    if (empty($table['queries']['select'])) fatalerr('No select query defined in lt_gantt block ' . $_GET['src']);
+
+    if (!($stmt = $dbh->prepare($table['queries']['select']))) {
+      $err = $dbh->errorInfo();
+      fatalerr("SQL prepare error: " . $err[2]);
+    }
+    if (!($stmt->execute())) {
+      $err = $stmt->errorInfo();
+      fatalerr("SQL execute error: " . $err[2]);
+    }
+
+    $results = array();
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+      $results[] = array(
+        'id' => $row['id'],
+        'text' => $row['text'],
+        'start_date' => $row['start'],
+        'end_date' => $row['end']
+      );
+    }
+
+    print json_encode(array('data' => $results, 'links' => []));
+    break;
   default:
     fatalerr('Invalid mode specified');
 }

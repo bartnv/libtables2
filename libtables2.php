@@ -108,6 +108,19 @@ function lt_calendar($tag, $queries, $options = array()) {
     $tables[] = $table;
   }
 }
+function lt_gantt($tag, $queries, $options = array()) {
+  global $lt_settings;
+  global $tables;
+  global $basename;
+
+  if (!$basename) { // run from data.php
+    $table = array();
+    $table['tag'] = $tag;
+    $table['queries'] = $queries;
+    $table['options'] = $options;
+    $tables[] = $table;
+  }
+}
 
 function lt_print_block($block, $params = array(), $options = array()) {
   global $lt_settings;
@@ -330,41 +343,6 @@ function lt_query_count($query) {
   if (!($row = $res->fetch())) return -1;
   if (!is_numeric($row[0])) return -1;
   return $row[0]+0;
-}
-
-function lt_gantt($title, $query_tasks, $query_links = '', $options = array()) {
-  global $dbh;
-
-  $tasks = [];
-  $links = [];
-  if (!($res = $dbh->query($query_tasks))) {
-    print "SQL error in query_tasks";
-    return;
-  }
-  while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-    $tasks[] = $row;
-  }
-  if (!empty($query_links)) {
-    if (!($res = $dbh->query($query_links))) {
-      print "SQL error in query_links";
-      return;
-    }
-    while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-      $links[] = $row;
-    }
-  }
-  $data = json_encode(array('data' => $tasks, 'links' => $links));
-  print <<<END
-  <div id="ganttchart" style="width: 100%; height: 500px;"></div>
-  <script src="3rdparty/dhtmlxgantt.js"></script>
-  <link href="3rdparty/dhtmlxgantt.css" rel="stylesheet">
-  <script>
-    var tasks = $data;
-    gantt.config.scale_unit = 'year';
-    gantt.init('ganttchart');
-    gantt.parse(tasks);
-  </script>
-END;
 }
 
 function lt_buttongrid($tag, $queries, $options) {
