@@ -588,7 +588,8 @@ function renderTableGrid(table, data, sub) {
     trstr += '\', \'prev\')">&lt;</a> <span class="lt-pages"></span> <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')">&gt;</a></th></tr>';
     thead.append(trstr);
   }
-  if (!data.options.insert || data.rows.length || data.rowcount) { // rowcount is set for exports with nopreview=true
+
+  if (data.rows.length || data.rowcount) { // rowcount is set for exports with nopreview=true
     var row = $('<tr class="lt-row"/>');
     if (data.options.selectone) {
       if (typeof selectones == 'undefined') selectones = 1;
@@ -628,7 +629,7 @@ function renderTableGrid(table, data, sub) {
     thead.append(row);
   }
   else if (data.options.textifempty) {
-    var tbody = '<td>' + data.options.textifempty + '</td>';
+    var tbody = '<tbody><tr><td class="lt-cell">' + data.options.textifempty + '</td></tr></tbody>';
     table.append(thead, tbody);
     if (data.options.insert && (typeof(data.options.insert) == 'object')) {
       var tfoot = $('<tfoot/>');
@@ -640,6 +641,14 @@ function renderTableGrid(table, data, sub) {
   }
   else if (data.options.hideifempty) {
     table.hide();
+    table.parent().data('crc', data.crc);
+    return;
+  }
+  else if (data.options.insert && (typeof(data.options.insert) == 'object')) {
+    var tfoot = $('<tfoot/>');
+    tfoot.append(renderInsert(data));
+    table.append(tfoot);
+    table.parent().data('crc', data.crc);
     return;
   }
 
