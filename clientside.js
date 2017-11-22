@@ -1559,7 +1559,7 @@ function doDelete(el) {
         }
         newrows.remove(r);
         updateTable(this, table, newrows);
-        if (table.options.delete.trigger) loadOrRefreshCollection($('#'+table.options.delete.trigger));
+        if (table.options.trigger) loadOrRefreshCollection($('#'+table.options.trigger));
       }
     }
   });
