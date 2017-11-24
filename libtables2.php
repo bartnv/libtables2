@@ -108,14 +108,29 @@ function lt_calendar($tag, $queries, $options = array()) {
     $tables[] = $table;
   }
 }
+function lt_gantt($tag, $queries, $options = array()) {
+  global $lt_settings;
+  global $tables;
+  global $basename;
+
+  if (!$basename) { // run from data.php
+    $table = array();
+    $table['tag'] = $tag;
+    $table['queries'] = $queries;
+    $table['options'] = $options;
+    $tables[] = $table;
+  }
+}
 
 function lt_print_block($block, $params = array(), $options = array()) {
   global $lt_settings;
   global $basename;
   global $block_options;
+  global $block_params;
 
   $basename = $block;
   $block_options = $options;
+  $block_params = $params;
 
   if ($lt_settings['security'] == 'php') {
     if (empty($lt_settings['allowed_blocks_query'])) {
@@ -162,9 +177,10 @@ function lt_print_block($block, $params = array(), $options = array()) {
     }
     if (file_exists($dir . $basename . '.php')) {
       if (!empty($params)) $block_options['params'] = $params;
-      if (eval(file_get_contents($dir . $basename . '.php')) === FALSE) print "<p>PHP syntax error in block $basename</p>";
+      $ret = eval(file_get_contents($dir . $basename . '.php'));
+      if ($ret === FALSE) print "<p>PHP syntax error in block $basename</p>";
       if (!empty($options['wrapperdiv']) && $options['wrapperdiv']) print "</div>\n";
-      return;
+      return $ret;
     }
   }
 
@@ -292,47 +308,42 @@ function lt_query_single($query, $params = array()) {
   return $row[0];
 }
 
+function lt_query_check($query) {
+  global $dbh;
+  global $params;
+  global $block_params;
+
+  if (!empty($params)) $localparams = $params;
+  elseif (!empty($block_params)) $localparams = $block_params;
+
+  if (!empty($localparams)) {
+    if (!($res = $dbh->prepare($query))) {
+      error_log("Libtables error: query prepare failed: " . $dbh->errorInfo()[2]);
+      return false;
+    }
+    if (!$res->execute($localparams)) {
+      error_log("Libtables error: query execute failed: " . $res->errorInfo()[2]);
+      return false;
+    }
+    if (!($row = $res->fetch())) return false;
+  }
+  else {
+    if (!($res = $dbh->query($query))) {
+      error_log("Error: query failed: " . $dbh->errorInfo()[2]);
+      return false;
+    }
+    if ($res->rowCount() == 0) return false;
+    if (!($row = $res->fetch())) return false;
+  }
+  return true;
+}
+
 function lt_query_count($query) {
   global $dbh;
   if (!($res = $dbh->query('SELECT COUNT(*) FROM (' . $query . ') AS tmp'))) return -1;
   if (!($row = $res->fetch())) return -1;
   if (!is_numeric($row[0])) return -1;
   return $row[0]+0;
-}
-
-function lt_gantt($title, $query_tasks, $query_links = '', $options = array()) {
-  global $dbh;
-
-  $tasks = [];
-  $links = [];
-  if (!($res = $dbh->query($query_tasks))) {
-    print "SQL error in query_tasks";
-    return;
-  }
-  while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-    $tasks[] = $row;
-  }
-  if (!empty($query_links)) {
-    if (!($res = $dbh->query($query_links))) {
-      print "SQL error in query_links";
-      return;
-    }
-    while ($row = $res->fetch(PDO::FETCH_ASSOC)) {
-      $links[] = $row;
-    }
-  }
-  $data = json_encode(array('data' => $tasks, 'links' => $links));
-  print <<<END
-  <div id="ganttchart" style="width: 100%; height: 500px;"></div>
-  <script src="3rdparty/dhtmlxgantt.js"></script>
-  <link href="3rdparty/dhtmlxgantt.css" rel="stylesheet">
-  <script>
-    var tasks = $data;
-    gantt.config.scale_unit = 'year';
-    gantt.init('ganttchart');
-    gantt.parse(tasks);
-  </script>
-END;
 }
 
 function lt_buttongrid($tag, $queries, $options) {

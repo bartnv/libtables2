@@ -588,7 +588,8 @@ function renderTableGrid(table, data, sub) {
     trstr += '\', \'prev\')">&lt;</a> <span class="lt-pages"></span> <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')">&gt;</a></th></tr>';
     thead.append(trstr);
   }
-  if (!data.options.insert || data.rows.length || data.rowcount) { // rowcount is set for exports with nopreview=true
+
+  if (data.rows.length || data.rowcount) { // rowcount is set for exports with nopreview=true
     var row = $('<tr class="lt-row"/>');
     if (data.options.selectone) {
       if (typeof selectones == 'undefined') selectones = 1;
@@ -628,13 +629,26 @@ function renderTableGrid(table, data, sub) {
     thead.append(row);
   }
   else if (data.options.textifempty) {
-    var tbody = '<td>' + data.options.textifempty + '</td>';
+    var tbody = '<tbody><tr><td class="lt-cell">' + data.options.textifempty + '</td></tr></tbody>';
     table.append(thead, tbody);
+    if (data.options.insert && (typeof(data.options.insert) == 'object')) {
+      var tfoot = $('<tfoot/>');
+      tfoot.append(renderInsert(data));
+      table.append(tfoot);
+    }
     table.parent().data('crc', data.crc);
     return;
   }
   else if (data.options.hideifempty) {
     table.hide();
+    table.parent().data('crc', data.crc);
+    return;
+  }
+  else if (data.options.insert && (typeof(data.options.insert) == 'object')) {
+    var tfoot = $('<tfoot/>');
+    tfoot.append(renderInsert(data));
+    table.append(tfoot);
+    table.parent().data('crc', data.crc);
     return;
   }
 
@@ -682,96 +696,14 @@ function renderTableGrid(table, data, sub) {
   var tfoot = $('<tfoot/>');
   if (data.options.sum) calcSums(tfoot, data);
 
+  if (data.options.appendrow) {
+    var row = $('<tr class="lt-row"/>');
+    row.html(data.options.appendrow);
+    tfoot.append(row);
+  }
+
   if (data.options.insert && (typeof(data.options.insert) == 'object')) {
-    if (data.options.insert.include == 'edit') var fields = jQuery.extend({}, data.options.edit, data.options.insert);
-    else var fields = data.options.insert;
-
-    row = $('<tr class="lt-row"/>');
-    for (var c = 1; ; c++) {
-      if (data.options.mouseover && data.options.mouseover[c]) continue;
-      if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
-      if (!fields[c]) {
-        if (c == data.headers.length) break;
-        str = '<td class="lt-head">' + data.headers[c] + '</td>';
-      }
-      else {
-        if ((typeof(fields[c]) == 'object') && fields[c].label) str = '<td class="lt-head">' + fields[c].label + '</td>';
-        else str = '<td class="lt-head">' + data.headers[c] + '</td>';
-      }
-      row.append(str);
-    }
-    tfoot.append(row);
-
-    row = $('<tr class="lt-row"/>');
-    for (var c = 1; ; c++) {
-      if (!fields[c]) {
-        if (c >= data.headers.length-1) break;
-        else {
-          row.append('<td class="lt-cell"></td>');
-          continue;
-        }
-      }
-      var cell = $('<td/>');
-      var classes = [ 'lt-cell' ];
-      if (data.options.class && data.options.class[c]) classes.push(data.options.class[c]);
-      if (typeof(fields[c]) == 'string') var input = $('<input type="text" name="' + fields[c] + '">');
-      else if (Object.keys(fields[c]).length == 1) var input = $('<input type="text" name="' + fields[c][0] + '">');
-      else if (fields[c].type == 'multiline') {
-        var input = $('<textarea class="lt_insert" name="' + fields[c].target + '" oninput="$(this).textareaAutoSize();"/>');
-      }
-      else if (fields[c].type == 'checkbox') var input = $('<input type="checkbox" name="' + fields[c].target + '">');
-      else if (fields[c].type == 'date') var input = $('<input type="date" name="' + fields[c].target + '" value="' + new Date().toISOString().slice(0, 10) + '">');
-      else if (fields[c].type == 'password') var input = $('<input type="password" name="' + fields[c].target + '">');
-      else if (fields[c].target && !fields[c].query) var input = $('<input type="text" name="' + fields[c].target + '">');
-      else {
-        if (fields[c].target) var input = $('<select name="' + fields[c].target + '"/>');
-        else var input = $('<select name="' + fields[c][0] + '"/>');
-        if (fields[c].defaultid) input.defaultid = fields[c].defaultid;
-        if (fields[c].insert || fields[c][2]) {
-          if (fields[c].insert) var setting = fields[c].insert;
-          else var setting = fields[c][2];
-          if (setting.type == '2-step') var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="addOption(this, ' + c + ');">');
-          else {
-            if (setting.target) var target = setting.target;
-            else var target = setting[1];
-            var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="switchToText(this, \'' + target + '\');">');
-          }
-        }
-        loadOptions(input, data, c);
-      }
-      if ((typeof fields[c] == 'object') && fields[c].required) {
-        input.addClass('lt-input-required');
-        input.on('input', fields[c].required, function(evt) {
-          if (evt.data === true) {
-            var input = $(this);
-            if ((input.val() === '') || (input.val() === null)) input.addClass('lt-input-error');
-            else input.removeClass('lt-input-error');
-          }
-          else if (evt.data.regex) {
-            var input = $(this);
-            if (input.val().search(new RegExp(evt.data.regex)) >= 0) {
-              input.removeClass('lt-input-error');
-              input.attr('title', '');
-            }
-            else {
-              input.addClass('lt-input-error');
-              if (evt.data.message) input.attr('title', evt.data.message);
-            }
-          }
-        });
-      }
-      if (fields[c].placeholder) input.attr('placeholder', fields[c].placeholder);
-      cell.addClass(classes.join(' '));
-      cell.append(input);
-      if (insert) {
-        cell.append(insert);
-        insert = null;
-      }
-      row.append(cell);
-    }
-    row.append('<td class="lt-cell"><input type="button" class="lt-insert-button" value="' + tr('Insert') + '" onclick="doInsert(this)"></td>');
-    row.find('INPUT[type=text]').on('keyup', function(e) { if (e.keyCode == 13) $(this).parent().parent().find('.lt-insert-button').click(); });
-    tfoot.append(row);
+    tfoot.append(renderInsert(data));
   }
 
   if (data.options.export) {
@@ -787,6 +719,99 @@ function renderTableGrid(table, data, sub) {
   table.parent().data('crc', data.crc);
 }
 
+function renderInsert(data) {
+  if (data.options.insert.include == 'edit') var fields = jQuery.extend({}, data.options.edit, data.options.insert);
+  else var fields = data.options.insert;
+
+  rows = [];
+  row = $('<tr class="lt-row"/>');
+  for (var c = 1; ; c++) {
+    if (data.options.mouseover && data.options.mouseover[c]) continue;
+    if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
+    if (!fields[c]) {
+      row.append('<td class="lt-head">' + tr('Insert') + '</td>');
+      break;
+    }
+    else {
+      if ((typeof(fields[c]) == 'object') && fields[c].label) str = '<td class="lt-head">' + fields[c].label + '</td>';
+      else str = '<td class="lt-head">' + data.headers[c] + '</td>';
+    }
+    row.append(str);
+  }
+  rows.push(row);
+
+  row = $('<tr class="lt-row"/>');
+  for (var c = 1; ; c++) {
+    if (!fields[c]) {
+      if (c >= data.headers.length-1) break;
+      else {
+        row.append('<td class="lt-cell"></td>');
+        continue;
+      }
+    }
+    var cell = $('<td/>');
+    var classes = [ 'lt-cell' ];
+    if (data.options.class && data.options.class[c]) classes.push(data.options.class[c]);
+    if (typeof(fields[c]) == 'string') var input = $('<input type="text" class="lt-insert-input" name="' + fields[c] + '">');
+    else if (Object.keys(fields[c]).length == 1) var input = $('<input type="text" class="lt-insert-input" name="' + fields[c][0] + '">');
+    else if (fields[c].type == 'multiline') {
+      var input = $('<textarea class="lt_insert" class="lt-insert-input" name="' + fields[c].target + '" oninput="$(this).textareaAutoSize();"/>');
+    }
+    else if (fields[c].type == 'checkbox') var input = $('<input type="checkbox" class="lt-insert-input" name="' + fields[c].target + '">');
+    else if (fields[c].type == 'date') var input = $('<input type="date" class="lt-insert-input" name="' + fields[c].target + '" value="' + new Date().toISOString().slice(0, 10) + '">');
+    else if (fields[c].type == 'password') var input = $('<input type="password" class="lt-insert-input" name="' + fields[c].target + '">');
+    else if (fields[c].target && !fields[c].query) var input = $('<input type="text" class="lt-insert-input" name="' + fields[c].target + '">');
+    else {
+      if (fields[c].target) var input = $('<select class="lt-insert-input" name="' + fields[c].target + '"/>');
+      else var input = $('<select class="lt-insert-input" name="' + fields[c][0] + '"/>');
+      if (fields[c].defaultid) input.defaultid = fields[c].defaultid;
+      if (fields[c].insert || fields[c][2]) {
+        if (fields[c].insert) var setting = fields[c].insert;
+        else var setting = fields[c][2];
+        if (setting.type == '2-step') var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="addOption(this, ' + c + ');">');
+        else {
+          if (setting.target) var target = setting.target;
+          else var target = setting[1];
+          var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="switchToText(this, \'' + target + '\');">');
+        }
+      }
+      loadOptions(input, data, c);
+    }
+    if ((typeof fields[c] == 'object') && fields[c].required) {
+      input.addClass('lt-input-required');
+      input.on('input', fields[c].required, function(evt) {
+        if (evt.data === true) {
+          var input = $(this);
+          if ((input.val() === '') || (input.val() === null)) input.addClass('lt-input-error');
+          else input.removeClass('lt-input-error');
+        }
+        else if (evt.data.regex) {
+          var input = $(this);
+          if (input.val().search(new RegExp(evt.data.regex)) >= 0) {
+            input.removeClass('lt-input-error');
+            input.attr('title', '');
+          }
+          else {
+            input.addClass('lt-input-error');
+            if (evt.data.message) input.attr('title', evt.data.message);
+          }
+        }
+      });
+    }
+    if (fields[c].placeholder) input.attr('placeholder', fields[c].placeholder);
+    cell.addClass(classes.join(' '));
+    cell.append(input);
+    if (insert) {
+      cell.append(insert);
+      insert = null;
+    }
+    row.append(cell);
+  }
+  row.append('<td class="lt-cell"><input type="button" class="lt-insert-button" value="' + (fields.submit?fields.submit:tr('Insert')) + '" onclick="doInsert(this)"></td>');
+  row.find('INPUT[type=text]').on('keyup', function(e) { if (e.keyCode == 13) $(this).parent().parent().find('.lt-insert-button').click(); });
+  rows.push(row);
+  return rows;
+}
 function loadOptions(input, data, c) {
   $.ajax({
     method: 'get',
@@ -907,52 +932,40 @@ function renderTbody(tbody, data) {
     if (rowcount <= offset) continue;
     if (data.options.limit && (offset+data.options.limit < rowcount)) continue;
     if ((rowcount == offset) && data.options.pagetitle) document.title = replaceHashes(data.options.pagetitle, data.rows[r]);
-    row = [ '<tr class="lt-row" data-rowid="'+data.rows[r][0]+'"/>' ];
-    if (data.options.selectone) {
-      if (data.options.selectone.trigger) var trigger = ' data-trigger="' + data.options.selectone.trigger + '"';
-      else var trigger = '';
-      row.push('<td><input type="radio" name="select' + selectones + '" ' + trigger + '></td>');
-    }
-    if (data.options.selectany) {
-      if (data.options.selectany.links && (data.options.selectany.links.indexOf(data.rows[r][0]) >= 0)) var checked = ' checked';
-      else var checked = '';
-      row.push('<td class="lt-cell"><input type="checkbox" onchange="doSelect(this)"' + checked + '></td>');
-    }
-    for (var c = 1; c < data.rows[r].length; c++) { // Loop over each column
-      if (data.options.mouseover && data.options.mouseover[c]) continue;
-      if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
-      row.push(renderCell(data.options, data.rows[r], c));
-    }
-    if (data.options.appendcell) row.push('<td class="lt-cell lt-append">' + replaceHashes(data.options.appendcell, data.rows[r]) + '</td>');
-    if (data.options.delete) {
-      if (data.options.delete.text) var value = data.options.delete.text;
-      else var value = '✖';
-      if (data.options.delete.notids && (data.options.delete.notids.indexOf(data.rows[r][0]) >= 0));
-      else row.push('<td class="lt-cell"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
-    }
-    rows.push(row.join(''));
+    rows.push(renderRow(data.options, data.rows[r]));
   }
   tbody[0].innerHTML = rows.join('');
   tbody.width(); // Force a DOM reflow to fix an IE9-11 bug https://stackoverflow.com/a/21032333
   return rowcount;
 }
 
-function doSelect(el) {
-  input = $(el);
-  input.parent().css('background-color', 'red');
-  key = input.closest('table').attr('id');
-  id = input.closest('tr').data('rowid');
-  $.ajax({
-    method: 'post',
-    url: ajaxUrl,
-    dataType: 'json',
-    context: input,
-    data: { mode: 'select', src: tables[key].data.block + ':' + tables[key].data.tag, params: tables[key].data.params, id: id, link: input.prop('checked') },
-    success: function(data) {
-      if (data.error) appError(data.error, this);
-      else this.parent().css('background-color', '');
-    }
-  });
+function renderRow(options, row) {
+  let html = [ '<tr class="lt-row" data-rowid="'+ row[0]+'">' ];
+  if (options.selectone) {
+    if (options.selectone.trigger) var trigger = ' data-trigger="' + options.selectone.trigger + '"';
+    else var trigger = '';
+    html.push('<td><input type="radio" name="select' + selectones + '" ' + trigger + '></td>');
+  }
+  if (options.selectany) {
+    if (options.selectany.links && (options.selectany.links.indexOf(row[0]) >= 0)) var checked = ' checked';
+    else var checked = '';
+    html.push('<td class="lt-cell"><input type="checkbox" onchange="doSelect(this)"' + checked + '></td>');
+  }
+  for (var c = 1; c < row.length; c++) { // Loop over each column
+    if (options.mouseover && options.mouseover[c]) continue;
+    if (options.hidecolumn && options.hidecolumn[c]) continue;
+    html.push(renderCell(options, row, c));
+  }
+  if (options.appendcell) html.push('<td class="lt-cell lt-append">' + replaceHashes(options.appendcell, row) + '</td>');
+  if (options.delete) {
+    if (options.delete.text) var value = options.delete.text;
+    else var value = '✖';
+    if (options.delete.notids && (options.delete.notids.indexOf(row[0]) >= 0));
+    else if (options.delete.html) html.push('<td class="lt-cell lt-append"><a onclick="doDelete(this)">' + options.delete.html + '</a></td>');
+    else html.push('<td class="lt-cell lt-append"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
+  }
+  html.push('</tr>');
+  return html.join('');
 }
 
 function renderCell(options, row, c) {
@@ -1072,16 +1085,7 @@ function updateTable(tbody, data, newrows) {
   }
   else {
     for (var i = 0; i < newrows.length; i++) { // Row added
-      var row = $('<tr class="lt-row" data-rowid="'+newrows[i][0]+'"/>');
-      for (c = 1; c < newrows[i].length; c++) {
-        if (data.options.mouseover && data.options.mouseover[c]) continue;
-        if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
-        row.append($(renderCell(data.options, newrows[i], c)));
-      }
-      if (data.options.appendcell) row.append('<td class="lt-cell">' + replaceHashes(data.options.appendcell, newrows[i]) + '</td>');
-      if (data.options.delete && data.options.delete.text) var value = data.options.delete.text;
-      else var value = '✖';
-      if (data.options.delete) row.append('<td class="lt-cell"><input type="button" class="lt-delete" value="' + value + '" onclick="doDelete(this);"></td>');
+      let row = $(renderRow(data.options, newrows[i]));
       row.css({ backgroundColor: 'green' });
       tbody.append(row);
       setTimeout(function(row) { row.css({ backgroundColor: 'transparent' }); }, 1000, row);
@@ -1275,6 +1279,23 @@ function doEdit(cell, newcontent) {
   else edit.focus();
 }
 
+function doSelect(el) {
+  input = $(el);
+  input.parent().css('background-color', 'red');
+  key = input.closest('table').attr('id');
+  id = input.closest('tr').data('rowid');
+  $.ajax({
+    method: 'post',
+    url: ajaxUrl,
+    dataType: 'json',
+    context: input,
+    data: { mode: 'select', src: tables[key].data.block + ':' + tables[key].data.tag, params: tables[key].data.params, id: id, link: input.prop('checked') },
+    success: function(data) {
+      if (data.error) appError(data.error, this);
+      else this.parent().css('background-color', '');
+    }
+  });
+}
 function doEditSelect(cell) {
   if ($('#editbox').length) return;
   cell = $(cell);
@@ -1357,7 +1378,7 @@ function checkRequirements(options, c, value) {
   }
   else if (typeof options.edit[c].required == 'object') {
     if (options.edit[c].required.regex) {
-      if (value.search(new RegExp(options.edit[c].required.regex))) return true;
+      if (value.search(new RegExp(options.edit[c].required.regex)) >= 0) return true;
       if (options.edit[c].required.message) alert(options.edit[c].required.message);
       else alert('Invalid input for column ' + c);
       return false;
@@ -1461,6 +1482,7 @@ function doInsert(el) {
     }
     else processHiddenInsert(table.options.insert.hidden, row.closest('.lt-div').data('params'));
   }
+  postdata = 'params=' + row.closest('.lt-div').data('params') + '&' + postdata;
   $.ajax({
     dataType: 'json',
     url: ajaxUrl,
@@ -1499,7 +1521,6 @@ function processHiddenInsert(hidden, paramstr) {
       for (var i = 0; params[i]; i++) {
         value = value.replace('#param' + (i+1), params[i]);
       }
-      postdata = 'params=' + paramstr + '&' + postdata;
     }
   }
   postdata += '&' + hidden.target.replace('.', ':') + '=' + value;
@@ -1524,7 +1545,7 @@ function doDelete(el) {
     url: ajaxUrl,
     method: 'post',
     context: el.closest('tbody'),
-    data: 'mode=deleterow&src=' + table.block + ':' + table.tag + '&id=' + rowid,
+    data: 'mode=deleterow&src=' + table.block + ':' + table.tag + '&id=' + rowid + '&params=' + el.closest('.lt-div').data('params'),
     success: function(data) {
       if (data.error) userError(data.error);
       else {
@@ -1538,7 +1559,7 @@ function doDelete(el) {
         }
         newrows.remove(r);
         updateTable(this, table, newrows);
-        if (table.options.delete.trigger) loadOrRefreshCollection($('#'+table.options.delete.trigger));
+        if (table.options.trigger) loadOrRefreshCollection($('#'+table.options.trigger));
       }
     }
   });
@@ -1602,7 +1623,7 @@ function calendarSelect(start, end, timezone, callback) {
     dataType: 'json',
     data: {
       mode: 'calendarselect',
-      src: this.options.src,
+      src: this.overrides.src,
       start: start.format(),
       end: end.format()
     },
@@ -1637,14 +1658,14 @@ function calendarUpdate(event, delta, revertFunc) {
   });
 }
 function calendarInsert(start, end) {
-  if (this.calendar.options.allDayOnly && start.hasTime()) return;
-  if (this.calendar.options.insertTitle) {
-    var title = this.calendar.options.insertTitle();
+  if (this.calendar.overrides.allDayOnly && start.hasTime()) return;
+  if (this.calendar.overrides.insertTitle) {
+    var title = this.calendar.overrides.insertTitle();
     if (!title) return;
   }
   else var title = '';
-  if (this.calendar.options.params) {
-    for (var i = 1; this.calendar.options.params[i]; i++) {
+  if (this.calendar.overrides.params) {
+    for (var i = 1; this.calendar.overrides.params[i]; i++) {
       var checked = false;
       var elem = $('input[name=select'+i+']:checked');
       if (elem.length) checked = true;
@@ -1652,8 +1673,8 @@ function calendarInsert(start, end) {
         elem = $('select[name=select'+i+']');
         if ((elem.prop('selectedIndex') >= 0) && ($('select[name=select'+i+'] option').eq($('select[name=select'+i+']').prop('selectedIndex')).attr('value') !== "")) checked = true;
       }
-      if (this.calendar.options.params[i].required && !checked) {
-        if (this.calendar.options.params[i].missingtext) userError(this.calendar.options.params[i].missingtext);
+      if (this.calendar.overrides.params[i].required && !checked) {
+        if (this.calendar.overrides.params[i].missingtext) userError(this.calendar.overrides.params[i].missingtext);
         else userError(tr('Missing parameter'));
         return;
       }
@@ -1665,7 +1686,7 @@ function calendarInsert(start, end) {
     dataType: 'json',
     data: {
       mode: 'calendarinsert',
-      src: this.calendar.options.src,
+      src: this.calendar.overrides.src,
       param1: $('input[name=select1]:checked').parent().parent().data('rowid') || $('select[name=select1]').val(),
       param2: $('input[name=select2]:checked').parent().parent().data('rowid') || $('select[name=select2]').val(),
       start: start.format(),
