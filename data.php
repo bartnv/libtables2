@@ -454,7 +454,7 @@ switch ($mode) {
 
     $data = lt_query($table['query']);
     if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
-    $types = str_replace([ 'int4', 'int8', 'float4', 'float8', 'bool', 'text' ], [ 'integer', 'integer', '#,##0.00', '#,##0.00', 'boolean', 'string' ], $data['types']);
+    $types = str_replace([ 'int4', 'int8', 'float4', 'float8', 'bool', 'text' ], [ 'integer', 'integer', '#,##0.00', '#,##0.00', 'integer', 'string' ], $data['types']);
     $headers = array_combine($data['headers'], $types);
     $writer = new XLSXWriter();
     if (!empty($table['options']['export']['hideid']) && $table['options']['export']['hideid']) array_shift($headers);
