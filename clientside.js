@@ -589,7 +589,7 @@ function renderTableGrid(table, data, sub) {
     thead.append(trstr);
   }
 
-  if (data.rows.length || data.rowcount) { // rowcount is set for exports with nopreview=true
+  if (data.rows.length || data.rowcount || data.options.textifempty) { // rowcount is set for exports with nopreview=true
     var row = $('<tr class="lt-row"/>');
     if (data.options.selectone) {
       if (typeof selectones == 'undefined') selectones = 1;
@@ -627,17 +627,6 @@ function renderTableGrid(table, data, sub) {
       }
     }
     thead.append(row);
-  }
-  else if (data.options.textifempty) {
-    var tbody = '<tbody><tr><td class="lt-cell">' + data.options.textifempty + '</td></tr></tbody>';
-    table.append(thead, tbody);
-    if (data.options.insert && (typeof(data.options.insert) == 'object')) {
-      var tfoot = $('<tfoot/>');
-      tfoot.append(renderInsert(data));
-      table.append(tfoot);
-    }
-    table.parent().data('crc', data.crc);
-    return;
   }
   else if (data.options.hideifempty) {
     table.hide();
@@ -926,13 +915,20 @@ function renderTbody(tbody, data) {
   else var offset = 0;
   var rowcount = 0;
   rows = [];
-  for (var r = 0; r < data.rows.length; r++) { // Main loop over the data rows
-    if (data.filters && isFiltered(data.filters, data.rows[r], data.options)) continue;
-    rowcount++;
-    if (rowcount <= offset) continue;
-    if (data.options.limit && (offset+data.options.limit < rowcount)) continue;
-    if ((rowcount == offset) && data.options.pagetitle) document.title = replaceHashes(data.options.pagetitle, data.rows[r]);
-    rows.push(renderRow(data.options, data.rows[r]));
+
+  if (!data.rows.length && data.options.textifempty) {
+    rows.push('<tr class="lt-row"><td class="lt-cell lt-empty-placeholder" colspan="' + data.headers.length + '">' + data.options.textifempty + '</td></tr>');
+    rowcount = 1;
+  }
+  else {
+    for (var r = 0; r < data.rows.length; r++) { // Main loop over the data rows
+      if (data.filters && isFiltered(data.filters, data.rows[r], data.options)) continue;
+      rowcount++;
+      if (rowcount <= offset) continue;
+      if (data.options.limit && (offset+data.options.limit < rowcount)) continue;
+      if ((rowcount == offset) && data.options.pagetitle) document.title = replaceHashes(data.options.pagetitle, data.rows[r]);
+      rows.push(renderRow(data.options, data.rows[r]));
+    }
   }
   tbody[0].innerHTML = rows.join('');
   tbody.width(); // Force a DOM reflow to fix an IE9-11 bug https://stackoverflow.com/a/21032333
@@ -1052,6 +1048,11 @@ function updateTable(tbody, data, newrows) {
   var start = Date.now();
   var oldrows = data.rows;
   var newrows = newrows.slice(); // Copy the array so that we can filter out the existing rows
+
+  if (newrows.length) tbody.find('.lt-empty-placeholder').remove();
+  else if (data.options.textifempty && (tbody.find('.lt-empty-placeholder').length == 0)) {
+    tbody.prepend('<tr class="lt-row"><td class="lt-cell lt-empty-placeholder" colspan="' + data.headers.length + '">' + data.options.textifempty + '</td></tr>');
+  }
 
   for (var i = 0, found; i < oldrows.length; i++) {
     found = 0;
