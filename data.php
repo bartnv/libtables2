@@ -538,7 +538,7 @@ switch ($mode) {
     if (!empty($tableinfo['options']['insert']['keys'])) $keys = $tableinfo['options']['insert']['keys'];
     else $keys = [];
     foreach ($tables as $tabname => $insert) {
-      foreach ($insert['columns'] as $colname => &$value) {
+      foreach ($insert['columns'] as $colname => $value) {
         $found = null;
         foreach ($fields as $id => $options) {
           if (($id == 'keys') || ($id == 'include')) continue;
@@ -585,9 +585,8 @@ switch ($mode) {
         if (!$found) fatalerr("No valid insert option found for table $tabname column $colname");
         if (!empty($found['phpfunction'])) {
           error_log("Running phpfunction for $colname");
-          // Not tested yet
           $func = 'return ' . str_replace('?', "'" . $value . "'", $found['phpfunction']) . ';';
-          $value = eval($func);
+          $tables[$tabname]['columns'][$colname] = eval($func);
         }
         if (!empty($found['sqlfunction'])) {
           error_log("Running sqlfunction for $colname");
@@ -795,8 +794,6 @@ function lt_run_insert($table, $data, $idcolumn = '') {
   }
   $query = "INSERT INTO $table (" . implode(',', array_keys($data['columns'])) . ") VALUES (" . rtrim($values_str, ', ') . ")";
   if ($idcolumn && ($driver == 'pgsql')) $query .= " RETURNING $idcolumn";
-  error_log("Constructed query: $query\n");
-  error_log("Parameters: " . json_encode(array_values($data['columns'])));
 
   if (!($stmt = $dbh->prepare($query))) {
     $err = $dbh->errorInfo();
