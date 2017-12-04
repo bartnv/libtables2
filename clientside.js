@@ -749,6 +749,7 @@ function renderInsert(data) {
     else if (fields[c].type == 'checkbox') var input = $('<input type="checkbox" class="lt-insert-input" name="' + fields[c].target + '">');
     else if (fields[c].type == 'date') var input = $('<input type="date" class="lt-insert-input" name="' + fields[c].target + '" value="' + new Date().toISOString().slice(0, 10) + '">');
     else if (fields[c].type == 'password') var input = $('<input type="password" class="lt-insert-input" name="' + fields[c].target + '">');
+    else if (fields[c].type == 'email') var input = $('<input type="email" class="lt-insert-input" name="' + fields[c].target + '">');
     else if (fields[c].target && !fields[c].query) var input = $('<input type="text" class="lt-insert-input" name="' + fields[c].target + '">');
     else {
       if (fields[c].target) var input = $('<select class="lt-insert-input" name="' + fields[c].target + '"/>');
@@ -1218,6 +1219,11 @@ function doEdit(cell, newcontent) {
     edit = $('<input type="date" id="editbox" name="input">');
     var res;
     if (res = content.match(/^([0-9]{2})-([0-9]{2})-([0-9]{4})$/)) edit.val(res[3] + '-' + res[2] + '-' + res[1]);
+    else edit.val(content);
+  }
+  else if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'email') {
+    edit = $('<input type="email" id="editbox" name="input">');
+    if (newcontent) edit.val(newcontent);
     else edit.val(content);
   }
   else {
