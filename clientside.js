@@ -992,7 +992,11 @@ function renderCell(options, row, c) {
     else var params = '';
     var content = '<div class="lt-div" data-source="' + options.subtables[c] + '" data-params="' + params + '">Loading subtable ' + options.subtables[c] + '</div>';
   }
-  else var content = row[c] === null ? '' : row[c];
+  else if (row[c] === null) {
+    if (typeof options.emptycelltext == 'string') var content = $('<div/>').text(options.emptycelltext).html(); // Run through jQuery .text() and .html() to apply HTML entity escaping
+    else var content = '';
+  }
+  else var content = row[c];
   return '<td class="' + classes.join(' ') + '"' + style + onclick + mouseover + '>' + content + '</td>';
 }
 
@@ -1115,7 +1119,8 @@ function updateRow(options, tbody, oldrow, newrow) {
       if (options.format) cell = tbody.find('.lt-data').eq(c-1);
       else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').children().eq(c-offset);
       if (cell) {
-        cell.html(newrow[c]?newrow[c]:(newrow[c]===false?'false':''));
+        if ((newrow[c] === null) && (typeof options.emptycelltext == 'string')) cell.text(options.emptycelltext);
+        else cell.html(newrow[c]?newrow[c]:(newrow[c]===false?'false':''));
         cell.css('background-color', 'green');
         setTimeout(function(cell) { cell.css('background-color', 'rgba(0,255,0,0.25)'); }, 2000, cell);
       }
@@ -1190,6 +1195,7 @@ function doEdit(cell, newcontent) {
   cell.addClass('lt-editing');
   var content = cell.html();
   var data = tables[cell.closest('table').attr('id')].data;
+  if ((typeof data.options.emptycelltext == 'string') && (content === $('<div/>').text(data.options.emptycelltext).html())) content = '';
   if (data.options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
   else var c = cell.parent().children('.lt-data').index(cell)+1;
   if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'multiline') {
@@ -1452,11 +1458,15 @@ function checkEdit(cell, edit, oldvalue) {
     });
     if (edit.prop('nodeName') == 'SELECT') cell.html(edit.find('option:selected').text());
     else if (options.edit[c].type == 'password') cell.empty();
+    else if ((newvalue == '') && (typeof options.emptycelltext == 'string')) cell.text(options.emptycelltext);
     else cell.html(newvalue);
     if (!options.style || !options.style[c]) cell.css({ backgroundColor: '#ffa0a0' });
   }
   else if (edit.prop('nodeName') == 'SELECT') cell.html(edit.find('option[value="' + oldvalue + '"]').text());
-  else cell.html(oldvalue);
+  else {
+    cell.html(oldvalue);
+    if ((oldvalue === '') && (typeof options.emptycelltext == 'string')) cell.text(options.emptycelltext);
+  }
 }
 
 function doInsert(el) {
