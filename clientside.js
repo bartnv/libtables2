@@ -1001,7 +1001,7 @@ function renderCell(options, row, c) {
     }
     else if (typeof(row[c]) == 'number') var params = btoa('[ ' + row[c] + ' ]');
     else var params = '';
-    var content = '<div class="lt-div" data-source="' + options.subtables[c] + '" data-params="' + params + '">Loading subtable ' + options.subtables[c] + '</div>';
+    var content = '<div class="lt-div" data-source="' + options.subtables[c] + '" data-params="' + params + '" data-sub="true">Loading subtable ' + options.subtables[c] + '</div>';
   }
   else if (row[c] === null) {
     if (typeof options.emptycelltext == 'string') var content = $('<div/>').text(options.emptycelltext).html(); // Run through jQuery .text() and .html() to apply HTML entity escaping
@@ -1528,12 +1528,27 @@ function doInsert(el) {
           else if (el.hasClass('lt-addoption')) switchToSelect(el);
           else el.val('');
         });
+
         var table = this.closest('table');
-        updateTable(table.find('tbody'), tables[table.attr('id')].data, data.rows);
-        tables[table.attr('id')].data.rows = data.rows;
-        tables[table.attr('id')].data.crc = data.crc;
-        if (tables[table.attr('id')].data.options.sum) updateSums(table.find('tfoot'), tables[table.attr('id')].data);
-        if (tables[table.attr('id')].data.options.edit.trigger) loadOrRefreshCollection($('#' + tables[table.attr('id')].data.options.edit.trigger));
+        var tabledata = tables[table.attr('id')].data;
+        var tbody = table.find('tbody');
+        if (!tbody.length) {
+          tbody = $('<tbody/>');
+          table.prepend(tbody);
+        }
+        var thead = table.find('thead');
+        if (!thead.length) {
+          thead = $('<thead/>');
+          if (table.closest('.lt-div').data('sub') != 'true') thead.append(renderTitle(tabledata));
+          thead.append(renderHeaders(tabledata, table.attr('id')));
+          table.prepend(thead);
+        }
+
+        updateTable(tbody, tabledata, data.rows);
+        tabledata.rows = data.rows;
+        tabledata.crc = data.crc;
+        if (tabledata.options.sum) updateSums(table.find('tfoot'), tabledata);
+        if (tabledata.options.edit.trigger) loadOrRefreshCollection($('#' + tabledata.options.edit.trigger));
       }
     }
   });
