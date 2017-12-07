@@ -808,7 +808,7 @@ function renderInsert(data) {
     row.append(cell);
   }
   row.append('<td class="lt-cell"><input type="button" class="lt-insert-button" value="' + (fields.submit?fields.submit:tr('Insert')) + '" onclick="doInsert(this)"></td>');
-  row.find('INPUT[type=text]').on('keyup', function(e) { if (e.keyCode == 13) $(this).parent().parent().find('.lt-insert-button').click(); });
+  row.find('INPUT[type=text],SELECT').on('keyup', function(e) { if (e.keyCode == 13) $(this).parent().parent().find('.lt-insert-button').click(); });
   rows.push(row);
   return rows;
 }
