@@ -1519,18 +1519,21 @@ function doInsert(el) {
     success: function(data) {
       if (data.error) userError(data.error);
       else {
-        this.find('input,select,textarea').each(function() {
-          var el = $(this);
-          if (el.prop('type') == 'button');
-          else if (el.prop('type') == 'date') el.val(new Date().toISOString().slice(0, 10));
-          else if (el.prop('type') == 'checkbox') el.prop('checked', false);
-          else if (el.prop('nodeName') == 'select') el.prop('selectedIndex', -1);
-          else if (el.hasClass('lt-addoption')) switchToSelect(el);
-          else el.val('');
-        });
-
         var table = this.closest('table');
         var tabledata = tables[table.attr('id')].data;
+
+        if (tabledata.options.insert.noclear !== true) {
+          this.find('input,select,textarea').each(function() {
+            var el = $(this);
+            if (el.prop('type') == 'button');
+            else if (el.prop('type') == 'date') el.val(new Date().toISOString().slice(0, 10));
+            else if (el.prop('type') == 'checkbox') el.prop('checked', false);
+            else if (el.prop('nodeName') == 'select') el.prop('selectedIndex', -1);
+            else if (el.hasClass('lt-addoption')) switchToSelect(el);
+            else el.val('');
+          });
+        }
+
         var tbody = table.find('tbody');
         if (!tbody.length) {
           tbody = $('<tbody/>');
