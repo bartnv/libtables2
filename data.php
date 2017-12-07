@@ -584,12 +584,10 @@ switch ($mode) {
         }
         if (!$found) fatalerr("No valid insert option found for table $tabname column $colname");
         if (!empty($found['phpfunction'])) {
-          error_log("Running phpfunction for $colname");
           $func = 'return ' . str_replace('?', "'" . $value . "'", $found['phpfunction']) . ';';
           $tables[$tabname]['columns'][$colname] = eval($func);
         }
         if (!empty($found['sqlfunction'])) {
-          error_log("Running sqlfunction for $colname");
           $tables[$tabname]['sqlfunction'][$colname] = $found['sqlfunction'];
         }
       }
