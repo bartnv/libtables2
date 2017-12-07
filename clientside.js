@@ -596,7 +596,7 @@ function renderHeaders(data, id) {
   var str = '';
   if (data.options.limit) {
     if (!data.options.page) data.options.page = 1;
-    str += '<tr class="lt-limit"><th colspan="' + data.headers.length + '"><a href="javascript:goPage(\'' + table.attr('id');
+    str += '<tr class="lt-limit"><th colspan="' + data.headers.length + '"><a href="javascript:goPage(\'' + id;
     str += '\', \'prev\')">&lt;</a> <span class="lt-pages"></span> <a href="javascript:goPage(\'' + id + '\', \'next\')">&gt;</a></th></tr>';
   }
 
