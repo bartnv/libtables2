@@ -283,8 +283,22 @@ function refreshTable(table, key) {
           loadTable(this.parent(), this.parent().data());
           return;
         }
-        updateHeaders(this.find('thead'), data.headers);
-        updateTable(this.find('tbody'), tables[key].data, data.rows);
+
+        var tbody = this.find('tbody');
+        if (!tbody.length) {
+          tbody = $('<tbody/>');
+          this.prepend(tbody);
+        }
+        var thead = table.find('thead');
+        if (!thead.length) {
+          thead = $('<thead/>');
+          if (this.closest('.lt-div').data('sub') != 'true') thead.append(renderTitle(tables[key].data));
+          thead.append(renderHeaders(tables[key].data, this.attr('id')));
+          table.prepend(thead);
+        }
+        else updateHeaders(thead, data.headers);
+
+        updateTable(tbody, tables[key].data, data.rows);
         tables[key].data.rows = data.rows;
         tables[key].data.crc = data.crc;
         var options = tables[key].data.options;

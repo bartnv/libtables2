@@ -541,7 +541,7 @@ switch ($mode) {
       foreach ($insert['columns'] as $colname => $value) {
         $found = null;
         foreach ($fields as $id => $options) {
-          if (($id == 'keys') || ($id == 'include')) continue;
+          if (($id == 'keys') || ($id == 'include') || ($id == 'noclear')) continue;
           if ($id == 'hidden') {
             foreach ($options as $hidden) {
               if (!empty($hidden['target']) && ($hidden['target'] == "$tabname.$colname")) {
