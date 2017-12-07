@@ -595,6 +595,8 @@ switch ($mode) {
       }
     }
 
+    $dbh->query('BEGIN'); // Start a transaction so we can't have partial inserts with multiple tables
+
     // First insert the values that have explicit ordering requirements in the `keys` option
     if (!empty($keys)) {
       foreach ($keys as $pkey => $fkey) {
@@ -611,6 +613,8 @@ switch ($mode) {
       lt_run_insert($name, $tables[$name]);
       unset($tables[$name]['columns']); // May not be necessary
     }
+
+    $dbh->query('COMMIT'); // Any errors will exit through fatalerr() and thus cause an implicit rollback
 
     $data = lt_query($tableinfo['query'], $params);
     if (isset($data['error'])) fatalerr('Query for table ' . $tableinfo['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
