@@ -547,105 +547,82 @@ function renderTableFormat(table, data, sub) {
   if (data.options.subtables) loadOrRefreshCollection(tbody.find('.lt-div'), true);
 }
 
-function renderTableGrid(table, data, sub) {
-  var pagetitle;
-  if (data.options.classes && data.options.classes.table) table.addClass(data.options.classes.table);
-  var headstr = '<thead>';
-  if (!sub) {
-    headstr += '<tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
-    if (data.options.popout && (data.options.popout.type == 'floating-div')) {
-      headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"");
-      headstr += '" onclick="showTableInDialog($(this).closest(\'table\'));"></span>';
-    }
-    else if (data.options.popout && (data.options.popout.type == 'fullscreen')) {
-      headstr += '<span class="lt-fullscreen-button ' + (data.options.popout.icon_class?data.options.popout.icon_class:"") + '" ';
-      headstr += 'onclick="toggleTableFullscreen($(this).closest(\'table\'));"></span>';
-    }
-    if (data.options.tablefunction && data.options.tablefunction.text) {
-      if (data.params) {
-        var params = JSON.parse(atob(data.params));
-        params.unshift('');
-      }
-      else var params = [];
-      if (data.options.tablefunction.hidecondition) var disp = ' style="display: none;"';
-      else var disp = '';
-      if (data.options.tablefunction.confirm) {
-        headstr += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="if (confirm(\'' + replaceHashes(data.options.tablefunction.confirm, params);
-        headstr += '\')) doFunction(this);" value="' + replaceHashes(data.options.tablefunction.text, params) + '">';
-      }
-      else {
-        headstr += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="doFunction(this);" value="';
-        headstr += replaceHashes(data.options.tablefunction.text, params) + '">';
-      }
-    }
-    headstr += '</th></tr>';
+function renderTitle(data) {
+  var str = '<tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
+  if (data.options.popout && (data.options.popout.type == 'floating-div')) {
+    str += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"");
+    str += '" onclick="showTableInDialog($(this).closest(\'table\'));"></span>';
   }
-  headstr += '</thead>';
-  var thead = $(headstr);
+  else if (data.options.popout && (data.options.popout.type == 'fullscreen')) {
+    str += '<span class="lt-fullscreen-button ' + (data.options.popout.icon_class?data.options.popout.icon_class:"") + '" ';
+    str += 'onclick="toggleTableFullscreen($(this).closest(\'table\'));"></span>';
+  }
+  if (data.options.tablefunction && data.options.tablefunction.text) {
+    if (data.params) {
+      var params = JSON.parse(atob(data.params));
+      params.unshift('');
+    }
+    else var params = [];
+    if (data.options.tablefunction.hidecondition) var disp = ' style="display: none;"';
+    else var disp = '';
+    if (data.options.tablefunction.confirm) {
+      str += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="if (confirm(\'' + replaceHashes(data.options.tablefunction.confirm, params);
+      str += '\')) doFunction(this);" value="' + replaceHashes(data.options.tablefunction.text, params) + '">';
+    }
+    else {
+      str += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="doFunction(this);" value="';
+      str += replaceHashes(data.options.tablefunction.text, params) + '">';
+    }
+  }
+  str += '</th></tr>';
+ return str;
+}
 
+function renderHeaders(data, id) {
+  var str = '';
   if (data.options.limit) {
     if (!data.options.page) data.options.page = 1;
-    var trstr = '<tr class="lt-limit"><th colspan="' + data.headers.length + '"><a href="javascript:goPage(\'' + table.attr('id');
-    trstr += '\', \'prev\')">&lt;</a> <span class="lt-pages"></span> <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')">&gt;</a></th></tr>';
-    thead.append(trstr);
+    str += '<tr class="lt-limit"><th colspan="' + data.headers.length + '"><a href="javascript:goPage(\'' + table.attr('id');
+    str += '\', \'prev\')">&lt;</a> <span class="lt-pages"></span> <a href="javascript:goPage(\'' + id + '\', \'next\')">&gt;</a></th></tr>';
   }
 
-  if (data.rows.length || data.rowcount || data.options.textifempty) { // rowcount is set for exports with nopreview=true
-    var row = $('<tr class="lt-row"/>');
-    if (data.options.selectone) {
-      if (typeof selectones == 'undefined') selectones = 1;
-      else selectones++;
-      if (data.options.selectone.name) row.append('<td class="lt-head">' + data.options.selectone.name + '</td>');
-      else row.append('<td class="lt-head">' + tr('Select') + '</td>');
-    }
-    if (data.options.selectany) {
-      if (data.options.selectany.name) row.append('<td class="lt-head">' + data.options.selectany.name + '</td>');
-      else row.append('<td class="lt-head">' + tr('Select') + '</td>');
-    }
-    for (var c = 0; c < data.headers.length; c++) { // Loop over the columns for the headers
-      if (data.options.sortby) {
-        if (data.options.sortby == data.headers[c]) {
-          if (data.options.sortdir == 'ascending') data.rows.sort(function(a, b) { return sortOnColumn(a, b, c); });
-          else data.rows.sort(function(a, b) { return sortOnColumn(b, a, c); });
-        }
+  str += '<tr class="lt-row">';
+  if (data.options.selectone) {
+    if (typeof selectones == 'undefined') selectones = 1;
+    else selectones++;
+    if (data.options.selectone.name) str += '<td class="lt-head">' + data.options.selectone.name + '</td>';
+    else str += '<td class="lt-head">' + tr('Select') + '</td>';
+  }
+  if (data.options.selectany) {
+    if (data.options.selectany.name) str += '<td class="lt-head">' + data.options.selectany.name + '</td>';
+    else str += '<td class="lt-head">' + tr('Select') + '</td>';
+  }
+  for (var c = 0; c < data.headers.length; c++) { // Loop over the columns for the headers
+    if (data.options.sortby) {
+      if (data.options.sortby == data.headers[c]) {
+        if (data.options.sortdir == 'ascending') data.rows.sort(function(a, b) { return sortOnColumn(a, b, c); });
+        else data.rows.sort(function(a, b) { return sortOnColumn(b, a, c); });
       }
-      if (c) {
-        if (data.options.mouseover && data.options.mouseover[c]) continue;
-        if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
-        var onclick = "";
-        var classes = [ "lt-head" ];
-        if (data.options.sortable) {
-          if (typeof(data.options.sortable) == 'boolean') {
-            onclick = "sortBy('" + table.attr('id') + "', this);";
-            if (data.options.sortby == data.headers[c]) {
-              if (data.options.sortdir == 'ascending') classes.push('lt-sorted-asc');
-              else classes.push('lt-sorted-desc');
-            }
-            else classes.push('lt-sort');
+    }
+    if (c) {
+      if (data.options.mouseover && data.options.mouseover[c]) continue;
+      if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
+      var onclick = "";
+      var classes = [ "lt-head" ];
+      if (data.options.sortable) {
+        if (typeof(data.options.sortable) == 'boolean') {
+          onclick = "sortBy('" + id + "', this);";
+          if (data.options.sortby == data.headers[c]) {
+            if (data.options.sortdir == 'ascending') classes.push('lt-sorted-asc');
+            else classes.push('lt-sorted-desc');
           }
+          else classes.push('lt-sort');
         }
-        row.append('<td class="' + classes.join(' ') + '" onclick="' + onclick + '">' + data.headers[c] + '</td>');
       }
+      str += '<td class="' + classes.join(' ') + '" onclick="' + onclick + '">' + data.headers[c] + '</td>';
     }
-    thead.append(row);
   }
-  else if (data.options.hideifempty) {
-    table.hide();
-    table.parent().data('crc', data.crc);
-    return;
-  }
-  else if (data.options.insert && (typeof(data.options.insert) == 'object')) {
-    var tfoot = $('<tfoot/>');
-    tfoot.append(renderInsert(data));
-    table.append(tfoot);
-    table.parent().data('crc', data.crc);
-    return;
-  }
-
-  if (data.rowcount) { // rowcount is set for exports with nopreview=true
-    var tbody = '<td colspan="' + data.headers.length + '" class="lt-cell"> ... ' + data.rowcount + ' ' + tr('rows for export') + ' ... </td>';
-    table.append(thead, tbody);
-  }
+  str += '</tr>';
 
   if (data.options.filter && (typeof data.options.filter != 'function')) {
     var row = $('<tr class="lt-row"/>');
@@ -671,12 +648,44 @@ function renderTableGrid(table, data, sub) {
       .prepend('<span class="lt-label-filter"><img src="filter.svg" style="width: 15px; height: 15px;" title="' + filtertext + '"></span>');
     row.find('td').last()
       .css('position', 'relative')
-      .append('<span class="lt-label-clear"><a href="javascript:clearFilters(\'' + table.attr('id') + '\');"><img src="clear.svg"></a></span>');
-    thead.append(row);
+      .append('<span class="lt-label-clear"><a href="javascript:clearFilters(\'' + id + '\');"><img src="clear.svg"></a></span>');
+    str += row.html(); // Yeah I know this is a bit silly, but I need a DOM for it to append the spans above
   }
 
-  var tbody = $('<tbody/>');
-  var rowcount = renderTbody(tbody, data);
+  return str;
+}
+
+function renderTableGrid(table, data, sub) {
+  var pagetitle;
+  if (data.options.classes && data.options.classes.table) table.addClass(data.options.classes.table);
+
+  var thead = $('<thead/>');
+  if (!sub) thead.append(renderTitle(data));
+
+  if (data.rows.length || data.rowcount || data.options.textifempty) { // rowcount is set for exports with nopreview=true
+    thead.append(renderHeaders(data, table.attr('id')));
+  }
+  else if (data.options.hideifempty) {
+    table.hide();
+    table.parent().data('crc', data.crc);
+    return;
+  }
+  else if (data.options.insert && (typeof(data.options.insert) == 'object')) {
+    var tfoot = $('<tfoot/>');
+    tfoot.append(renderInsert(data));
+    table.append(tfoot);
+    table.parent().data('crc', data.crc);
+    return;
+  }
+
+  if (data.rowcount) { // rowcount is set for exports with nopreview=true
+    var tbody = $('<td colspan="' + data.headers.length + '" class="lt-cell"> ... ' + data.rowcount + ' ' + tr('rows for export') + ' ... </td>');
+  }
+  else {
+    var tbody = $('<tbody/>');
+    var rowcount = renderTbody(tbody, data);
+  }
+
   if (data.options.limit) thead.find('.lt-pages').html(tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + Math.ceil(rowcount/data.options.limit));
   if (data.options.selectone && data.options.selectone.default) {
     if (data.options.selectone.default == 'first') tbody.find('input[name^=select]:first').prop('checked', true);
