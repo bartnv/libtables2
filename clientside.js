@@ -398,6 +398,7 @@ function renderTable(table, data, sub) {
   if (data.options.display && (data.options.display == 'list')) renderTableList(table, data, sub);
   else if (data.options.display && (data.options.display == 'select')) renderTableSelect(table, data, sub);
   else if (data.options.format) renderTableFormat(table, data, sub);
+  else if (data.options.renderfunction) window[data.options.renderfunction](table, data);
   else renderTableGrid(table, data, sub);
   console.log('Load timings for ' + (sub?'sub':'') + 'table ' + data.tag + ': sql ' + data.querytime +
               ' download ' + (data.downloadtime?data.downloadtime:'n/a') + ' render ' + (Date.now()-start) + ' ms');
