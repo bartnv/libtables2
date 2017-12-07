@@ -1549,6 +1549,8 @@ function doInsert(el) {
         tabledata.crc = data.crc;
         if (tabledata.options.sum) updateSums(table.find('tfoot'), tabledata);
         if (tabledata.options.edit.trigger) loadOrRefreshCollection($('#' + tabledata.options.edit.trigger));
+
+        this.find('input,select,textarea').first().focus();
       }
     }
   });
