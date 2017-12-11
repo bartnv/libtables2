@@ -465,7 +465,7 @@ switch ($mode) {
 
     $data = lt_query($table['query']);
     if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
-    $types = str_replace([ 'int4', 'int8', 'float4', 'float8', 'bool', 'text' ], [ 'integer', 'integer', '#,##0.00', '#,##0.00', 'boolean', 'string' ], $data['types']);
+    $types = str_replace([ 'int4', 'int8', 'float4', 'float8', 'bool', 'text' ], [ 'integer', 'integer', '#,##0.00', '#,##0.00', 'integer', 'string' ], $data['types']);
     $headers = array_combine($data['headers'], $types);
     $writer = new XLSXWriter();
     if (!empty($table['options']['export']['hideid']) && $table['options']['export']['hideid']) array_shift($headers);
@@ -538,10 +538,10 @@ switch ($mode) {
     if (!empty($tableinfo['options']['insert']['keys'])) $keys = $tableinfo['options']['insert']['keys'];
     else $keys = [];
     foreach ($tables as $tabname => $insert) {
-      foreach ($insert['columns'] as $colname => &$value) {
+      foreach ($insert['columns'] as $colname => $value) {
         $found = null;
         foreach ($fields as $id => $options) {
-          if (($id == 'keys') || ($id == 'include')) continue;
+          if (($id == 'keys') || ($id == 'include') || ($id == 'noclear')) continue;
           if ($id == 'hidden') {
             foreach ($options as $hidden) {
               if (!empty($hidden['target']) && ($hidden['target'] == "$tabname.$colname")) {
@@ -584,17 +584,16 @@ switch ($mode) {
         }
         if (!$found) fatalerr("No valid insert option found for table $tabname column $colname");
         if (!empty($found['phpfunction'])) {
-          error_log("Running phpfunction for $colname");
-          // Not tested yet
           $func = 'return ' . str_replace('?', "'" . $value . "'", $found['phpfunction']) . ';';
-          $value = eval($func);
+          $tables[$tabname]['columns'][$colname] = eval($func);
         }
         if (!empty($found['sqlfunction'])) {
-          error_log("Running sqlfunction for $colname");
           $tables[$tabname]['sqlfunction'][$colname] = $found['sqlfunction'];
         }
       }
     }
+
+    $dbh->query('BEGIN'); // Start a transaction so we can't have partial inserts with multiple tables
 
     // First insert the values that have explicit ordering requirements in the `keys` option
     if (!empty($keys)) {
@@ -612,6 +611,8 @@ switch ($mode) {
       lt_run_insert($name, $tables[$name]);
       unset($tables[$name]['columns']); // May not be necessary
     }
+
+    $dbh->query('COMMIT'); // Any errors will exit through fatalerr() and thus cause an implicit rollback
 
     $data = lt_query($tableinfo['query'], $params);
     if (isset($data['error'])) fatalerr('Query for table ' . $tableinfo['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
@@ -795,8 +796,6 @@ function lt_run_insert($table, $data, $idcolumn = '') {
   }
   $query = "INSERT INTO $table (" . implode(',', array_keys($data['columns'])) . ") VALUES (" . rtrim($values_str, ', ') . ")";
   if ($idcolumn && ($driver == 'pgsql')) $query .= " RETURNING $idcolumn";
-  error_log("Constructed query: $query\n");
-  error_log("Parameters: " . json_encode(array_values($data['columns'])));
 
   if (!($stmt = $dbh->prepare($query))) {
     $err = $dbh->errorInfo();

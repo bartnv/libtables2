@@ -177,9 +177,10 @@ function lt_print_block($block, $params = array(), $options = array()) {
     }
     if (file_exists($dir . $basename . '.php')) {
       if (!empty($params)) $block_options['params'] = $params;
-      if (eval(file_get_contents($dir . $basename . '.php')) === FALSE) print "<p>PHP syntax error in block $basename</p>";
+      $ret = eval(file_get_contents($dir . $basename . '.php'));
+      if ($ret === FALSE) print "<p>PHP syntax error in block $basename</p>";
       if (!empty($options['wrapperdiv']) && $options['wrapperdiv']) print "</div>\n";
-      return;
+      return $ret;
     }
   }
 
@@ -230,6 +231,7 @@ function lt_query($query, $params = array(), $id = 0) {
       $ret['types'][] = $col['native_type'];
     }
     $ret['rows'] = $res->fetchAll(PDO::FETCH_NUM);
+    $ret['tables'] = lt_tables_from_query($query);
 
     // Do datatype correction because PHP PDO is dumb about floating point values
     for ($i = 0; $i < $res->columnCount(); $i++) {
@@ -305,6 +307,14 @@ function lt_query_single($query, $params = array()) {
     if (!($row = $res->fetch())) return "";
   }
   return $row[0];
+}
+
+function lt_tables_from_query($query) {
+  if (!preg_match_all('/(?:from|join)\s+([^(\s]+)/i', $query, $matches)) {
+    error_log('lt_tables_from_query() failed');
+    return;
+  }
+  return array_keys(array_flip($matches[1]));
 }
 
 function lt_query_check($query) {
