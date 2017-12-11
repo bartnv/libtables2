@@ -982,16 +982,31 @@ function renderRow(options, row) {
   return html.join('');
 }
 
+function checkCondition(row, a, comp, b) {
+  a = replaceHashes(a, row);
+  console.log('comparing', a, b);
+  if (comp == '==') {
+    if (a == b) return true;
+    return false;
+  }
+  else if (a != b) return true;
+  return false;
+}
+
 function renderCell(options, row, c) {
   var classes = [ "lt-cell", "lt-data" ];
   if (options.class && options.class[c]) classes.push(options.class[c]);
   if (options.edit && options.edit[c]) {
+    classes.push('lt-edit');
     if (typeof(options.edit[c]) == 'string') var onclick = ' onclick="doEdit(this)"';
     else if (typeof(options.edit[c]) == 'object') {
-      if (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length >= 2))) var onclick = ' onclick="doEditSelect(this)"';
+      if ((a = options.edit[c].condition) && (a.length == 3) && !checkCondition(row, a[0], a[1], a[2])) {
+        var onclick = '';
+        classes.pop(); // Remove the .lt-edit class
+      }
+      else if (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length >= 2))) var onclick = ' onclick="doEditSelect(this)"';
       else var onclick = ' onclick="doEdit(this)"';
     }
-    classes.push('lt-edit');
   }
   else var onclick = "";
   if (options.mouseover && options.mouseover[c+1] && row[c+1]) {
