@@ -760,6 +760,7 @@ function renderInsert(data) {
     else if (fields[c].type == 'checkbox') var input = $('<input type="checkbox" class="lt-insert-input" name="' + fields[c].target + '">');
     else if (fields[c].type == 'date') var input = $('<input type="date" class="lt-insert-input" name="' + fields[c].target + '" value="' + new Date().toISOString().slice(0, 10) + '">');
     else if (fields[c].type == 'password') var input = $('<input type="password" class="lt-insert-input" name="' + fields[c].target + '">');
+    else if (fields[c].type == 'color') var input = $('<input type="text" class="lt-insert-input lt-color-cell" name="' + fields[c].target + '" onfocus="showColPick(this)">');
     else if (fields[c].target && !fields[c].query) var input = $('<input type="text" class="lt-insert-input" name="' + fields[c].target + '">');
     else {
       if (fields[c].target) var input = $('<select class="lt-insert-input" name="' + fields[c].target + '"/>');
@@ -812,6 +813,19 @@ function renderInsert(data) {
   rows.push(row);
   return rows;
 }
+
+function showColPick(el) {
+  var cell = $(el).parent();
+  cell.colpick({
+    layout: 'hex',
+    onSubmit: function(hsb, hex) {
+      cell.find('input').val('#' + hex);
+      cell.css('background-color', '#' + hex);
+      cell.colpickHide();
+    }
+  }).colpickShow();
+}
+
 function loadOptions(input, data, c) {
   $.ajax({
     method: 'get',
