@@ -537,11 +537,18 @@ switch ($mode) {
     if (!empty($fields['include']) && ($fields['include'] == 'edit')) $fields += $tableinfo['options']['edit'];
     if (!empty($tableinfo['options']['insert']['keys'])) $keys = $tableinfo['options']['insert']['keys'];
     else $keys = [];
+
+    if (!empty($fields['onconflict'])) {
+      foreach ($fields['onconflict'] as $tabname => $value) {
+        $tables[$tabname]['onconflict'] = $fields['onconflict'][$tabname];
+      }
+    }
+
     foreach ($tables as $tabname => $insert) {
       foreach ($insert['columns'] as $colname => $value) {
         $found = null;
         foreach ($fields as $id => $options) {
-          if (($id == 'keys') || ($id == 'include')) continue;
+          if (($id == 'keys') || ($id == 'include') || ($id =='onconflict')) continue;
           if ($id == 'hidden') {
             foreach ($options as $hidden) {
               if (!empty($hidden['target']) && ($hidden['target'] == "$tabname.$colname")) {
@@ -801,6 +808,15 @@ function lt_run_insert($table, $data, $idcolumn = '') {
   }
   if (!($stmt->execute(array_values($data['columns'])))) {
     $err = $stmt->errorInfo();
+    if ((strpos($err[2], 'duplicate key value') !== FALSE) && (!empty($data['onconflict']))) {
+      $query = $data['onconflict'];
+      $params = [];
+      foreach ($data['columns'] as $colname => $value) {
+        $query = str_replace("#$colname", '?', $query);
+        $params[] = $value;
+      }
+      return lt_query_single($query, $params);
+    }
     fatalerr("SQL execute error: " . $err[2]);
   }
 
