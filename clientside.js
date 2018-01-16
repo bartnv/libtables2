@@ -736,13 +736,17 @@ function renderInsert(data) {
   if (data.options.insert.include == 'edit') var fields = jQuery.extend({}, data.options.edit, data.options.insert);
   else var fields = data.options.insert;
 
-  rows = [];
-  row = $('<tr class="lt-row"/>');
+  var rows = [];
+  var row = $('<tr class="lt-row"/>');
+  if (data.options.selectany) row.append('<td/>');
+  var colspan = 1;
+  if (data.options.delete) colspan++;
+  if (data.options.appendcell) colspan++;
   for (var c = 1; ; c++) {
     if (data.options.mouseover && data.options.mouseover[c]) continue;
     if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
     if (!fields[c]) {
-      row.append('<td class="lt-head">' + tr('Insert') + '</td>');
+      row.append('<td class="lt-head" colspan="' + colspan + '">' + tr('Insert') + '</td>');
       break;
     }
     else {
@@ -754,6 +758,7 @@ function renderInsert(data) {
   rows.push(row);
 
   row = $('<tr class="lt-row"/>');
+  if (data.options.selectany) row.append('<td/>');
   for (var c = 1; ; c++) {
     if (!fields[c]) {
       if (c >= data.headers.length-1) break;
@@ -822,7 +827,7 @@ function renderInsert(data) {
     }
     row.append(cell);
   }
-  row.append('<td class="lt-cell"><input type="button" class="lt-insert-button" value="' + (fields.submit?fields.submit:tr('Insert')) + '" onclick="doInsert(this)"></td>');
+  row.append('<td class="lt-cell" colspan="' + colspan + '"><input type="button" class="lt-insert-button" value="' + (fields.submit?fields.submit:tr('Insert')) + '" onclick="doInsert(this)"></td>');
   row.find('INPUT[type=text],SELECT').on('keyup', function(e) { if (e.keyCode == 13) $(this).parent().parent().find('.lt-insert-button').click(); });
   rows.push(row);
   return rows;
