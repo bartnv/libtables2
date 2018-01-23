@@ -89,7 +89,7 @@ function loadOrRefreshCollection(coll, sub) {
   });
 }
 
-function doFunction(button) {
+function doFunction(button, addparam) {
   button = $(button);
   var fullscreen = button.closest('#lt-fullscreen-div');
   if (fullscreen.length) {
@@ -103,11 +103,18 @@ function doFunction(button) {
   var key = table.attr('id');
 
   if (button.hasClass('lt-tablefunc')) {
+    if (addparam) {
+      var params = JSON.parse(atob(tables[key].data.params));
+      params.push(addparam);
+      var paramstr = btoa(JSON.stringify(params));
+      console.log(paramstr);
+    }
+    else var paramstr = tables[key].data.params;
     $.ajax({
       method: 'post',
       url: ajaxUrl,
       dataType: 'json',
-      data: { mode: 'function', type: 'table', src: tables[key].data.block + ':' + tables[key].data.tag, params: tables[key].data.params },
+      data: { mode: 'function', type: 'table', src: tables[key].data.block + ':' + tables[key].data.tag, params: paramstr },
       success: function(data) {
         if (data.error) appError(data.error, table);
         else {
@@ -582,6 +589,10 @@ function renderTitle(data) {
     if (data.options.tablefunction.confirm) {
       str += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="if (confirm(\'' + replaceHashes(data.options.tablefunction.confirm, params);
       str += '\')) doFunction(this);" value="' + replaceHashes(data.options.tablefunction.text, params) + '">';
+    }
+    else if (data.options.tablefunction.addparam && data.options.tablefunction.addparam.text) {
+      str += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="if ((ret = prompt(\'' + replaceHashes(data.options.tablefunction.addparam.text, params);
+      str += '\')) != null) doFunction(this, ret);" value="' + replaceHashes(data.options.tablefunction.text, params) + '">';
     }
     else {
       str += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="doFunction(this);" value="';
