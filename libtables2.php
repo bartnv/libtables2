@@ -326,6 +326,8 @@ function lt_query_check($query) {
   elseif (!empty($block_params)) $localparams = $block_params;
 
   if (!empty($localparams)) {
+    $paramcount = substr_count($query, '?');
+    if (count($localparams) > $paramcount) $localparams = array_slice($localparams, 0, $paramcount);
     if (!($res = $dbh->prepare($query))) {
       error_log("Libtables error: query prepare failed: " . $dbh->errorInfo()[2]);
       return false;
