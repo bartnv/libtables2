@@ -451,7 +451,20 @@ switch ($mode) {
         $err = $stmt->errorInfo();
         fatalerr("SQL execute error: " . $err[2]);
       }
-      print '{ "status": "ok" }';
+      $ret = [ 'status' => 'ok' ];
+      if (!empty($table['options']['tablefunction']['redirect'])) {
+        if (strpos($table['options']['tablefunction']['redirect'], '#id') !== FALSE) {
+          $id = $dbh->lastInsertId();
+          $ret['redirect'] = str_replace('#id', $id, $table['options']['tablefunction']['redirect']);
+        }
+        elseif (strpos($table['options']['tablefunction']['redirect'], '#') !== FALSE) {
+          $row = $stmt->fetch(PDO::FETCH_NUM);
+          $str = $table['options']['tablefunction']['redirect'];
+          for ($i = count($row)-1; $i >= 0; $i--) $str = str_replace('#' . $i, $row[$i], $str);
+          $ret['redirect'] = $str;
+        }
+      }
+      print json_encode($ret);
     }
     else fatalerr('Invalid type in mode function');
     break;

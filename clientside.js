@@ -117,6 +117,7 @@ function doFunction(button, addparam) {
       data: { mode: 'function', type: 'table', src: tables[key].data.block + ':' + tables[key].data.tag, params: paramstr },
       success: function(data) {
         if (data.error) appError(data.error, table);
+        else if (data.redirect) window.location = data.redirect;
         else {
           refreshTable(table, key);
           if (tables[key].data.options.tablefunction.trigger) loadOrRefreshCollection($('#' + tables[key].data.options.tablefunction.trigger));
