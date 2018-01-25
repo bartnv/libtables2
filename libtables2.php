@@ -164,7 +164,11 @@ function lt_print_block($block, $params = array(), $options = array()) {
       if (!empty($options['wrapperdiv']) && $options['wrapperdiv']) print "</div>\n";
       return;
     }
-    if (function_exists('yaml_parse_file') && file_exists($dir . $basename . '.yml')) {
+    if (file_exists($dir . $basename . '.yml')) {
+      if (!function_exists('yaml_parse_file')) {
+        print "YAML block found but the PHP YAML parser is not installed";
+        return;
+      }
       $yaml = yaml_parse_file($dir . $basename . '.yml', -1);
       if ($yaml === false) print("<p>YAML syntax error in block $basename</p>");
       else {
