@@ -1051,6 +1051,7 @@ function renderCell(options, row, c) {
   else var onclick = "";
   if (options.mouseover && options.mouseover[c+1] && row[c+1]) {
     var mouseover = ' title="' + row[c+1] + '"';
+    classes.push('lt-mouseover');
   }
   else var mouseover = '';
   if (options.style && options.style[c]) var style = ' style="' + replaceHashes(options.style[c], row) + '"';
