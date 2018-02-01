@@ -532,6 +532,7 @@ function renderTableFormat(table, data, sub) {
             appError('Too many headers specified in format string for ' + data.block + ':' + data.tag, data.options.format);
             break;
           }
+          while (data.options.mouseover && data.options.mouseover[headcount]) headcount++;
           for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
           for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
           var tdstr = '<td class="lt-head"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
@@ -543,6 +544,7 @@ function renderTableFormat(table, data, sub) {
             appError('Too many columns specified in format string for ' + data.block + ':' + data.tag, data.options.format);
             break;
           }
+          while (data.options.mouseover && data.options.mouseover[colcount]) colcount++;
           for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
           for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
           var cell = $(renderCell(data.options, data.rows[offset], colcount));
