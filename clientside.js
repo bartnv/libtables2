@@ -41,6 +41,7 @@ function tr(str) {
       switch (str) {
         case "Totals": return "Totalen";
         case "Page": return "Pagina";
+        case "Row": return "Rij";
         case "of": return "van";
         case "Error": return "Fout";
         case "Insert": return "Toevoegen";
@@ -507,7 +508,7 @@ function renderTableFormat(table, data, sub) {
   if (data.rows.length > 1) {
     headstr += '<tr class="lt-limit"><th colspan="' + data.headers.length + '">';
     headstr += '<a href="javascript:goPage(\'' + table.attr('id') + '\', \'prev\')">&lt;</a> ';
-    headstr += tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + data.rows.length;
+    headstr += tr('Row') + ' ' + data.options.page + ' ' + tr('of') + ' ' + data.rows.length;
     headstr += ' <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')">&gt;</a></th></tr>';
   }
 
