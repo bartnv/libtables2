@@ -60,6 +60,8 @@ function lt_table($tag, $title, $query, $options = array()) {
   if (!empty($options['classes']['div'])) $divclasses = 'lt-div ' . $options['classes']['div'];
   else $divclasses = 'lt-div';
 
+  $divstr = ' <div id="' . $tag . '" class="' . $divclasses . '" data-source="' . $basename . ':' . $tag . '"';
+
   if (!empty($options['embed'])) {
     $data = lt_query($query, $params);
     if (isset($data['error'])) {
@@ -79,20 +81,17 @@ function lt_table($tag, $title, $query, $options = array()) {
     $data['block'] = $basename;
     $data['tag'] = $tag;
 
-    if (empty($params)) {
-      if (!empty($options['params'])) print ' <div id="' . $tag . '" class="' . $divclasses . '" data-source="' . $basename . ':' . $tag . '" data-embedded="' . "\n" . chunk_split(base64_encode(json_encode($data)), 79, "\n") . '" data-params="-">Loading table ' . $title . "...</div>\n";
-      else print '  <div id="' . $tag . '" class="' . $divclasses . '" data-source="' . $basename . ':' . $tag . '" data-embedded="' . "\n" . chunk_split(base64_encode(json_encode($data)), 79, "\n") . '">Loading table ' . $title . "...</div>\n";
-    }
-    else {
-      $data['params'] = base64_encode(json_encode($params));
-      print ' <div id="' . $tag . '" class="' . $divclasses . '" data-source="' . $basename . ':' . $tag . '" data-embedded="' . "\n" . chunk_split(base64_encode(json_encode($data)), 79, "\n") . '" data-params="' . base64_encode(json_encode($params)) . '">Loading table ' . $title . "...</div>\n";
-    }
+    if (!empty($params)) $data['params'] = base64_encode(json_encode($params));
+    $divstr .= ' data-embedded="' . "\n" . chunk_split(base64_encode(json_encode($data)), 79, "\n") . '"';
   }
-  elseif (empty($params)) {
-    if (!empty($options['params'])) print '  <div id="' . $tag . '" class="' . $divclasses . '" data-source="' . $basename . ':' . $tag . '" data-params="-">Loading table ' . $title . "...</div>\n";
-    else print '  <div id="' . $tag . '" class="' . $divclasses . '" data-source="' . $basename . ':' . $tag . '">Loading table ' . $title . "...</div>\n";
+
+  if (empty($params)) {
+    if (!empty($options['params'])) $divstr .= ' data-params="-"';
+    else; // This is the default case; no addition to $divstr necessary
   }
-  else print '  <div id="' . $tag . '" class="' . $divclasses . '" data-source="' . $basename . ':' . $tag . '" data-params="' . base64_encode(json_encode($params)) . '">Loading table ' . $title . "...</div>\n";
+  else $divstr .= ' data-params="' . base64_encode(json_encode($params)) . '"';
+
+  print $divstr . '>Loading table ' . $title . "...</div>\n";
 }
 
 function lt_calendar($tag, $queries, $options = array()) {
