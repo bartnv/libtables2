@@ -252,6 +252,7 @@ function loadTable(div, attr, sub) {
         }
         else {
           data.downloadtime = Date.now() - tables[key].start - data.querytime;
+          if (this.data('active')) data.active = this.data('active');
           tables[key].data = data;
           renderTable(table, data, sub);
           this.empty().append(tables[key].table);
@@ -502,7 +503,17 @@ function renderTableFormat(table, data, sub) {
     headstr += '</th></tr></thead>';
   }
 
-  if (!data.options.page) data.options.page = 1;
+  if (!data.options.page) {
+    if (data.active) {
+      for (var r = 0; data.rows[r]; r++) {
+        if (data.rows[r][0] == data.active) {
+          data.options.page = r+1;
+          break;
+        }
+      }
+    }
+    if (!data.options.page) data.options.page = 1;
+  }
   var offset = data.options.page - 1;
 
   if (data.rows.length > 1) {

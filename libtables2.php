@@ -91,6 +91,8 @@ function lt_table($tag, $title, $query, $options = array()) {
   }
   else $divstr .= ' data-params="' . base64_encode(json_encode($params)) . '"';
 
+  if (!empty($block_options['active'])) $divstr .= ' data-active="' . $block_options['active'] . '"';
+
   print $divstr . '>Loading table ' . $title . "...</div>\n";
 }
 
