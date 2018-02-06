@@ -518,9 +518,9 @@ function renderTableFormat(table, data, sub) {
 
   if (data.rows.length > 1) {
     headstr += '<tr class="lt-limit"><th colspan="' + data.headers.length + '">';
-    headstr += '<a href="javascript:goPage(\'' + table.attr('id') + '\', \'prev\')">&lt;</a> ';
-    headstr += tr('Row') + ' ' + data.options.page + ' ' + tr('of') + ' ' + data.rows.length;
-    headstr += ' <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')">&gt;</a></th></tr>';
+    headstr += '<a href="javascript:goPage(\'' + table.attr('id') + '\', \'prev\')"><span class="lt-page-control">&lt;</span></a> ';
+    headstr += (data.options.pagename?data.options.pagename:tr('Row')) + ' ' + data.options.page + ' ' + tr('of') + ' ' + data.rows.length;
+    headstr += ' <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')"><span class="lt-page-control">&gt;</span></a></th></tr>';
   }
 
   var thead = $(headstr);
