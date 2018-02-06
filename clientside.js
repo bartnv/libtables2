@@ -756,6 +756,13 @@ function renderTableGrid(table, data, sub) {
 
   table.append(thead, tbody, tfoot);
   table.parent().data('crc', data.crc);
+
+  if (data.active) {
+    var row = tbody.find('tr[data-rowid="' + data.active + '"]');
+    row.addClass('lt-row-active');
+    setTimeout(function (row) { row.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' }); }, 100, row[0]);
+    setTimeout(function (row) { row.removeClass('lt-row-active'); }, 5000, row);
+  }
 }
 
 function renderInsert(data) {
