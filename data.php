@@ -65,7 +65,7 @@ function lt_col_allow_null($table, $column) {
   }
 }
 
-function lt_find_table($src) {
+function lt_find_table($src, $params) {
   global $lt_settings;
   global $tables;
 
@@ -168,18 +168,18 @@ switch ($mode) {
     if (empty($_GET['block'])) fatalerr('No blockname specified in mode getblock');
     if (!allowed_block($_GET['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     if (preg_match('/(\.\.|\\|\/)/', $_GET['block'])) fatalerr('Invalid blockname in mode getblock');
-    if (empty($_GET['params'])) lt_print_block($_GET['block']);
-    else {
+    if (!empty($_GET['params'])) {
       if (!($params = json_decode(base64_decode($_GET['params'])))) fatalerr('Invalid params in mode getblock');
       lt_print_block($_GET['block'], $params);
     }
+    else lt_print_block($_GET['block']);
   break;
   case 'gettable':
     if (empty($_GET['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_GET['src'])) fatalerr('Invalid src in mode gettable');
     if (!empty($_GET['params'])) $params = json_decode(base64_decode($_GET['params']));
     else $params = array();
 
-    $table = lt_find_table($_GET['src']);
+    $table = lt_find_table($_GET['src'], $params);
     if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     if (isset($table['options']['export']['nopreview']) && $table['options']['export']['nopreview']) {
       $data = lt_query($table['query'] . ' LIMIT 0', $params);
@@ -227,7 +227,7 @@ switch ($mode) {
     if (!empty($_GET['params'])) $params = json_decode(base64_decode($_GET['params']));
     else $params = array();
 
-    $table = lt_find_table($_GET['src']);
+    $table = lt_find_table($_GET['src'], $params);
     if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     $data = lt_query($table['query'], $params);
     if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
@@ -250,7 +250,7 @@ switch ($mode) {
     if (empty($_POST['params'])) fatalerr('Invalid params in mode select');
     $params = json_decode(base64_decode($_POST['params']));
 
-    $table = lt_find_table($_POST['src']);
+    $table = lt_find_table($_POST['src'], $params);
     if (empty($table['options']['selectany'])) fatalerr('No selectany option found for table ' . $_POST['src']);
     if (empty($table['options']['selectany']['linktable'])) fatalerr('No linktable found for table ' . $_POST['src']);
     if (empty($table['options']['selectany']['fields'][0])) fatalerr('No left field found for table ' . $_POST['src']);
@@ -291,7 +291,7 @@ switch ($mode) {
       $table['query'] = $_POST['sql'];
     }
     else {
-      $table = lt_find_table($_POST['src']);
+      $table = lt_find_table($_POST['src'], $params);
       if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
       if (empty($table['options']['edit'][$_POST['col']])) fatalerr('No edit option found for column ' . $_POST['col'] . ' in table ' . $_POST['src']);
       $edit = $table['options']['edit'][$_POST['col']];
@@ -621,18 +621,28 @@ switch ($mode) {
         list($ptable, $pcolumn) = explode('.', $pkey);
         list($ftable, $fcolumn) = explode('.', $fkey);
         if (!isset($tables[$ftable]['columns'])) fatalerr('Invalid sequence in insert keys option to block ' . $_POST['src']);
-        $tables[$ftable]['columns'][$fcolumn] = lt_run_insert($ptable, $tables[$ptable], $pcolumn);
+        $id = lt_run_insert($ptable, $tables[$ptable], $pcolumn);
+        $tables[$ftable]['columns'][$fcolumn] = $id;
         unset($tables[$ptable]['columns']);
       }
     }
     // Then run the rest of the inserts
     foreach ($tables as $name => $value) {
       if (!isset($tables[$name]['columns'])) continue;
-      lt_run_insert($name, $tables[$name]);
+      $id = lt_run_insert($name, $tables[$name], 'id');
       unset($tables[$name]['columns']); // May not be necessary
     }
 
     $dbh->query('COMMIT'); // Any errors will exit through fatalerr() and thus cause an implicit rollback
+
+    if (!empty($tableinfo['options']['insert']['next'])) {
+      $data = [];
+      ob_start();
+      lt_print_block($tableinfo['options']['insert']['next'], [ $id ]);
+      $data['replace'] = ob_get_clean();
+      print json_encode($data);
+      break;
+    }
 
     $data = lt_query($tableinfo['query'], $params);
     if (isset($data['error'])) fatalerr('Query for table ' . $tableinfo['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);

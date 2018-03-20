@@ -37,10 +37,6 @@ function lt_table($tag, $title, $query, $options = array()) {
     print "<p>Table in block $basename has an invalid title specified (is not a string)</p>";
     return;
   }
-  if (empty($query)) {
-    print "<p>No query specified for table $tag in block $basename</p>";
-    return;
-  }
 
   if (!empty($block_options['params'])) $params = $block_options['params'];
   elseif (!empty($options['params'])) {
@@ -63,20 +59,22 @@ function lt_table($tag, $title, $query, $options = array()) {
   $divstr = ' <div id="' . $tag . '" class="' . $divclasses . '" data-source="' . $basename . ':' . $tag . '"';
 
   if (!empty($options['embed'])) {
-    $data = lt_query($query, $params);
-    if (isset($data['error'])) {
-      print '<p>Query for table ' . $table['title'] . ' in block ' . $basename . ' returned error: ' . $data['error'] . '</p>';
-      return;
-    }
-    $data['options'] = $options;
-    if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows']));
-    elseif ($lt_settings['checksum'] == 'psql') {
-      $data['crc'] = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM ($query) AS q)");
-      if (strpos($data['crc'], 'Error:') === 0) {
-        print '<p>Checksum query for table ' . $table['title'] . ' in block ' . $basename . ' returned error: ' . substr($data['crc'], 6);
+    if (!empty($query)) {
+      $data = lt_query($query, $params);
+      if (isset($data['error'])) {
+        print '<p>Query for table ' . $table['title'] . ' in block ' . $basename . ' returned error: ' . $data['error'] . '</p>';
         return;
       }
+      if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows']));
+      elseif ($lt_settings['checksum'] == 'psql') {
+        $data['crc'] = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM ($query) AS q)");
+        if (strpos($data['crc'], 'Error:') === 0) {
+          print '<p>Checksum query for table ' . $table['title'] . ' in block ' . $basename . ' returned error: ' . substr($data['crc'], 6);
+          return;
+        }
+      }
     }
+    $data['options'] = $options;
     $data['title'] = $title;
     $data['block'] = $basename;
     $data['tag'] = $tag;

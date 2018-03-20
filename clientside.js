@@ -421,11 +421,27 @@ function renderTable(table, data, sub) {
   var start = Date.now();
   if (data.options.display && (data.options.display == 'list')) renderTableList(table, data, sub);
   else if (data.options.display && (data.options.display == 'select')) renderTableSelect(table, data, sub);
+  else if (data.options.display && (data.options.display == 'vertical')) renderTableVertical(table, data, sub);
   else if (data.options.format) renderTableFormat(table, data, sub);
   else if (data.options.renderfunction) window[data.options.renderfunction](table, data);
   else renderTableGrid(table, data, sub);
-  console.log('Load timings for ' + (sub?'sub':'') + 'table ' + data.tag + ': sql ' + data.querytime +
+  console.log('Load timings for ' + (sub?'sub':'') + 'table ' + data.tag + ': sql ' + (data.querytime?data.querytime:'n/a') +
               ' download ' + (data.downloadtime?data.downloadtime:'n/a') + ' render ' + (Date.now()-start) + ' ms');
+}
+
+function renderTableVertical(table, data) {
+  table.addClass('lt-insert');
+  for (id in data.options.insert) {
+    if (!$.isNumeric(id)) continue;
+    var input = renderField(data.options.insert[id], data, id);
+    if (data.options.insert[id].name !== undefined) var name = data.options.insert[id].name;
+    else var name = input.attr('name').split('.')[1];
+    var label = '<label for="' + input.attr('name') + '">' + name + '</label>';
+    var row = $('<tr><td class="lt-form-label">' + label + '</td><td class="lt-form-input"></td></tr>');
+    row.find('.lt-form-input').append(input);
+    table.append(row);
+  }
+  table.append('<tr><td colspan="2"><input type="button" class="lt-insert-button" value="' + tr('Insert') + '" onclick="doInsert(this)"></td></tr>');
 }
 
 function renderTableSelect(table, data, sub) {
@@ -790,9 +806,10 @@ function renderInsert(data) {
   }
   rows.push(row);
 
-  row = $('<tr class="lt-row"/>');
+  row = $('<tr class="lt-row lt-insert"/>');
   if (data.options.selectany) row.append('<td/>');
   for (var c = 1; ; c++) {
+    var insert = null;
     if (!fields[c]) {
       if (c >= data.headers.length-1) break;
       else {
@@ -803,67 +820,68 @@ function renderInsert(data) {
     var cell = $('<td/>');
     var classes = [ 'lt-cell' ];
     if (data.options.class && data.options.class[c]) classes.push(data.options.class[c]);
-    if (typeof(fields[c]) == 'string') var input = $('<input type="text" class="lt-insert-input" name="' + fields[c] + '">');
-    else if (Object.keys(fields[c]).length == 1) var input = $('<input type="text" class="lt-insert-input" name="' + fields[c][0] + '">');
-    else if (fields[c].type == 'multiline') {
-      var input = $('<textarea class="lt_insert" class="lt-insert-input" name="' + fields[c].target + '" oninput="$(this).textareaAutoSize();"/>');
-    }
-    else if (fields[c].type == 'checkbox') var input = $('<input type="checkbox" class="lt-insert-input" name="' + fields[c].target + '">');
-    else if (fields[c].type == 'date') var input = $('<input type="date" class="lt-insert-input" name="' + fields[c].target + '" value="' + new Date().toISOString().slice(0, 10) + '">');
-    else if (fields[c].type == 'password') var input = $('<input type="password" class="lt-insert-input" name="' + fields[c].target + '">');
-    else if (fields[c].type == 'email') var input = $('<input type="email" class="lt-insert-input" name="' + fields[c].target + '">');
-    else if (fields[c].type == 'color') var input = $('<input type="text" class="lt-insert-input lt-color-cell" name="' + fields[c].target + '" onfocus="showColPick(this)">');
-    else if (fields[c].target && !fields[c].query) var input = $('<input type="text" class="lt-insert-input" name="' + fields[c].target + '">');
-    else {
-      if (fields[c].target) var input = $('<select class="lt-insert-input" name="' + fields[c].target + '"/>');
-      else var input = $('<select class="lt-insert-input" name="' + fields[c][0] + '"/>');
-      if (fields[c].defaultid) input.defaultid = fields[c].defaultid;
-      if (fields[c].insert || fields[c][2]) {
-        if (fields[c].insert) var setting = fields[c].insert;
-        else var setting = fields[c][2];
-        if (setting.type == '2-step') var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="addOption(this, ' + c + ');">');
-        else {
-          if (setting.target) var target = setting.target;
-          else var target = setting[1];
-          var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="switchToText(this, \'' + target + '\');">');
-        }
-      }
-      loadOptions(input, data, c);
-    }
-    if ((typeof fields[c] == 'object') && fields[c].required) {
-      input.addClass('lt-input-required');
-      input.on('input', fields[c].required, function(evt) {
-        if (evt.data === true) {
-          var input = $(this);
-          if ((input.val() === '') || (input.val() === null)) input.addClass('lt-input-error');
-          else input.removeClass('lt-input-error');
-        }
-        else if (evt.data.regex) {
-          var input = $(this);
-          if (input.val().search(new RegExp(evt.data.regex)) >= 0) {
-            input.removeClass('lt-input-error');
-            input.attr('title', '');
-          }
-          else {
-            input.addClass('lt-input-error');
-            if (evt.data.message) input.attr('title', evt.data.message);
-          }
-        }
-      });
-    }
-    if (fields[c].placeholder) input.attr('placeholder', fields[c].placeholder);
     cell.addClass(classes.join(' '));
-    cell.append(input);
-    if (insert) {
-      cell.append(insert);
-      insert = null;
-    }
+    cell.append(renderField(fields[c], data, c));
+    if (insert) cell.append(insert);
     row.append(cell);
   }
   row.append('<td class="lt-cell" colspan="' + colspan + '"><input type="button" class="lt-insert-button" value="' + (fields.submit?fields.submit:tr('Insert')) + '" onclick="doInsert(this)"></td>');
   row.find('INPUT[type=text],SELECT').on('keyup', function(e) { if (e.keyCode == 13) $(this).parent().parent().find('.lt-insert-button').click(); });
   rows.push(row);
   return rows;
+}
+
+function renderField(field, data, c) {
+  if (typeof(field) == 'string') var input = $('<input type="text" class="lt-insert-input" name="' + field + '">');
+  else if (Object.keys(field).length == 1) var input = $('<input type="text" class="lt-insert-input" name="' + field[0] + '">');
+  else if (field.type == 'multiline') {
+    var input = $('<textarea class="lt_insert" class="lt-insert-input" name="' + field.target + '" oninput="$(this).textareaAutoSize();"/>');
+  }
+  else if (field.type == 'checkbox') var input = $('<input type="checkbox" class="lt-insert-input" name="' + field.target + '">');
+  else if (field.type == 'date') var input = $('<input type="date" class="lt-insert-input" name="' + field.target + '" value="' + new Date().toISOString().slice(0, 10) + '">');
+  else if (field.type == 'password') var input = $('<input type="password" class="lt-insert-input" name="' + field.target + '">');
+  else if (field.type == 'email') var input = $('<input type="email" class="lt-insert-input" name="' + field.target + '">');
+  else if (field.type == 'color') var input = $('<input type="text" class="lt-insert-input lt-color-cell" name="' + field.target + '" onfocus="showColPick(this)">');
+  else if (field.target && !field.query) var input = $('<input type="text" class="lt-insert-input" name="' + field.target + '">');
+  else {
+    if (field.target) var input = $('<select class="lt-insert-input" name="' + field.target + '"/>');
+    else var input = $('<select class="lt-insert-input" name="' + field[0] + '"/>');
+    if (field.defaultid) input.defaultid = field.defaultid;
+    if (field.insert || field[2]) {
+      if (field.insert) var setting = field.insert;
+      else var setting = field[2];
+      if (setting.type == '2-step') var insert = $('<input type="button" class="lt-add-option" value="➕" onclick="addOption(this, ' + c + ');">');
+      else {
+        if (setting.target) var target = setting.target;
+        else var target = setting[1];
+        insert = $('<input type="button" class="lt-add-option" value="➕" onclick="switchToText(this, \'' + target + '\');">');
+      }
+    }
+    loadOptions(input, data, c);
+  }
+  if ((typeof field == 'object') && field.required) {
+    input.addClass('lt-input-required');
+    input.on('input', field.required, function(evt) {
+      if (evt.data === true) {
+        var input = $(this);
+        if ((input.val() === '') || (input.val() === null)) input.addClass('lt-input-error');
+        else input.removeClass('lt-input-error');
+      }
+      else if (evt.data.regex) {
+        var input = $(this);
+        if (input.val().search(new RegExp(evt.data.regex)) >= 0) {
+          input.removeClass('lt-input-error');
+          input.attr('title', '');
+        }
+        else {
+          input.addClass('lt-input-error');
+          if (evt.data.message) input.attr('title', evt.data.message);
+        }
+      }
+    });
+  }
+  if (field.placeholder) input.attr('placeholder', field.placeholder);
+  return input;
 }
 
 function showColPick(el) {
@@ -1572,7 +1590,7 @@ function checkEdit(cell, edit, oldvalue) {
 
 function doInsert(el) {
   el = $(el);
-  row = el.parent().parent();
+  row = el.closest('.lt-insert');
   var error = false;
   postdata = row.find('input,select,textarea').not(el).map(function() {
     input = $(this);
@@ -1588,7 +1606,7 @@ function doInsert(el) {
     return;
   }
   table = tables[row.closest('table').attr('id')].data;
-  if (table.options.insert.hidden) {
+  if (table.options.insert && table.options.insert.hidden) {
     if (typeof(table.options.insert.hidden[0]) == 'object') { // Multiple hidden fields (array of arrays)
       for (i = 0; table.options.insert.hidden[i]; i++) processHiddenInsert(table.options.insert.hidden[i], row.closest('.lt-div').data('params'));
     }
@@ -1603,11 +1621,16 @@ function doInsert(el) {
     data: 'mode=insertrow&src=' + table.block + ':' + table.tag + '&' + postdata,
     success: function(data) {
       if (data.error) userError(data.error);
+      else if (data.replace) {
+        var parent = this.closest('.lt-div').parent();
+        parent.empty().html(data.replace);
+        loadOrRefreshCollection(parent.find('.lt-div'));
+      }
       else {
         var table = this.closest('table');
         var tabledata = tables[table.attr('id')].data;
 
-        if (tabledata.options.insert.noclear !== true) {
+        if (!tabledata.options.insert || (tabledata.options.insert.noclear !== true)) {
           this.find('input,select,textarea').each(function() {
             var el = $(this);
             if (el.prop('type') == 'button');
@@ -1619,24 +1642,26 @@ function doInsert(el) {
           });
         }
 
-        var tbody = table.find('tbody');
-        if (!tbody.length) {
-          tbody = $('<tbody/>');
-          table.prepend(tbody);
-        }
-        var thead = table.find('thead');
-        if (!thead.length) {
-          thead = $('<thead/>');
-          if (table.closest('.lt-div').data('sub') != 'true') thead.append(renderTitle(tabledata));
-          thead.append(renderHeaders(tabledata, table.attr('id')));
-          table.prepend(thead);
-        }
+        if (data.rows && data.rows.length) {
+          var tbody = table.find('tbody');
+          if (!tbody.length) {
+            tbody = $('<tbody/>');
+            table.prepend(tbody);
+          }
+          var thead = table.find('thead');
+          if (!thead.length) {
+            thead = $('<thead/>');
+            if (table.closest('.lt-div').data('sub') != 'true') thead.append(renderTitle(tabledata));
+            thead.append(renderHeaders(tabledata, table.attr('id')));
+            table.prepend(thead);
+          }
 
-        updateTable(tbody, tabledata, data.rows);
-        tabledata.rows = data.rows;
-        tabledata.crc = data.crc;
-        if (tabledata.options.sum) updateSums(table.find('tfoot'), tabledata);
-        if (tabledata.options.edit.trigger) loadOrRefreshCollection($('#' + tabledata.options.edit.trigger));
+          updateTable(tbody, tabledata, data.rows);
+          tabledata.rows = data.rows;
+          tabledata.crc = data.crc;
+          if (tabledata.options.sum) updateSums(table.find('tfoot'), tabledata);
+          if (tabledata.options.edit.trigger) loadOrRefreshCollection($('#' + tabledata.options.edit.trigger));
+        }
 
         this.find('input,select,textarea').first().focus();
       }
