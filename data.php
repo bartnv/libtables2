@@ -212,7 +212,7 @@ switch ($mode) {
     $data = lt_query($_POST['sql']);
     $data['title'] = 'sqlrun';
     $data['tag'] = 'sqlrun';
-    $data['options'] = array('sql' => $_POST['sql'], 'displayid' => true, 'edit' => lt_edit_from_query($_POST['sql']));
+    $data['options'] = [ 'sql' => $_POST['sql'], 'showid' => true, 'edit' => lt_edit_from_query($_POST['sql']) ];
     if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows']));
     elseif ($lt_settings['checksum'] == 'psql') {
       $data['crc'] = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM (" . $_POST['sql'] . ") AS q)");

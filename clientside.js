@@ -343,10 +343,11 @@ function sortOnColumn(a, b, index) {
 }
 
 function colVisualToReal(data, idx) {
-  if (!data.options.mouseover && !data.options.hidecolumn && !data.options.selectone && !data.options.selectany) return idx;
+  if (!data.options.mouseover && !data.options.hidecolumn && !data.options.selectone && !data.options.selectany && !data.options.showid) return idx;
+  if (data.options.showid) idx--;
   if (data.options.selectone) idx--;
   if (data.options.selectany) idx--;
-  for (c = 1; c <= data.headers.length; c++) {
+  for (c = 0; c <= data.headers.length; c++) {
     if (data.options.mouseover && data.options.mouseover[c]) idx++;
     else if (data.options.hidecolumn && data.options.hidecolumn[c]) idx++;
     if (c == idx) return c;
@@ -660,23 +661,22 @@ function renderHeaders(data, id) {
         else data.rows.sort(function(a, b) { return sortOnColumn(b, a, c); });
       }
     }
-    if (c) {
-      if (data.options.mouseover && data.options.mouseover[c]) continue;
-      if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
-      var onclick = "";
-      var classes = [ "lt-head" ];
-      if (data.options.sortable) {
-        if (typeof(data.options.sortable) == 'boolean') {
-          onclick = "sortBy('" + id + "', this);";
-          if (data.options.sortby == data.headers[c]) {
-            if (data.options.sortdir == 'ascending') classes.push('lt-sorted-asc');
-            else classes.push('lt-sorted-desc');
-          }
-          else classes.push('lt-sort');
+    if (!c && !data.options.showid) continue;
+    if (data.options.mouseover && data.options.mouseover[c]) continue;
+    if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
+    var onclick = "";
+    var classes = [ "lt-head" ];
+    if (data.options.sortable) {
+      if (typeof(data.options.sortable) == 'boolean') {
+        onclick = "sortBy('" + id + "', this);";
+        if (data.options.sortby == data.headers[c]) {
+          if (data.options.sortdir == 'ascending') classes.push('lt-sorted-asc');
+          else classes.push('lt-sorted-desc');
         }
+        else classes.push('lt-sort');
       }
-      str += '<td class="' + classes.join(' ') + '" onclick="' + onclick + '">' + data.headers[c] + '</td>';
     }
+    str += '<td class="' + classes.join(' ') + '" onclick="' + onclick + '">' + data.headers[c] + '</td>';
   }
   str += '</tr>';
 
@@ -684,7 +684,7 @@ function renderHeaders(data, id) {
     var row = $('<tr class="lt-row"/>');
     if (data.options.selectone) row.append('<td/>');
     if (data.options.selectany) row.append('<td/>');
-    for (var c = 1; c < data.headers.length; c++) {
+    for (var c = data.options.showid?0:1; c < data.headers.length; c++) {
       if (data.options.mouseover && data.options.mouseover[c]) continue;
       if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
       if ((data.options.filter === true) || data.options.filter[c]) {
@@ -1042,7 +1042,7 @@ function renderRow(options, row) {
     else var checked = '';
     html.push('<td class="lt-cell"><input type="checkbox" onchange="doSelect(this)"' + checked + '></td>');
   }
-  for (var c = 1; c < row.length; c++) { // Loop over each column
+  for (var c = options.showid?0:1; c < row.length; c++) { // Loop over each column
     if (options.mouseover && options.mouseover[c]) continue;
     if (options.hidecolumn && options.hidecolumn[c]) continue;
     html.push(renderCell(options, row, c));
