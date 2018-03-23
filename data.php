@@ -411,13 +411,16 @@ switch ($mode) {
       $edit = $table['options']['edit'];
     }
 
-    if (empty($edit[$_GET['col']])) fatalerr('No edit option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
-    if (!is_array($edit[$_GET['col']])) fatalerr('No editselect option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
-    if (count($edit[$_GET['col']]) < 2) fatalerr('No valid editselect option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
-    if (!empty($edit[$_GET['col']]['target'])) $target = $edit[$_GET['col']]['target'];
-    else $target = $edit[$_GET['col']][0];
-    if (!empty($edit[$_GET['col']]['query'])) $query = $edit[$_GET['col']]['query'];
-    else $query = $edit[$_GET['col']][1];
+    if (!empty($edit[$_GET['col']])) $edit = $edit[$_GET['col']];
+    elseif (!empty($table['options']['insert']) && !empty($table['options']['insert'][$_GET['col']])) $edit = $table['options']['insert'][$_GET['col']];
+    else fatalerr('No edit option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
+
+    if (!is_array($edit)) fatalerr('No editselect option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
+    if (count($edit) < 2) fatalerr('No valid editselect option found for column ' . $_GET['col'] . ' in table ' . $_GET['src']);
+    if (!empty($edit['target'])) $target = $edit['target'];
+    else $target = $edit[0];
+    if (!empty($edit['query'])) $query = $edit['query'];
+    else $query = $edit[1];
     if (!preg_match('/^[a-z0-9_-]+\.[a-z0-9_-]+$/', $target)) fatalerr('Invalid target specified for column ' . $_GET['col'] . ' in table ' . $_GET['src'] . ' (' . $target . ')');
     $target = explode('.', $target);
 
@@ -428,7 +431,7 @@ switch ($mode) {
     $data = array();
     $data['items'] = $res->fetchAll(PDO::FETCH_NUM);
     $data['null'] = lt_col_allow_null($target[0], $target[1]);
-    if (!empty($edit[$_GET['col']]['insert']) || !empty($edit[$_GET['col']][2])) $data['insert'] = true;
+    if (!empty($edit['insert']) || !empty($edit[2])) $data['insert'] = true;
     header('Content-type: application/json; charset=utf-8');
     print json_encode($data);
     break;
