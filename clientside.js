@@ -729,7 +729,7 @@ function renderTableGrid(table, data, sub) {
   else if (data.options.insert && (typeof(data.options.insert) == 'object')) {
     var tfoot = $('<tfoot/>');
     tfoot.append(renderInsert(data));
-    table.append(tfoot);
+    table.append(thead, tfoot);
     table.parent().data('crc', data.crc);
     return;
   }
@@ -846,6 +846,7 @@ function renderField(field, data, c) {
   else {
     if (field.target) var input = $('<select class="lt-insert-input" name="' + field.target + '"/>');
     else var input = $('<select class="lt-insert-input" name="' + field[0] + '"/>');
+    if (field.default) input.default = field.default;
     if (field.defaultid) input.defaultid = field.defaultid;
     if (field.insert || field[2]) {
       if (field.insert) var setting = field.insert;
@@ -880,6 +881,7 @@ function renderField(field, data, c) {
       }
     });
   }
+  if (field.default) input.val(field.default);
   if (field.placeholder) input.attr('placeholder', field.placeholder);
   return input;
 }
@@ -912,11 +914,12 @@ function loadOptions(input, data, c) {
         var items = data.items;
         if (data.null) this.append('<option value=""></option>');
         for (var i = 0; items[i]; i++) {
-          if (this.defaultid && (this.defaultid == items[i][0])) var selected = ' selected';
+          if (this.default && (this.default == items[i][1])) var selected = ' selected';
+          else if (this.defaultid && (this.defaultid == items[i][0])) var selected = ' selected';
           else var selected = '';
           this.append('<option value="' + items[i][0] + '"' + selected + '>' + items[i][1] + '</option>');
         }
-        if (!this.defaultid) this.prop('selectedIndex', -1); // This selects nothing, rather than the first option
+        if (!this.default && !this.defaultid) this.prop('selectedIndex', -1); // This selects nothing, rather than the first option
       }
     }
   });
