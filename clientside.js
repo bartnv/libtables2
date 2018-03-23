@@ -533,7 +533,7 @@ function renderTableFormat(table, data, sub) {
   }
   var offset = data.options.page - 1;
 
-  if (data.rows.length > 1) {
+  if (data.rows && data.rows.length > 1) {
     headstr += '<tr class="lt-limit"><th colspan="' + data.headers.length + '">';
     headstr += '<a href="javascript:goPage(\'' + table.attr('id') + '\', \'prev\')"><span class="lt-page-control">&lt;</span></a> ';
     headstr += (data.options.pagename?data.options.pagename:tr('Row')) + ' ' + data.options.page + ' ' + tr('of') + ' ' + data.rows.length;
@@ -544,54 +544,83 @@ function renderTableFormat(table, data, sub) {
 
   if (data.options.pagetitle) document.title = replaceHashes(data.options.pagetitle, data.rows[offset]);
 
-  var tbody = $('<tbody/>');
+  if (data.options.format.indexOf('I') < 0) var tbody = $('<tbody/>');
+  else var tbody = $('<tbody class="lt-insert"/>');
   if (typeof(data.options.format) == 'string') var fmt = data.options.format.split('\n');
   else var fmt = data.options.format;
   var headcount = 0;
   var colcount = 0;
+  var inscount = 0;
   var colspan;
   var rowspan = 0;
 
-  if (data.rows[offset]) {
-    for (var r = 0; fmt[r]; r++) {
-      var row = $('<tr class="lt-row" data-rowid="' + data.rows[offset][0] + '"/>');
-      for (var c = 0; fmt[r][c]; c++) {
-        if (fmt[r][c] == 'H') {
-          if (headcount++ >= data.headers.length) {
-            appError('Too many headers specified in format string for ' + data.block + ':' + data.tag, data.options.format);
-            break;
-          }
-          while (data.options.mouseover && data.options.mouseover[headcount]) headcount++;
-          for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
-          for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
-          var tdstr = '<td class="lt-head"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
-          tdstr += data.headers[headcount] + '</td>';
-          row.append(tdstr);
+  for (var r = 0; fmt[r]; r++) {
+    var row = $('<tr class="lt-row" data-rowid="' + (data.rows && data.rows[offset]?data.rows[offset][0]:0) + '"/>');
+    for (var c = 0; fmt[r][c]; c++) {
+      if (fmt[r][c] == 'H') {
+        if (headcount++ >= data.headers.length) {
+          appError('Too many headers specified in format string for ' + data.block + ':' + data.tag, data.options.format);
+          break;
         }
-        else if (fmt[r][c] == 'C') {
-          if (colcount++ >= data.rows[offset].length) {
-            appError('Too many columns specified in format string for ' + data.block + ':' + data.tag, data.options.format);
-            break;
-          }
-          while (data.options.mouseover && data.options.mouseover[colcount]) colcount++;
-          for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
-          for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
-          var cell = $(renderCell(data.options, data.rows[offset], colcount));
-          if (colspan > 1) cell.attr('colspan', colspan);
-          if (rowspan > 1) cell.attr('rowspan', rowspan);
-          row.append(cell);
-        }
-        else if ((fmt[r][c] == 'A') && data.options.appendcell) {
-          for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
-          for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
-          var tdstr = '<td class="lt-cell lt-append"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
-          tdstr += replaceHashes(data.options.appendcell, data.rows[offset]) + '</td>';
-          row.append(tdstr);
-        }
-        else if (fmt[r][c] == 'x') row.append('<td class="lt-unused"/>');
+        while (data.options.mouseover && data.options.mouseover[headcount]) headcount++;
+        for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
+        for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
+        var tdstr = '<td class="lt-head"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
+        tdstr += data.headers[headcount] + '</td>';
+        row.append(tdstr);
       }
-      tbody.append(row);
+      else if (fmt[r][c] == 'C') {
+        if (colcount++ >= data.rows[offset].length) {
+          appError('Too many columns specified in format string for ' + data.block + ':' + data.tag, data.options.format);
+          break;
+        }
+        while (data.options.mouseover && data.options.mouseover[colcount]) colcount++;
+        for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
+        for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
+        var cell = $(renderCell(data.options, data.rows[offset], colcount));
+        if (colspan > 1) cell.attr('colspan', colspan);
+        if (rowspan > 1) cell.attr('rowspan', rowspan);
+        row.append(cell);
+      }
+      else if (fmt[r][c] == 'I') {
+        var insert;
+        inscount++;
+        var count = 0;
+        for (i in data.options.insert) {
+          if (!$.isNumeric(i)) continue;
+          if (++count === inscount) {
+            insert = data.options.insert[i];
+            break;
+          }
+        }
+        if (!insert) {
+          appError('Too many insert cells specified in format string for ' + data.block + ':' + data.tag, data.options.format);
+          break;
+        }
+        for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
+        for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
+        var td = $('<td class="lt-cell"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '/>');
+        td.append(renderField(insert, data, count));
+        row.append(td);
+      }
+      else if (fmt[r][c] == 'S') {
+        for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
+        for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
+        var td = $('<td class="lt-cell"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '/>');
+        td.append('<input type="button" class="lt-insert-button" value="' + (data.options.insert.submit?data.options.insert.submit:tr('Insert')) + '" onclick="doInsert(this)">');
+        row.append(td);
+        row.parent().find('INPUT[type=text],SELECT').on('keyup', function(e) { if (e.keyCode == 13) $(this).closest('tbody').find('.lt-insert-button').click(); });
+      }
+      else if ((fmt[r][c] == 'A') && data.options.appendcell) {
+        for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
+        for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
+        var tdstr = '<td class="lt-cell lt-append"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
+        tdstr += replaceHashes(data.options.appendcell, data.rows[offset]) + '</td>';
+        row.append(tdstr);
+      }
+      else if (fmt[r][c] == 'x') row.append('<td class="lt-unused"/>');
     }
+    tbody.append(row);
   }
 
   table.append(thead, tbody);
@@ -718,7 +747,7 @@ function renderTableGrid(table, data, sub) {
   var thead = $('<thead/>');
   if (!sub) thead.append(renderTitle(data));
 
-  if (data.rows.length || data.rowcount || data.options.textifempty) { // rowcount is set for exports with nopreview=true
+  if ((data.rows && data.rows.length) || (data.rowcount >= 0) || data.options.textifempty) { // rowcount is set for exports with nopreview=true
     thead.append(renderHeaders(data, table.attr('id')));
   }
   else if (data.options.hideifempty) {
@@ -734,7 +763,7 @@ function renderTableGrid(table, data, sub) {
     return;
   }
 
-  if (data.rowcount) { // rowcount is set for exports with nopreview=true
+  if (data.rowcount >= 0) { // rowcount is set for exports with nopreview=true
     var tbody = $('<td colspan="' + data.headers.length + '" class="lt-cell"> ... ' + data.rowcount + ' ' + tr('rows for export') + ' ... </td>');
   }
   else {
@@ -1599,6 +1628,7 @@ function doInsert(el) {
   el = $(el);
   row = el.closest('.lt-insert');
   var error = false;
+  console.log(row.find('input,select,textarea'));
   postdata = row.find('input,select,textarea').not(el).map(function() {
     input = $(this);
     if (input.prop('type') == 'checkbox') value = input.prop('checked');
@@ -1671,8 +1701,10 @@ function doInsert(el) {
           tabledata.rows = data.rows;
           tabledata.crc = data.crc;
           if (tabledata.options.sum) updateSums(table.find('tfoot'), tabledata);
-          if (tabledata.options.edit.trigger) loadOrRefreshCollection($('#' + tabledata.options.edit.trigger));
         }
+        if (tabledata.options.trigger) loadOrRefreshCollection($('#' + tabledata.options.trigger));
+        else if (tabledata.options.insert.trigger) loadOrRefreshCollection($('#' + tabledata.options.insert.trigger));
+        else if ((tabledata.options.insert.include == 'edit') && tabledata.options.edit.trigger) loadOrRefreshCollection($('#' + tabledata.options.edit.trigger));
 
         this.find('input,select,textarea').first().focus();
       }
