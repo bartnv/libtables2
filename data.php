@@ -181,7 +181,11 @@ switch ($mode) {
 
     $table = lt_find_table($_GET['src'], $params);
     if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
-    if (isset($table['options']['export']['nopreview']) && $table['options']['export']['nopreview']) {
+    if (is_array($table['query'])) {
+      $data['headers'] = $table['query'];
+      $data['rowcount'] = -1;
+    }
+    elseif (isset($table['options']['export']['nopreview']) && $table['options']['export']['nopreview']) {
       $data = lt_query($table['query'] . ' LIMIT 0', $params);
       $data['rowcount'] = lt_query_single('SELECT COUNT(*) FROM (' . $table['query'] . ') AS tmp', $params);
     }
@@ -647,14 +651,17 @@ switch ($mode) {
       break;
     }
 
-    $data = lt_query($tableinfo['query'], $params);
-    if (isset($data['error'])) fatalerr('Query for table ' . $tableinfo['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
     header('Content-type: application/json; charset=utf-8');
-    if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows']));
-    elseif ($lt_settings['checksum'] == 'psql') {
-      $data['crc'] = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM (" . $tableinfo['query'] . ") AS q)");
-      if (strpos($data['crc'], 'Error:') === 0) fatalerr('<p>Checksum query for table ' . $tableinfo['title'] . ' returned error: ' . substr($data['crc'], 6));
+    if (is_string($tableinfo['query'])) {
+      $data = lt_query($tableinfo['query'], $params);
+      if (isset($data['error'])) fatalerr('Query for table ' . $tableinfo['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
+      if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows']));
+      elseif ($lt_settings['checksum'] == 'psql') {
+        $data['crc'] = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM (" . $tableinfo['query'] . ") AS q)");
+        if (strpos($data['crc'], 'Error:') === 0) fatalerr('<p>Checksum query for table ' . $tableinfo['title'] . ' returned error: ' . substr($data['crc'], 6));
+      }
     }
+    else $data = [ 'status' => 'ok' ];
     print json_encode($data);
     break;
   case 'deleterow':
