@@ -881,7 +881,10 @@ function renderField(field, data, c) {
       }
     });
   }
-  if (field.default) input.val(field.default);
+  if (field.default) {
+    input.val(field.default);
+    input.data('default', field.default);
+  }
   if (field.placeholder) input.attr('placeholder', field.placeholder);
   return input;
 }
@@ -1637,9 +1640,13 @@ function doInsert(el) {
           this.find('input,select,textarea').each(function() {
             var el = $(this);
             if (el.prop('type') == 'button');
+            else if (el.data('default')) {
+              if (el.prop('nodeName') == 'SELECT') el.find('option').contents().filter(function() { return this.nodeValue == el.data('default'); }).parent().prop('selected', true);
+              else el.val(el.data('default'));
+            }
+            else if (el.prop('nodeName') == 'SELECT') el.prop('selectedIndex', -1);
             else if (el.prop('type') == 'date') el.val(new Date().toISOString().slice(0, 10));
             else if (el.prop('type') == 'checkbox') el.prop('checked', false);
-            else if (el.prop('nodeName') == 'select') el.prop('selectedIndex', -1);
             else if (el.hasClass('lt-addoption')) switchToSelect(el);
             else el.val('');
           });
