@@ -1577,6 +1577,7 @@ function checkEdit(cell, edit, oldvalue) {
             rows[r] = data.rows[0];
             if (options.callbacks && options.callbacks.change) window.setTimeout(options.callbacks.change, 0);
             if (options.edit.trigger) loadOrRefreshCollection($('#' + options.edit.trigger));
+            if (options.sum) updateSums(this.closest('table').find('tfoot'), tables[key].data);
           }
         }
       }
