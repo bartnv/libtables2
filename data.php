@@ -65,7 +65,7 @@ function lt_col_allow_null($table, $column) {
   }
 }
 
-function lt_find_table($src, $params) {
+function lt_find_table($src, $params = []) {
   global $lt_settings;
   global $tables;
 
@@ -613,7 +613,7 @@ switch ($mode) {
       }
     }
 
-    $dbh->query('BEGIN'); // Start a transaction so we can't have partial inserts with multiple tables
+    if (empty($fields['onconflict'])) $dbh->query('BEGIN'); // Start a transaction so we can't have partial inserts with multiple tables
 
     // First insert the values that have explicit ordering requirements in the `keys` option
     if (!empty($keys)) {
@@ -633,7 +633,7 @@ switch ($mode) {
       unset($tables[$name]['columns']); // May not be necessary
     }
 
-    $dbh->query('COMMIT'); // Any errors will exit through fatalerr() and thus cause an implicit rollback
+    if (empty($fields['onconflict'])) $dbh->query('COMMIT'); // Any errors will exit through fatalerr() and thus cause an implicit rollback
 
     if (!empty($tableinfo['options']['insert']['next'])) {
       $data = [];
