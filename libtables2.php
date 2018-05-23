@@ -5,6 +5,23 @@ require('config.php');
 
 $tables = array();
 
+function lt_control($tag, $options) {
+  global $tables;
+  global $basename;
+
+  if (!$basename) { // run from data.php
+    $table = [];
+    $table['tag'] = $tag;
+    $table['options'] = $options;
+    $tables[] = $table;
+    return;
+  }
+
+  $divstr = ' <div id="' . $tag . '" class="lt-control" data-source="' . $basename . ':' . $tag . '"';
+  $divstr .= ' data-options="' . base64_encode(json_encode($options)) . '"></div>';
+  print $divstr;
+}
+
 function lt_table($tag, $title, $query, $options = array()) {
   global $lt_settings;
   global $tables;
@@ -126,6 +143,15 @@ function lt_print_block($block, $params = array(), $options = array()) {
   global $basename;
   global $block_options;
   global $block_params;
+
+  if (!is_array($params)) {
+    print "Second parameter to lt_print_block('$block', ...) is not an array";
+    return;
+  }
+  if (!is_array($options)) {
+    print "Third parameter to lt_print_block('$block', ...) is not an array";
+    return;
+  }
 
   $basename = $block;
   $block_options = $options;

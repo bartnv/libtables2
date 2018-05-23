@@ -699,6 +699,43 @@ switch ($mode) {
     }
     print '{ "status": "ok" }';
     break;
+  case 'donext':
+    if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode donext');
+    if (empty($_POST['prev'])) fatalerr('Invalid data in mode donext');
+    $table = lt_find_table($_POST['src']);
+    if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
+    $data = [];
+
+    if (($_POST['prev'] === 'true') && !empty($table['options']['prev'])) {
+      ob_start();
+      if (is_array($table['options']['prev'])) $res = lt_print_block($table['options']['prev'][0]);
+      else $res = lt_print_block($table['options']['prev']);
+      if (!empty($res['location'])) $data['location'] = $res['location'];
+      else $data['replace'] = ob_get_clean();
+    }
+    else {
+      if (!empty($table['options']['verify'])) {
+        if (!lt_query_check($table['options']['verify'])) {
+          if (!empty($table['options']['error'])) $data['error'] = $table['options']['error'];
+          else $ret['error'] = 'Step not complete';
+          print json_encode($data);
+          return;
+        }
+      }
+      if (!empty($table['options']['php'])) {
+        $res = eval($table['options']['php']);
+        if ($res === FALSE) fatalerr('Syntax error in lt_control ' . $_POST['src'] . ' php option');
+      }
+      if (!empty($table['options']['next'])) {
+        ob_start();
+        if (is_array($table['options']['next'])) $res = lt_print_block($table['options']['next'][0]);
+        else $res = lt_print_block($table['options']['next']);
+        if (!empty($res['location'])) $data['location'] = $res['location'];
+        else $data['replace'] = ob_get_clean();
+      }
+    }
+    print json_encode($data);
+    break;
   case 'calendarselect':
     if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode calendarselect');
     if (empty($_POST['start'])) fatalerr('Invalid start date in mode calendarselect');

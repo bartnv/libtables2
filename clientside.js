@@ -73,6 +73,10 @@ $(document).ready(function() {
     var attr = $(this).data();
     loadTable($(this), attr);
   });
+  $('.lt-control:visible').each(function() {
+    var attr = $(this).data();
+    loadControl($(this), attr);
+  });
   window.setInterval(refreshAll, 30000);
 });
 
@@ -113,7 +117,6 @@ function doFunction(button, addparam) {
       var params = JSON.parse(atob(tables[key].data.params));
       params.push(addparam);
       var paramstr = btoa(JSON.stringify(params));
-      console.log(paramstr);
     }
     else var paramstr = tables[key].data.params;
     $.ajax({
@@ -212,6 +215,27 @@ function changeParams(div, params) {
   if (tables[key]) delete tables[key];
   div.html("Loading...");
   loadTable(div, attr);
+}
+
+function loadControl(div, attr) {
+  var options = JSON.parse(atob(attr.options));
+  var classes = "lt-control-button";
+  if (options.class) classes += ' ' + options.class;
+  if (options.prev) {
+    if (typeof options.prev == 'object') {
+      div.append('<input type="button" class="' + classes + '" value="' + options.prev[1] + '" onclick="doNext(this, true)">');
+    }
+    else div.append('<input type="button" class="' + classes + '" value="' + tr('Previous') + '" onclick="doNext(this, true)">');
+  }
+  if (options.next) {
+    if (typeof options.next == 'object') {
+      div.append('<input type="button" class="' + classes + '" value="' + options.next[1] + '" onclick="doNext(this)">');
+    }
+    else div.append('<input type="button" class="' + classes + '" value="' + tr('Next') + '" onclick="doNext(this)">');
+  }
+  tables[attr.source] = {};
+  tables[attr.source].div = div;
+  tables[attr.source].options = options;
 }
 
 function loadTable(div, attr, sub) {
@@ -1715,6 +1739,35 @@ function doInsert(el) {
       }
     }
   });
+}
+
+function doNext(el, prev) {
+  var div = $(el).closest('div');
+  var key = div.data('source');
+  var options = tables[key].options;
+  if (options.prev || options.next) {
+    $.ajax({
+      dataType: 'json',
+      url: ajaxUrl,
+      method: 'post',
+      data: 'mode=donext&src=' + key + '&prev=' + prev,
+      success: function(data) {
+        if (data.error) userError(data.error);
+        else if (data.replace) {
+          var parent = div.parent();
+          parent.empty().html(data.replace);
+          loadOrRefreshCollection(parent.find('.lt-div'));
+          parent.find('.lt-control:visible').each(function() {
+            var attr = $(this).data();
+            loadControl($(this), attr);
+          });
+        }
+        else if (data.location) {
+          window.location = data.location;
+        }
+      }
+    });
+  }
 }
 
 function processHiddenInsert(hidden, paramstr) {
