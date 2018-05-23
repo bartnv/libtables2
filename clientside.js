@@ -1610,7 +1610,7 @@ function doEditSelect(cell) {
 function checkRequirements(options, c, value) {
   if (options.edit[c].required === true) {
     if (value === '') {
-      alert('Column ' + c + ' may not be empty');
+      alert(tr('Field') + ' ' + c + ' ' + tr('may not be empty'));
       return false;
     }
   }
