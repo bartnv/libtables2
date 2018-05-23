@@ -886,8 +886,9 @@ function lt_run_insert($table, $data, $idcolumn = '') {
       $query = $data['onconflict'];
       $params = [];
       foreach ($data['columns'] as $colname => $value) {
-        $query = str_replace("#$colname", '?', $query);
-        $params[] = $value;
+        $count = 0;
+        $query = str_replace("#$colname", '?', $query, $count);
+        if ($count) $params[] = $value;
       }
       return lt_query_single($query, $params);
     }
