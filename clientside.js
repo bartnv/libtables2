@@ -327,14 +327,19 @@ function refreshTable(table, key) {
           tbody = $('<tbody/>');
           this.prepend(tbody);
         }
-        var thead = table.find('thead');
-        if (!thead.length) {
-          thead = $('<thead/>');
-          if (this.closest('.lt-div').data('sub') != 'true') thead.append(renderTitle(tables[key].data));
-          thead.append(renderHeaders(tables[key].data, this.attr('id')));
-          table.prepend(thead);
+
+        if (data.rows.length) {
+          var thead = table.find('thead');
+          if (!thead.length) {
+            thead = $('<thead/>');
+            if (this.closest('.lt-div').data('sub') != 'true') thead.append(renderTitle(tables[key].data));
+            table.prepend(thead);
+          }
+          if (!thead.find('.lt-head').length) {
+            thead.append(renderHeaders(tables[key].data, this.attr('id')));
+          }
+//          else updateHeaders(thead, data); // BROKEN: doesn't support mouseover or other hidden columns
         }
-        else updateHeaders(thead, data.headers);
 
         updateTable(tbody, tables[key].data, data.rows);
         tables[key].data.rows = data.rows;
@@ -353,12 +358,12 @@ function refreshTable(table, key) {
   });
 }
 
-function updateHeaders(thead, headers) {
+function updateHeaders(thead, data) {
   thead.find('.lt-head').each(function(i) {
     var th = $(this);
-    if (th.html() != headers[i+1]) {
-      th.html(headers[i+1]).css('background-color', 'green');
-      setTimeout(function(th) { th.css('background-color', 'rgba(0,255,0,0.25)'); }, 2000, th);
+    if (th.html() != data.headers[i+1]) {
+      th.html(data.headers[i+1]).css('background-color', 'green');
+      setTimeout(function(th) { th.css('background-color', ''); }, 2000, th);
     }
   });
 }
@@ -540,7 +545,7 @@ function renderTableFormat(table, data, sub) {
   if (data.options.classes && data.options.classes.table) table.addClass(data.options.classes.table);
   if (data.options.hideheader) var headstr = '';
   else {
-    var headstr = '<thead><tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
+    var headstr = '<thead><tr><th class="lt-title" colspan="' + (data.headers.length+1) + '">' + data.title;
     if (data.options.popout && (data.options.popout.type == 'floating-div')) {
       headstr += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"");
       headstr += '" onclick="showTableInDialog($(this).closest(\'table\'));">';
@@ -658,7 +663,7 @@ function renderTableFormat(table, data, sub) {
 }
 
 function renderTitle(data) {
-  var str = '<tr><th class="lt-title" colspan="' + data.headers.length + '">' + data.title;
+  var str = '<tr><th class="lt-title" colspan="' + (data.headers.length+1) + '">' + data.title;
   if (data.options.popout && (data.options.popout.type == 'floating-div')) {
     str += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"");
     str += '" onclick="showTableInDialog($(this).closest(\'table\'));"></span>';
