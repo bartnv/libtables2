@@ -1287,11 +1287,9 @@ function updateTable(tbody, data, newrows) {
     if (!found) { // Row deleted
       var row = tbody.children('[data-rowid="' + oldrows[i][0] + '"]');
       if (row.length) {
-        if (data.options.format) {
-          row.css('background-color', 'red');
-        }
-        else {
-          row.css('background-color', 'red');
+        row.addClass('notransition');
+        row.css('background-color', 'red');
+        if (!data.options.format) {
           row.animate({ opacity: 0 }, 2000, 'swing', function() {
             $(this).css('height', $(this).height());
             $(this).empty();
@@ -1307,9 +1305,9 @@ function updateTable(tbody, data, newrows) {
   else {
     for (var i = 0; i < newrows.length; i++) { // Row added
       let row = $(renderRow(data.options, newrows[i]));
-      row.css({ backgroundColor: 'green' });
+      row.css({ 'background-color': 'green' });
       tbody.append(row);
-      setTimeout(function(row) { row.css({ backgroundColor: 'transparent' }); }, 1000, row);
+      setTimeout(function(row) { row.css({ 'background-color': '' }); }, 1000, row);
     }
   }
   console.log('Refresh timings for table ' + data.tag + ': sql ' + data.querytime + ' download ' + data.downloadtime + ' render ' + (Date.now()-start) + ' ms');
