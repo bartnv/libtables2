@@ -1213,6 +1213,7 @@ function calcSums(tfoot, data, update) {
   var labeldone = 0;
   var row = $('<tr class="lt-sums">');
   for (var c = 1; c < data.headers.length; c++) {
+    if (data.options.mouseover && data.options.mouseover[c]) continue;
     var classes = [ "lt-cell", "lt-sum" ];
     if (data.options.class && data.options.class[c]) classes.push(data.options.class[c]);
     if (data.options.sum[c]) {
@@ -1236,7 +1237,12 @@ function calcSums(tfoot, data, update) {
 }
 function updateSums(tfoot, data) {
   var row = tfoot.find('tr.lt-sums');
+  var skipped = 0;
   for (var c = 1; c < data.headers.length; c++) {
+    if (data.options.mouseover && data.options.mouseover[c]) {
+      skipped++;
+      continue;
+    }
     if (data.options.sum[c]) {
       var sum = 0;
       for (var r = 0; r < data.rows.length; r++) {
@@ -1320,7 +1326,9 @@ function updateRow(options, tbody, oldrow, newrow) {
         if (cell) {
           cell.attr('title', newrow[c]?newrow[c]:(newrow[c]===false?'false':''));
           cell.css('background-color', 'green');
-          setTimeout(function(cell) { cell.css('background-color', 'rgba(0,255,0,0.25)'); }, 2000, cell);
+          if (newrow[c]) cell.addClass('lt-mouseover');
+          else cell.removeClass('lt-mouseover');
+          setTimeout(function(cell) { cell.css('background-color', ''); }, 2000, cell);
         }
       }
     }
