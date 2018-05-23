@@ -1371,7 +1371,7 @@ function updateRow(options, tbody, oldrow, newrow) {
       if (cell.html() !== content.replace(/&/g, '&amp;')) {
         cell.html(content);
         cell.css('background-color', 'green');
-        setTimeout(function(cell) { cell.css('background-color', 'rgba(0,255,0,0.25)'); }, 2000, cell);
+        setTimeout(function(cell) { cell.css('background-color', ''); }, 2000, cell);
       }
     }
   }
