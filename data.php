@@ -699,7 +699,9 @@ switch ($mode) {
         fatalerr("SQL execute error: " . $err[2]);
       }
     }
-    print '{ "status": "ok" }';
+    $data = lt_query($table['query'], $params);
+    $ret = [ 'status' => 'ok', 'crc' => crc32(json_encode($data['rows'])) ];
+    print json_encode($ret);
     break;
   case 'donext':
     if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode donext');
@@ -861,6 +863,7 @@ switch ($mode) {
     print json_encode(array('data' => $results, 'links' => []));
     break;
   default:
+    if (file_exists('custommodes2.php')) include('custommodes2.php');
     fatalerr('Invalid mode specified');
 }
 

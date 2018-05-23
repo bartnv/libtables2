@@ -1875,6 +1875,7 @@ function doDelete(el) {
         newrows.remove(r);
         updateTable(this, table, newrows);
         table.rows = newrows;
+        table.crc = data.crc;
         if (table.options.sum) updateSums(this.parent().find('tfoot'), table);
         if (table.options.trigger) loadOrRefreshCollection($('#'+table.options.trigger));
       }
