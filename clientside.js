@@ -313,7 +313,6 @@ function refreshTable(table, key) {
       else {
         tables[key].data.downloadtime = Date.now() - tables[key].start - data.querytime;
         if (tables[key].data.headers.length != data.headers.length) {
-          if ($('#editbox').length) return; // Don't reload the table if user is editing
           console.log('Column count changed; reloading table');
           tables[key].data.headers = data.headers;
           tables[key].data.rows = data.rows;
@@ -1135,15 +1134,20 @@ function checkCondition(row, a, comp, b) {
 }
 
 function renderCell(options, row, c) {
+  var input;
   var classes = [ "lt-cell", "lt-data" ];
   if (options.class && options.class[c]) classes.push(options.class[c]);
   if (options.edit && options.edit[c]) {
     classes.push('lt-edit');
     if (typeof(options.edit[c]) == 'string') var onclick = ' onclick="doEdit(this)"';
     else if (typeof(options.edit[c]) == 'object') {
+      if (options.edit[c].required && (row[c] === null)) classes.push('lt-required-empty');
       if ((a = options.edit[c].condition) && (a.length == 3) && !checkCondition(row, a[0], a[1], a[2])) {
         var onclick = '';
         classes.pop(); // Remove the .lt-edit class
+      }
+      else if (options.edit[c].show && options.edit[c].show == 'always') {
+        input = renderEdit(options.edit[c], null, row[c], ' onchange="directEdit(this);"');
       }
       else if (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length >= 2))) var onclick = ' onclick="doEditSelect(this)"';
       else var onclick = ' onclick="doEdit(this)"';
@@ -1367,49 +1371,48 @@ function clearFilters(key) {
   }
 }
 
+function renderEdit(edit, cell, content, handler) {
+  if (handler === undefined) handler = '';
+  var input;
+  if (edit.type == 'multiline') {
+    input = '<textarea id="editbox" name="input" style="width: ' + cell.width() + 'px; height: ' + cell.height() + 'px;">' + content + '</textarea>';
+  }
+  else if (edit.type == 'checkbox') {
+    if (content === (edit.truevalue || 'true')) var checked = ' checked';
+    else var checked = '';
+    input = '<input type="checkbox" id="editbox" name="input"' + checked + handler + '>';
+  }
+  else if (edit.type == 'password') {
+    input = '<input type="password" id="editbox" name="input">';
+  }
+  else if (edit.type == 'date') {
+    var res;
+    if (res = content.match(/^([0-9]{2})-([0-9]{2})-([0-9]{4})$/)) var value = res[3] + '-' + res[2] + '-' + res[1];
+    else var value = content;
+    input = '<input type="date" id="editbox" name="input" value="' + value + '">';
+  }
+  else if (edit.type == 'email') {
+    input = $('<input type="email" id="editbox" name="input" value="' + content + '">');
+  }
+  else {
+    input = $('<input type="text" id="editbox" name="input" value="' + content + '" style="width: ' + cell.width() + 'px; height: ' + cell.height() + 'px;">');
+  }
+  return input;
+}
+
 function doEdit(cell, newcontent) {
-  if ($('#editbox').length) return;
   cell = $(cell);
+  if (cell.hasClass('lt-editing')) return;
   cell.addClass('lt-editing');
   var content = cell.html();
   var data = tables[cell.closest('table').attr('id')].data;
   if ((typeof data.options.emptycelltext == 'string') && (content === $('<div/>').text(data.options.emptycelltext).html())) content = '';
   if (data.options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
   else var c = cell.parent().children('.lt-data').index(cell)+1;
-  if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'multiline') {
-    edit = $('<textarea id="editbox" name="input">');
-    if (typeof newcontent === 'string') edit.html(newcontent);
-    else edit.html(content);
-    edit.css({ width: cell.width() + 'px', height: cell.height() + 'px' });
-  }
-  else if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'checkbox') {
-    var truevalue;
-    edit = $('<input type="checkbox" id="editbox" name="input">');
-    if (data.options.edit[c].truevalue) truevalue = data.options.edit[c].truevalue;
-    else truevalue = 'true';
-    if (content === truevalue) edit.prop('checked', true);
-  }
-  else if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'password') {
-    edit = $('<input type="password" id="editbox" name="input">');
-  }
-  else if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'date') {
-    edit = $('<input type="date" id="editbox" name="input">');
-    var res;
-    if (res = content.match(/^([0-9]{2})-([0-9]{2})-([0-9]{4})$/)) edit.val(res[3] + '-' + res[2] + '-' + res[1]);
-    else edit.val(content);
-  }
-  else if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'email') {
-    edit = $('<input type="email" id="editbox" name="input">');
-    if (newcontent) edit.val(newcontent);
-    else edit.val(content);
-  }
-  else {
-    edit = $('<input type="text" id="editbox" name="input">');
-    if (newcontent) edit.val(newcontent);
-    else edit.val(content);
-    edit.css({ width: cell.width() + 'px', maxHeight: cell.height() + 'px' });
-  }
+
+  var edit = $(renderEdit(data.options.edit[c], cell, typeof newcontent == 'string'?newcontent:content));
   cell.empty().append(edit);
+
   if (edit.prop('nodeName') == 'TEXTAREA') {
     var len = edit.html().length;
     edit.focus().textareaAutoSize()[0].setSelectionRange(len, len);
@@ -1451,7 +1454,7 @@ function doEdit(cell, newcontent) {
     return false;
   });
   edit.on('blur', cell, function(evt){
-    checkEdit(evt.data, $(this), content);
+    if (!checkEdit(evt.data, $(this), content)) return false;
     evt.data.removeClass('lt-editing');
   });
   if ((typeof(data.options.edit[c]) == 'object') && data.options.edit[c].type == 'color') {
@@ -1487,8 +1490,8 @@ function doSelect(el) {
   });
 }
 function doEditSelect(cell) {
-  if ($('#editbox').length) return;
   cell = $(cell);
+  if (cell.hasClass('lt-editing')) return;
   cell.addClass('lt-editing');
   var key = cell.closest('table').attr('id');
   var content = cell.html();
@@ -1580,6 +1583,11 @@ function checkRequirements(options, c, value) {
     }
   }
   return true;
+}
+
+function directEdit(el) {
+  var edit = $(el);
+  checkEdit(edit.parent(), edit);
 }
 
 function checkEdit(cell, edit, oldvalue) {
