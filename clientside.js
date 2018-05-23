@@ -961,6 +961,7 @@ function renderField(field, data, c) {
     input.data('default', field.default);
   }
   if (field.placeholder) input.attr('placeholder', field.placeholder);
+  if (field.class) input.addClass(field.class);
   return input;
 }
 
