@@ -983,11 +983,11 @@ function loadOptions(input, data, c) {
     url: ajaxUrl,
     dataType: 'json',
     context: input,
-    data: { mode: 'selectbox', src: data.block + ':' + data.tag, col: c },
+    data: { mode: 'selectbox', src: data.block + ':' + data.tag, params: data.params, col: c },
     success: function(data) {
       if (data.error) {
         this.parent().css({ backgroundColor: '#ffa0a0' });
-        appError(data.error, cell);
+        appError(data.error, this);
       }
       else {
         var items = data.items;
@@ -1030,7 +1030,6 @@ function switchToSelect(el) {
   var key = cell.closest('table').attr('id');
   var data = tables[key].data;
   var c = colVisualToReal(data, cell.index()+1);
-  console.log(cell, key, data, c);
   cell.find('.lt-addoption').remove();
   loadOptions(cell.find('select'), data, c);
   cell.children().show();
@@ -1143,7 +1142,6 @@ function renderRow(options, row) {
 
 function checkCondition(row, a, comp, b) {
   a = replaceHashes(a, row);
-  console.log('comparing', a, b);
   if (comp == '==') {
     if (a == b) return true;
     return false;
@@ -1678,13 +1676,13 @@ function checkEdit(cell, edit, oldvalue) {
     cell.html(oldvalue);
     if ((oldvalue === '') && (typeof options.emptycelltext == 'string')) cell.text(options.emptycelltext);
   }
+  return true;
 }
 
 function doInsert(el) {
   el = $(el);
   row = el.closest('.lt-insert');
   var error = false;
-  console.log(row.find('input,select,textarea'));
   postdata = row.find('input,select,textarea').not(el).map(function() {
     input = $(this);
     if (input.prop('type') == 'checkbox') value = input.prop('checked');

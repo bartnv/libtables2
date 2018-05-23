@@ -403,6 +403,8 @@ switch ($mode) {
   case 'selectbox':
     if (empty($_GET['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_GET['src'])) fatalerr('Invalid src in mode selectbox');
     if (empty($_GET['col']) || !is_numeric($_GET['col'])) fatalerr('Invalid column id in mode selectbox');
+    if (!empty($_GET['params'])) $params = json_decode(base64_decode($_GET['params']));
+    else $params = array();
 
     if (($_GET['src'] == 'sqlrun:table') && (!empty($_GET['sql']))) {
       if (!($edit = lt_edit_from_query($_GET['sql']))) fatalerr('Invalid SQL in sqlrun selectbox');
@@ -410,7 +412,7 @@ switch ($mode) {
       $table['query'] = $_GET['sql'];
     }
     else {
-      $table = lt_find_table($_GET['src']);
+      $table = lt_find_table($_GET['src'], $params);
       if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
       $edit = $table['options']['edit'];
     }
@@ -568,7 +570,7 @@ switch ($mode) {
       foreach ($insert['columns'] as $colname => $value) {
         $found = null;
         foreach ($fields as $id => $options) {
-          if (($id == 'keys') || ($id == 'include') || ($id =='onconflict') || ($id == 'noclear')) continue;
+          if (($id == 'keys') || ($id == 'include') || ($id =='onconflict') || ($id == 'noclear') || ($id == 'submit')) continue;
           if ($id == 'hidden') {
             foreach ($options as $hidden) {
               if (!empty($hidden['target']) && ($hidden['target'] == "$tabname.$colname")) {

@@ -220,8 +220,11 @@ function lt_query($query, $params = array(), $id = 0) {
   global $dbh;
   $ret = array();
 
+  if (!empty($params)) $localparams = $params;
+  elseif (!empty($block_params)) $localparams = $block_params;
+
   $start = microtime(TRUE);
-  if (empty($params)) {
+  if (empty($localparams)) {
     if (!($res = $dbh->query($query))) {
       $err = $dbh->errorInfo();
       $ret['error'] = $err[2];
@@ -229,12 +232,15 @@ function lt_query($query, $params = array(), $id = 0) {
     }
   }
   else {
+    $paramcount = substr_count($query, '?');
+    if (count($localparams) > $paramcount) $localparams = array_slice($localparams, 0, $paramcount);
+
     if (!($res = $dbh->prepare($query))) {
       $err = $dbh->errorInfo();
       $ret['error'] = $err[2];
       return $ret;
     }
-    if (!$res->execute($params)) {
+    if (!$res->execute($localparams)) {
       $err = $res->errorInfo();
       $ret['error'] = $err[2];
       return $ret;
