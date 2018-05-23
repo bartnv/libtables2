@@ -1652,9 +1652,9 @@ function checkEdit(cell, edit, oldvalue) {
     }
   }
 
-  if (newvalue !== oldvalue) {
+  if ((typeof oldvalue == 'undefined') || (newvalue !== oldvalue)) {
     if (options.edit[c].required) {
-      if (!checkRequirements(options, c, newvalue)) return;
+      if (!checkRequirements(options, c, newvalue)) return false;
     }
     var data = { mode: 'inlineedit', src: tables[key].data.block + ':' + tables[key].data.tag, col: c, row: cell.parent().data('rowid'), val: newvalue };
     if (tables[key].data.params) data['params'] = tables[key].data.params;
