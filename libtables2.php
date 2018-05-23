@@ -392,6 +392,20 @@ function lt_query_count($query) {
   return $row[0]+0;
 }
 
+function lt_update_count($query, $params = []) {
+  global $dbh;
+
+    if (!($res = $dbh->prepare($query))) {
+      error_log("Libtables error: query prepare failed: " . $dbh->errorInfo()[2]);
+      return -1;
+    }
+    if (!$res->execute($params)) {
+      error_log("Libtables error: query execute failed: " . $res->errorInfo()[2]);
+      return -1;
+    }
+    return $res->rowCount();
+}
+
 function lt_buttongrid($tag, $queries, $options) {
   print '<div class="buttongrid"><p>This\'ll be the buttongrid...</p></div>';
 }
