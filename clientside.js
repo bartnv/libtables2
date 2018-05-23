@@ -639,9 +639,7 @@ function renderTableFormat(table, data, sub) {
       else if (fmt[r][c] == 'S') {
         for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
         for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
-        var td = $('<td class="lt-cell"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '/>');
-        td.append('<input type="button" class="lt-insert-button" value="' + (data.options.insert.submit?data.options.insert.submit:tr('Insert')) + '" onclick="doInsert(this)">');
-        row.append(td);
+        row.append(renderInsertButton(data.options.insert, colspan, rowspan));
         row.parent().find('INPUT[type=text],SELECT').on('keyup', function(e) { if (e.keyCode == 13) $(this).closest('tbody').find('.lt-insert-button').click(); });
       }
       else if ((fmt[r][c] == 'A') && data.options.appendcell) {
@@ -887,10 +885,25 @@ function renderInsert(data) {
     if (insert) cell.append(insert);
     row.append(cell);
   }
-  row.append('<td class="lt-cell" colspan="' + colspan + '"><input type="button" class="lt-insert-button" value="' + (fields.submit?fields.submit:tr('Insert')) + '" onclick="doInsert(this)"></td>');
+  row.append(renderInsertButton(fields, colspan, 1));
   row.find('INPUT[type=text],SELECT').on('keyup', function(e) { if (e.keyCode == 13) $(this).parent().parent().find('.lt-insert-button').click(); });
   rows.push(row);
   return rows;
+}
+
+function renderInsertButton(fields, colspan, rowspan) {
+  var str = '<td class="lt-cell" colspan="' + colspan + '">';
+  var label;
+  if (fields.submit) {
+    if (fields.submit.label) label = fields.submit.label;
+    else if (typeof fields.submit == 'string') label = fields.submit;
+    else label = tr('Insert');
+  }
+  else label = tr('Insert');
+  var classes = 'lt-insert-button';
+  if (fields.submit && fields.submit.class) classes += ' ' + fields.submit.class;
+  str += '<input type="button" class="' + classes + '" value="' + label + '" onclick="doInsert(this)"></td>';
+  return str;
 }
 
 function renderField(field, data, c) {
