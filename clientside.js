@@ -38,8 +38,9 @@ var tables = {};
 function tr(str) {
   switch (navigator.language) {
     case "nl":
+    case "nl-NL":
       switch (str) {
-        case "Totals": return "Totalen";
+        case "Total": return "Totaal";
         case "Page": return "Pagina";
         case "Row": return "Rij";
         case "of": return "van";
@@ -49,6 +50,10 @@ function tr(str) {
         case "Row has errors and cannot be inserted": return "Rij heeft fouten en kan niet worden toegevoegd";
         case "Select": return "Selecteren";
         case "rows for export": return "rijen om te exporteren";
+        case "Next": return "Volgende";
+        case "Previous": return "Vorige";
+        case "Field": return "Veld";
+        case "may not be empty": return "mag niet leeg zijn";
         default: return str;
       }
     default: return str;
