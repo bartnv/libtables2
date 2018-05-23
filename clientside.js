@@ -1555,7 +1555,7 @@ function doEditSelect(cell) {
         this.css({ backgroundColor: 'transparent' });
         var items = data.items;
         var selectbox = $('<select id="editbox"></select>');
-        selectbox.css({ maxWidth: this.width() + 'px', maxHeight: this.height() + 'px' });
+        selectbox.css({ maxWidth: this.width() + 'px', minHeight: this.height() + 'px' });
         var selected = 0;
         if (data.null) selectbox.append('<option value=""></option>');
         for (var i = 0; items[i]; i++) {
@@ -1689,6 +1689,10 @@ function checkEdit(cell, edit, oldvalue) {
             if (options.callbacks && options.callbacks.change) window.setTimeout(options.callbacks.change, 0);
             if (options.edit.trigger) loadOrRefreshCollection($('#' + options.edit.trigger));
             if (options.sum) updateSums(this.closest('table').find('tfoot'), tables[key].data);
+            if (options.edit[c].required) {
+              if (data.rows[0][c] === null) this.addClass('lt-required-empty');
+              else this.removeClass('lt-required-empty');
+            }
           }
         }
       }
