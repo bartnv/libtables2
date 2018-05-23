@@ -1190,7 +1190,11 @@ function renderCell(options, row, c) {
   }
   else if (options.transformations && (options.transformations[c])) {
     if (options.transformations[c].image) var content = '<img src="' + replaceHashes(options.transformations[c].image, row) + '">';
+    else if (options.transformations[c].round && $.isNumeric(row[c])) {
+      var content = parseFloat(row[c]).toFixed(options.transformations[c].round);
+    }
   }
+  else if (input) var content = input;
   else if (row[c] === null) {
     if (typeof options.emptycelltext == 'string') var content = $('<div/>').text(options.emptycelltext).html(); // Run through jQuery .text() and .html() to apply HTML entity escaping
     else var content = '';
@@ -1216,10 +1220,14 @@ function calcSums(tfoot, data, update) {
       for (var r = 0; r < data.rows.length; r++) {
         if (data.rows[r][c]) sum += parseFloat(data.rows[r][c]);
       }
-      row.append('<td class="' + classes.join(' ') + '">' + (Math.round(sum*1000000)/1000000) + '</td>');
+      if (data.options.transformations && data.options.transformations[c]) {
+        if (data.options.transformations[c].round) var content = sum.toFixed(data.options.transformations[c].round);
+      }
+      else var content = Math.round(sum*1000000)/1000000;
+      row.append('<td class="' + classes.join(' ') + '">' + content + '</td>');
     }
     else if (!labeldone) {
-      row.append('<td class="' + classes.join(' ') + '">' + tr('Totals') + '</td>');
+      row.append('<td class="' + classes.join(' ') + '">' + tr('Total') + '</td>');
       labeldone = 1;
     }
     else row.append('<td/>');
@@ -1236,12 +1244,15 @@ function updateSums(tfoot, data) {
         if (data.rows[r][c]) sum += parseFloat(data.rows[r][c]);
       }
       sum = String(Math.round(sum*1000000)/1000000);
-      var oldsum = row.children().eq(c-1).html();
+      var oldsum = row.children().eq(c-1-skipped).html();
+      if (data.options.transformations && data.options.transformations[c]) {
+        if (data.options.transformations[c].round) sum = parseFloat(sum).toFixed(data.options.transformations[c].round);
+      }
       if (sum != oldsum) {
-        var cell = row.children().eq(c-1);
+        var cell = row.children().eq(c-1-skipped);
         cell.html(sum);
         cell.css('background-color', 'green');
-        setTimeout(function(cell) { cell.css('background-color', 'rgba(0,255,0,0.25)'); }, 2000, cell);
+        setTimeout(function(cell) { cell.css('background-color', ''); }, 2000, cell);
       }
     }
   }
@@ -1319,9 +1330,18 @@ function updateRow(options, tbody, oldrow, newrow) {
       else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').children().eq(c-offset);
       if (cell) {
         if ((newrow[c] === null) && (typeof options.emptycelltext == 'string')) cell.text(options.emptycelltext);
+        else if (options.transformations && (options.transformations[c])) {
+          if (options.transformations[c].image) cell.html('<img src="' + replaceHashes(options.transformations[c].image, newrow) + '">');
+          else if (options.transformations[c].round && $.isNumeric(newrow[c])) {
+            cell.html(parseFloat(newrow[c]).toFixed(options.transformations[c].round));
+          }
+        }
+        else if (options.edit && options.edit[c] && options.edit[c].show && (options.edit[c].show == 'always')) {
+          cell.html(renderEdit(options.edit[c], cell, newrow[c], ' onchange="directEdit(this);"'));
+        }
         else cell.html(newrow[c]?newrow[c]:(newrow[c]===false?'false':''));
         cell.css('background-color', 'green');
-        setTimeout(function(cell) { cell.css('background-color', 'rgba(0,255,0,0.25)'); }, 2000, cell);
+        setTimeout(function(cell) { cell.css('background-color', ''); }, 2000, cell);
       }
       else appError('Updated cell not found', tbody);
     }
