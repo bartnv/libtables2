@@ -129,7 +129,8 @@ function doFunction(button, addparam) {
         else if (data.redirect) window.location = data.redirect;
         else {
           refreshTable(table, key);
-          if (tables[key].data.options.tablefunction.trigger) loadOrRefreshCollection($('#' + tables[key].data.options.tablefunction.trigger));
+          if (tables[key].data.options.trigger) loadOrRefreshCollection($('#' + tables[key].data.options.trigger));
+          else if (tables[key].data.options.tablefunction.trigger) loadOrRefreshCollection($('#' + tables[key].data.options.tablefunction.trigger));
           if (tables[key].data.options.tablefunction.replacetext) thead.find('.lt-tablefunc').val(tables[key].data.options.tablefunction.replacetext);
         }
       }
@@ -1685,7 +1686,8 @@ function checkEdit(cell, edit, oldvalue) {
             updateRow(options, this.closest('tbody'), rows[r], data.rows[0]);
             rows[r] = data.rows[0];
             if (options.callbacks && options.callbacks.change) window.setTimeout(options.callbacks.change, 0);
-            if (options.edit.trigger) loadOrRefreshCollection($('#' + options.edit.trigger));
+            if (options.trigger) loadOrRefreshCollection($('#' + options.trigger));
+            else if (options.edit.trigger) loadOrRefreshCollection($('#' + options.edit.trigger));
             if (options.sum) updateSums(this.closest('table').find('tfoot'), tables[key].data);
             if (options.edit[c].required) {
               if (data.rows[0][c] === null) this.addClass('lt-required-empty');
@@ -1876,6 +1878,7 @@ function doDelete(el) {
         table.crc = data.crc;
         if (table.options.sum) updateSums(this.parent().find('tfoot'), table);
         if (table.options.trigger) loadOrRefreshCollection($('#'+table.options.trigger));
+        else if (table.options.delete.trigger) loadOrRefreshCollection($('#'+table.options.delete.trigger));
       }
     }
   });
