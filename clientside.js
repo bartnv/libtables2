@@ -1,6 +1,6 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Libtables2: framework for building web-applications on relational databases *
- * Copyright (C) 2018  Bart Noordervliet, MMVI                                 *
+ * Version 2.1.0 / Copyright (C) 2019  Bart Noordervliet, MMVI                 *
  *                                                                             *
  * This program is free software: you can redistribute it and/or modify        *
  * it under the terms of the GNU Affero General Public License as              *
