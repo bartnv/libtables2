@@ -34,7 +34,7 @@ function fatalerr($msg, $redirect = "") {
     }
   }
   if (!empty($redirect)) $ret['redirect'] = $redirect;
-  print json_encode($ret);
+  print json_encode($ret, JSON_PARTIAL_OUTPUT_ON_ERROR);
   exit;
 }
 
@@ -220,14 +220,14 @@ switch ($mode) {
       $tmp = lt_query('SELECT ' . $data['options']['selectany']['fields'][1] . ' FROM ' . $data['options']['selectany']['linktable'] . ' WHERE ' . $data['options']['selectany']['fields'][0] . ' = ?', $params);
       $data['options']['selectany']['links'] = array_column($tmp['rows'], 0);
     }
-    if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows']));
+    if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows'], JSON_PARTIAL_OUTPUT_ON_ERROR));
     elseif ($lt_settings['checksum'] == 'psql') {
       $data['crc'] = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM (" . $table['query'] . ") AS q)");
       if (strpos($data['crc'], 'Error:') === 0) fatalerr('<p>Checksum query for table ' . $table['title'] . ' in block ' . $table['block'] . ' returned error: ' . substr($data['crc'], 6));
     }
-    if ($params) $data['params'] = base64_encode(json_encode($params));
+    if ($params) $data['params'] = base64_encode(json_encode($params, JSON_PARTIAL_OUTPUT_ON_ERROR));
     header('Content-type: application/json; charset=utf-8');
-    print json_encode($data);
+    print json_encode($data, JSON_PARTIAL_OUTPUT_ON_ERROR);
     break;
   case 'sqlrun':
     $matches = array();
@@ -237,13 +237,13 @@ switch ($mode) {
     $data['title'] = 'sqlrun';
     $data['tag'] = 'sqlrun';
     $data['options'] = [ 'sql' => $_POST['sql'], 'showid' => true, 'edit' => lt_edit_from_query($_POST['sql']) ];
-    if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows']));
+    if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows'], JSON_PARTIAL_OUTPUT_ON_ERROR));
     elseif ($lt_settings['checksum'] == 'psql') {
       $data['crc'] = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM (" . $_POST['sql'] . ") AS q)");
       if (strpos($data['crc'], 'Error:') === 0) fatalerr('<p>Checksum query for table sqlrun returned error: ' . substr($data['crc'], 6));
     }
     header('Content-type: application/json; charset=utf-8');
-    print json_encode($data);
+    print json_encode($data, JSON_PARTIAL_OUTPUT_ON_ERROR);
     break;
   case 'refreshtable':
     if (empty($_GET['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_GET['src'])) fatalerr('Invalid src in mode refreshtable');
@@ -256,15 +256,15 @@ switch ($mode) {
     $data = lt_query($table['query'], $params);
     if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
     header('Content-type: application/json; charset=utf-8');
-    if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $crc = crc32(json_encode($data['rows']));
+    if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $crc = crc32(json_encode($data['rows'], JSON_PARTIAL_OUTPUT_ON_ERROR));
     elseif ($lt_settings['checksum'] == 'psql') $crc = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM (" . $table['query'] . ") AS q)");
     if ($crc == $_GET['crc']) {
       $ret['nochange'] = 1;
-      print json_encode($ret);
+      print json_encode($ret, JSON_PARTIAL_OUTPUT_ON_ERROR);
     }
     else {
       $data['crc'] = $crc;
-      print json_encode($data);
+      print json_encode($data, JSON_PARTIAL_OUTPUT_ON_ERROR);
     }
     break;
   case 'select':
@@ -417,7 +417,7 @@ switch ($mode) {
     if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $src[0] . " returned error:\n\n" . $data['error']);
     $data['input'] = $_POST['val'];
     header('Content-type: application/json; charset=utf-8');
-    print json_encode($data);
+    print json_encode($data, JSON_PARTIAL_OUTPUT_ON_ERROR);
 
     break;
   case 'selectbox':
@@ -459,7 +459,7 @@ switch ($mode) {
     $data['null'] = lt_col_allow_null($target[0], $target[1]);
     if (!empty($edit['insert']) || !empty($edit[2])) $data['insert'] = true;
     header('Content-type: application/json; charset=utf-8');
-    print json_encode($data);
+    print json_encode($data, JSON_PARTIAL_OUTPUT_ON_ERROR);
     break;
   case 'function':
     if (empty($_POST['type'])) fatalerr('No type specified for mode function');
@@ -493,7 +493,7 @@ switch ($mode) {
           $ret['redirect'] = $str;
         }
       }
-      print json_encode($ret);
+      print json_encode($ret, JSON_PARTIAL_OUTPUT_ON_ERROR);
     }
     else fatalerr('Invalid type in mode function');
     break;
@@ -551,7 +551,7 @@ switch ($mode) {
     if ($idtable != $valuetable) fatalerr('Different id and value tables specified in insert suboption within select option of table ' . $_POST['src'] . ' column ' . $_POST['col'] . ' in mode addoption');
     $query['columns'][$valuecolumn] = $_POST['option'];
     $data['insertid'] = lt_run_insert($idtable, $query, $idcolumn);
-    print json_encode($data);
+    print json_encode($data, JSON_PARTIAL_OUTPUT_ON_ERROR);
     break;
   case 'insertrow':
     if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode insertrow');
@@ -669,7 +669,7 @@ switch ($mode) {
       ob_start();
       lt_print_block($tableinfo['options']['insert']['next'], [ $id ]);
       $data['replace'] = ob_get_clean();
-      print json_encode($data);
+      print json_encode($data, JSON_PARTIAL_OUTPUT_ON_ERROR);
       break;
     }
 
@@ -677,14 +677,14 @@ switch ($mode) {
     if (is_string($tableinfo['query'])) {
       $data = lt_query($tableinfo['query'], $params);
       if (isset($data['error'])) fatalerr('Query for table ' . $tableinfo['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
-      if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows']));
+      if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows'], JSON_PARTIAL_OUTPUT_ON_ERROR));
       elseif ($lt_settings['checksum'] == 'psql') {
         $data['crc'] = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM (" . $tableinfo['query'] . ") AS q)");
         if (strpos($data['crc'], 'Error:') === 0) fatalerr('<p>Checksum query for table ' . $tableinfo['title'] . ' returned error: ' . substr($data['crc'], 6));
       }
     }
     else $data = [ 'status' => 'ok' ];
-    print json_encode($data);
+    print json_encode($data, JSON_PARTIAL_OUTPUT_ON_ERROR);
     break;
   case 'deleterow':
     if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode deleterow');
@@ -720,8 +720,8 @@ switch ($mode) {
       }
     }
     $data = lt_query($table['query'], $params);
-    $ret = [ 'status' => 'ok', 'crc' => crc32(json_encode($data['rows'])) ];
-    print json_encode($ret);
+    $ret = [ 'status' => 'ok', 'crc' => crc32(json_encode($data['rows'], JSON_PARTIAL_OUTPUT_ON_ERROR)) ];
+    print json_encode($ret, JSON_PARTIAL_OUTPUT_ON_ERROR);
     break;
   case 'donext':
     if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode donext');
@@ -742,7 +742,7 @@ switch ($mode) {
         if (!lt_query_check($table['options']['verify'])) {
           if (!empty($table['options']['error'])) $data['error'] = $table['options']['error'];
           else $ret['error'] = 'Step not complete';
-          print json_encode($data);
+          print json_encode($data, JSON_PARTIAL_OUTPUT_ON_ERROR);
           return;
         }
       }
@@ -758,7 +758,7 @@ switch ($mode) {
         else $data['replace'] = ob_get_clean();
       }
     }
-    print json_encode($data);
+    print json_encode($data, JSON_PARTIAL_OUTPUT_ON_ERROR);
     break;
   case 'calendarselect':
     if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode calendarselect');
@@ -793,7 +793,7 @@ switch ($mode) {
       );
     }
 
-    print json_encode($results);
+    print json_encode($results, JSON_PARTIAL_OUTPUT_ON_ERROR);
     break;
   case 'calendarupdate':
     if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode calendarupdate');
@@ -834,7 +834,7 @@ switch ($mode) {
     if (!empty($_POST['title'])) $params[] = $_POST['title'];
     if (!($stmt->execute($params))) {
       $err = $stmt->errorInfo();
-      fatalerr("SQL execute error: " . $err[2] . "\nwith params: " . json_encode($params));
+      fatalerr("SQL execute error: " . $err[2] . "\nwith params: " . json_encode($params, JSON_PARTIAL_OUTPUT_ON_ERROR));
     }
     print '{ "status": "ok" }';
   break;
@@ -880,7 +880,7 @@ switch ($mode) {
       );
     }
 
-    print json_encode(array('data' => $results, 'links' => []));
+    print json_encode(array('data' => $results, 'links' => []), JSON_PARTIAL_OUTPUT_ON_ERROR);
     break;
   default:
     if (file_exists('custommodes2.php')) include('custommodes2.php');
