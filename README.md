@@ -1,3 +1,5 @@
+[![Documentation Status](https://readthedocs.org/projects/libtables/badge/?version=latest)](https://libtables.readthedocs.io/en/latest/?badge=latest)
+
 # libtables2
 This framework allows for rapid development of dynamic, interactive web-
 applications that leverage the power of a relational database backend. It is
