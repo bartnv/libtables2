@@ -1277,11 +1277,11 @@ function renderCell(options, row, c, element) {
     else var params = '';
     var content = '<div class="lt-div" data-source="' + options.subtables[c] + '" data-params="' + params + '" data-sub="true">Loading subtable ' + options.subtables[c] + '</div>';
   }
-  else if (options.transformations && (options.transformations[c])) {
-    if (options.transformations[c].image) var content = '<img src="' + replaceHashes(options.transformations[c].image, row) + '">';
-    else if (options.transformations[c].round && $.isNumeric(row[c])) {
-      var content = parseFloat(row[c]).toFixed(options.transformations[c].round);
-    }
+  else if (options.transformations && options.transformations[c] && options.transformations[c].image) {
+    var content = '<img src="' + replaceHashes(options.transformations[c].image, row) + '">';
+  }
+  else if (options.transformations && options.transformations[c] && options.transformations[c].round && $.isNumeric(row[c])) {
+    var content = parseFloat(row[c]).toFixed(options.transformations[c].round);
   }
   else if (input) var content = input;
   else if (row[c] === null) {
