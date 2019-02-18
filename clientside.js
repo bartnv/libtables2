@@ -104,14 +104,36 @@ function refreshAll() {
     if (tables[key].data.rowcount) return; // rowcount is set for exports with nopreview=true
     refreshTable(table, key);
   });
+  $('.lt-div-text:visible').each(function() {
+    refreshText($(this));
+  });
+}
+
+function refreshText(div) {
+  var attr = div.data();
+  if (!attr.source) return;
+  $.ajax({
+    dataType: "json",
+    url: ajaxUrl,
+    data: "mode=refreshtext&src=" + attr.source + "&params=" + (attr.params || ""),
+    context: div,
+    success: function(data) {
+      if (data.error) appError(data.error, this);
+      else this.html(data.text);
+    }
+  });
 }
 
 function loadOrRefreshCollection(coll, sub) {
   coll.each(function() {
-    var attr = $(this).data();
-    var key = attr.source + (attr.params?'_' + attr.params:'');
-    if (!tables[key] || !document.getElementById(key)) loadTable($(this), attr, sub); // Using getElementById() because jQuery gets confused by the colon in the id
-    else refreshTable($(this).find('table'), key);
+    var div = $(this);
+    if (div.hasClass('lt-div')) {
+      var attr = div.data();
+      var key = attr.source + (attr.params?'_' + attr.params:'');
+      if (!tables[key] || !document.getElementById(key)) loadTable(div, attr, sub); // Using getElementById() because jQuery gets confused by the colon in the id
+      else refreshTable(div.find('table'), key);
+    }
+    else if (div.hasClass('lt-div-text')) refreshText(div);
   });
 }
 

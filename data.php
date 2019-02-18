@@ -179,6 +179,14 @@ function lt_edit_from_query($query) {
   return $edit;
 }
 
+function replaceHashes($str, $row) {
+  $str = str_replace('#id', $row[0], $str);
+  if (strpos($str, '#') !== FALSE) {
+    for ($i = count($row)-1; $i >= 0; $i--) $str = str_replace('#' . $i, $row[$i], $str);
+  }
+  return $str;
+}
+
 if (!empty($_GET['mode'])) $mode = $_GET['mode'];
 elseif (!empty($_POST['mode'])) $mode = $_POST['mode'];
 else fatalerr('No mode specified');
@@ -266,6 +274,16 @@ switch ($mode) {
       $data['crc'] = $crc;
       print json_encode($data, JSON_PARTIAL_OUTPUT_ON_ERROR);
     }
+    break;
+  case 'refreshtext':
+    if (empty($_GET['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_GET['src'])) fatalerr('Invalid src in mode refreshtext');
+    if (!empty($_GET['params'])) $params = json_decode(base64_decode($_GET['params']));
+    else $params = array();
+
+    $table = lt_find_table($_GET['src'], $params);
+    if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
+    $ret['text'] = lt_query_to_string($table['query'], $params, $table['format']);
+    print json_encode($ret);
     break;
   case 'select':
     if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode select');
