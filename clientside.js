@@ -1550,6 +1550,9 @@ function renderEdit(edit, cell, content, handler) {
   else if (edit.type == 'email') {
     input = $('<input type="email" id="editbox" name="input" value="' + content + '">');
   }
+  else if (edit.type == 'datauri') {
+    input = $('<input type="file" id="editbox" name="input">');
+  }
   else {
     input = $('<input type="text" id="editbox" name="input" value="' + content + '" style="width: ' + cell.width() + 'px; height: ' + cell.height() + 'px;">');
   }
@@ -1568,6 +1571,20 @@ function doEdit(cell, newcontent) {
 
   var edit = $(renderEdit(data.options.edit[c], cell, typeof newcontent == 'string'?newcontent:content));
   cell.empty().append(edit);
+
+  if (data.options.edit[c].type == 'datauri') {
+    edit.on('change', function() {
+      if (edit[0].files[0]) {
+        var fr = new FileReader();
+        $(fr).on('load', function() {
+          checkEdit(cell, edit, fr.result);
+          cell.removeClass('lt-editing');
+        });
+        fr.readAsDataURL(edit[0].files[0]);
+      }
+    });
+    return;
+  }
 
   if (edit.prop('nodeName') == 'TEXTAREA') {
     var len = edit.html().length;
@@ -1762,6 +1779,10 @@ function checkEdit(cell, edit, oldvalue) {
       else newvalue = 'false';
     }
   }
+  else if (options.edit[c].type == 'datauri') {
+    newvalue = oldvalue; // Yes this is ugly; mea culpa
+    oldvalue = null;
+  }
 
   if ((typeof oldvalue == 'undefined') || (newvalue !== oldvalue)) {
     if (options.edit[c].required) {
@@ -1791,7 +1812,8 @@ function checkEdit(cell, edit, oldvalue) {
             else if ((data.input == 'false') || (data.input == options.edit[c].falsevalue)) data.input = false;
             if ((data.input === '') && (data.rows[0][c] === null)) data.input = null;
 
-            if ((typeof(options.edit[c]) == 'object') && (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length == 2)))) {
+            if (options.edit[c].type == 'datauri'); // Don't update the cell now so that the data-uri is re-rendered by updateRow()
+            else if ((typeof(options.edit[c]) == 'object') && (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length == 2)))) {
               rows[r][c] = data.rows[0][c];
             }
             else rows[r][c] = data.input;
@@ -1811,6 +1833,7 @@ function checkEdit(cell, edit, oldvalue) {
     });
     if (edit.prop('nodeName') == 'SELECT') cell.html(edit.find('option:selected').text());
     else if (options.edit[c].type == 'password') cell.empty();
+    else if (options.edit[c].type == 'datauri') cell.html(tr('Loading...'));
     else if ((newvalue == '') && (typeof options.emptycelltext == 'string')) cell.text(options.emptycelltext);
     else cell.html(newvalue);
     if (!options.style || !options.style[c]) cell.css({ backgroundColor: '#ffa0a0' });
