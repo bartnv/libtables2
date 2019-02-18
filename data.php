@@ -123,7 +123,7 @@ function lt_find_table($src, $params = []) {
       return $atable;
     }
   }
-  fatalerr('Specified table not found in block ' . $src[0]);
+  fatalerr('Table ' . $src[1] . ' not found in block ' . $src[0]);
 }
 
 function allowed_block($block) {

@@ -391,7 +391,7 @@ function refreshTable(table, key) {
             if (this.closest('.lt-div').data('sub') != 'true') thead.append(renderTitle(tables[key].data));
             table.prepend(thead);
           }
-          if (!thead.find('.lt-head').length) {
+          if (!thead.find('.lt-head').length && !tables[key].data.options.format) {
             thead.append(renderHeaders(tables[key].data, this.attr('id')));
           }
 //          else updateHeaders(thead, data); // BROKEN: doesn't support mouseover or other hidden columns
@@ -1406,6 +1406,7 @@ function updateRow(options, tbody, oldrow, newrow) {
     }
     else if (options.hidecolumn && options.hidecolumn[c]) offset++;
     else if (oldrow[c] != newrow[c]) {
+      changes = true;
       if (options.format) cell = tbody.find('.lt-data').eq(c-1);
       else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').children().eq(c-offset);
       if (cell) {
@@ -1830,9 +1831,10 @@ function doInsert(el) {
     success: function(data) {
       if (data.error) userError(data.error);
       else if (data.replace) {
-        var parent = this.closest('.lt-div').parent();
-        parent.empty().html(data.replace);
-        loadOrRefreshCollection(parent.find('.lt-div'));
+        var div = this.closest('.lt-div');
+        div.before(data.replace);
+        loadOrRefreshCollection(div.prev());
+        div.remove();
       }
       else {
         var table = this.closest('table');
@@ -1887,6 +1889,7 @@ function doNext(el, prev) {
   var div = $(el).closest('div');
   var key = div.data('source');
   var options = tables[key].options;
+
   if (options.prev || options.next) {
     $.ajax({
       dataType: 'json',
@@ -1963,7 +1966,6 @@ function doDelete(el) {
         table.crc = data.crc;
         if (table.options.sum) updateSums(this.parent().find('tfoot'), table);
         if (table.options.trigger) loadOrRefreshCollection($('#'+table.options.trigger));
-        else if (table.options.delete.trigger) loadOrRefreshCollection($('#'+table.options.delete.trigger));
       }
     }
   });

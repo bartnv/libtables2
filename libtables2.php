@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.       *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-session_start();
+if (!session_id()) session_start();
 require('config.php');
 
 $tables = array();
@@ -249,15 +249,18 @@ function lt_print_block($block, $params = array(), $options = array()) {
       $ret = eval(file_get_contents($dir . $basename . '.php'));
       if ($ret === FALSE) print "<p>PHP syntax error in block $basename</p>";
       if (!empty($options['wrapperdiv']) && $options['wrapperdiv']) print "</div>\n";
+      $basename = $basename_prev;
       return $ret;
     }
   }
 
-  print "Block $basename not found in blocks_dir " . implode(", ", $dirs);
+  print "Block $basename not found in blocks_dir " . implode(", ", $dirs) . " (CWD: " . getcwd() . ")";
+  $basename = $basename_prev;
 }
 
 function lt_query($query, $params = array(), $id = 0) {
   global $dbh;
+  global $block_params;
   $ret = array();
 
   if (!empty($params)) $localparams = $params;
