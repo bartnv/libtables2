@@ -225,7 +225,9 @@ switch ($mode) {
     else $data['title'] = $table['title'];
     $data['options'] = $table['options'];
     if (!empty($data['options']['selectany'])) {
-      $tmp = lt_query('SELECT ' . $data['options']['selectany']['fields'][1] . ' FROM ' . $data['options']['selectany']['linktable'] . ' WHERE ' . $data['options']['selectany']['fields'][0] . ' = ?', $params);
+      $sa = $data['options']['selectany'];
+      if (!empty($sa['id'])) $tmp = lt_query('SELECT ' . $sa['fields'][1] . ' FROM ' . $sa['linktable'] . ' WHERE ' . $sa['fields'][0] . ' = ?', [ $sa['id'] ]);
+      else $tmp = lt_query('SELECT ' . $sa['fields'][1] . ' FROM ' . $sa['linktable'] . ' WHERE ' . $sa['fields'][0] . ' = ?', $params);
       $data['options']['selectany']['links'] = array_column($tmp['rows'], 0);
     }
     if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows'], JSON_PARTIAL_OUTPUT_ON_ERROR));
@@ -289,14 +291,15 @@ switch ($mode) {
     if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode select');
     if (empty($_POST['id']) || !is_numeric($_POST['id'])) fatalerr('Invalid row id in mode select');
     if (empty($_POST['link'])) fatalerr('Invalid link data in mode select');
-    if (empty($_POST['params'])) fatalerr('Invalid params in mode select');
-    $params = json_decode(base64_decode($_POST['params']));
+    if (!empty($_POST['params'])) $params = json_decode(base64_decode($_POST['params']));
+    else $params = [];
 
     $table = lt_find_table($_POST['src'], $params);
     if (empty($table['options']['selectany'])) fatalerr('No selectany option found for table ' . $_POST['src']);
     if (empty($table['options']['selectany']['linktable'])) fatalerr('No linktable found for table ' . $_POST['src']);
     if (empty($table['options']['selectany']['fields'][0])) fatalerr('No left field found for table ' . $_POST['src']);
     if (empty($table['options']['selectany']['fields'][1])) fatalerr('No right field found for table ' . $_POST['src']);
+    if (!empty($table['options']['selectany']['id'])) $params = [ $table['options']['selectany']['id'] ];
     if ($_POST['link'] === "true") {
       if (!($stmt = $dbh->prepare("INSERT INTO " . $table['options']['selectany']['linktable'] . " (" . $table['options']['selectany']['fields'][0] . ", " . $table['options']['selectany']['fields'][1] . ") VALUES (?, " . $_POST['id'] . ")"))) {
         $err = $dbh->errorInfo();
