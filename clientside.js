@@ -150,13 +150,14 @@ function doFunction(button, addparam) {
   }
   var key = table.attr('id');
 
+  if (addparam) {
+    var params = JSON.parse(atob(tables[key].data.params));
+    params.push(addparam);
+    var paramstr = btoa(JSON.stringify(params));
+  }
+  else var paramstr = tables[key].data.params;
+
   if (button.hasClass('lt-tablefunc')) {
-    if (addparam) {
-      var params = JSON.parse(atob(tables[key].data.params));
-      params.push(addparam);
-      var paramstr = btoa(JSON.stringify(params));
-    }
-    else var paramstr = tables[key].data.params;
     $.ajax({
       method: 'post',
       url: ajaxUrl,
@@ -167,9 +168,25 @@ function doFunction(button, addparam) {
         else if (data.redirect) window.location = data.redirect;
         else {
           refreshTable(table, key);
-          if (tables[key].data.options.trigger) loadOrRefreshCollection($('#' + tables[key].data.options.trigger));
-          else if (tables[key].data.options.tablefunction.trigger) loadOrRefreshCollection($('#' + tables[key].data.options.tablefunction.trigger));
+          if (tables[key].data.options.tablefunction.trigger) loadOrRefreshCollection($('#' + tables[key].data.options.tablefunction.trigger));
           if (tables[key].data.options.tablefunction.replacetext) thead.find('.lt-tablefunc').val(tables[key].data.options.tablefunction.replacetext);
+        }
+      }
+    });
+  }
+  else if (button.hasClass('lt-rowfunc')) {
+    $.ajax({
+      method: 'post',
+      url: ajaxUrl,
+      dataType: 'json',
+      data: { mode: 'function', type: 'row', src: tables[key].data.block + ':' + tables[key].data.tag, params: paramstr, row: button.closest('.lt-row').data('rowid'), action: button.parent().data('actionid') },
+      success: function(data) {
+        if (data.error) appError(data.error, table);
+        else if (data.redirect) window.location = data.redirect;
+        else {
+          refreshTable(table, key);
+          if (data.alert) alert(data.alert);
+          if (tables[key].data.options.trigger) loadOrRefreshCollection($('#' + tables[key].data.options.trigger));
         }
       }
     });
@@ -1168,6 +1185,7 @@ function renderRow(options, row) {
     html.push(renderCell(options, row, c));
   }
   if (options.appendcell) html.push('<td class="lt-cell lt-append">' + replaceHashes(options.appendcell, row) + '</td>');
+  if (options.actions) html.push(renderActions(options.actions, row));
   if (options.delete) {
     if (options.delete.text) var value = options.delete.text;
     else var value = '✖';
@@ -1189,7 +1207,8 @@ function checkCondition(row, a, comp, b) {
   return false;
 }
 
-function renderCell(options, row, c) {
+function renderCell(options, row, c, element) {
+  if (!element) element = 'td';
   var input;
   var classes = [ "lt-cell", "lt-data" ];
   if (options.class && options.class[c]) classes.push(options.class[c]);
@@ -1239,7 +1258,20 @@ function renderCell(options, row, c) {
     else var content = '';
   }
   else var content = row[c];
-  return '<td class="' + classes.join(' ') + '"' + style + onclick + mouseover + '>' + content + '</td>';
+  return '<' + element + ' class="' + classes.join(' ') + '"' + style + onclick + mouseover + '>' + content + '</' + element + '>';
+}
+
+function renderActions(actions, row) {
+  var str = '';
+  for (i in actions)  {
+    if (typeof actions[i] !== 'object') continue;
+    str += '<td class="lt-cell lt-action" data-actionid="' + i + '" ';
+    if (actions[i].condition) {
+      if (!eval(replaceHashes(actions[i].condition, row))) str += ' style="display: none;"';
+    }
+    str += '><input type="button" class="lt-rowfunc" value="' + replaceHashes(actions[i].name, row) + '" onclick="doFunction(this)"></td>';
+  }
+  return str;
 }
 
 function calcSums(tfoot, data, update) {
@@ -1353,11 +1385,14 @@ function updateTable(tbody, data, newrows) {
 }
 function updateRow(options, tbody, oldrow, newrow) {
   var offset = 1;
+  var changes = false;
+
   for (var c = 1; c < oldrow.length; c++) {
     var cell = null;
     if (options.mouseover && options.mouseover[c]) {
       offset++;
       if (oldrow[c] != newrow[c]) {
+        changes = true;
         if (options.format) var cell = tbody.find('.lt-data').eq(c-1);
         else var cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').children().eq(c-offset);
         if (cell) {
@@ -1399,16 +1434,28 @@ function updateRow(options, tbody, oldrow, newrow) {
       if (cell) cell.attr('style', replaceHashes(options.style[c], newrow));
     }
   }
-  if (options.pagetitle) document.title = replaceHashes(options.pagetitle, newrow);
-  if (options.appendcell) {
-    if (options.format) var cell = tbody.find('.lt-append');
-    else var cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').find('.lt-append');
-    if (cell.length) {
-      var content = replaceHashes(options.appendcell, newrow);
-      if (cell.html() !== content.replace(/&/g, '&amp;')) {
-        cell.html(content);
-        cell.css('background-color', 'green');
-        setTimeout(function(cell) { cell.css('background-color', ''); }, 2000, cell);
+
+  if (changes) {
+    if (options.pagetitle) document.title = replaceHashes(options.pagetitle, newrow);
+    if (options.appendcell) {
+      if (options.format) var cell = tbody.find('.lt-append');
+      else var cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').find('.lt-append');
+      if (cell.length) {
+        var content = replaceHashes(options.appendcell, newrow);
+        if (cell.html() !== content.replace(/&/g, '&amp;')) {
+          cell.html(content);
+          cell.css('background-color', 'green');
+          setTimeout(function(cell) { cell.css('background-color', ''); }, 2000, cell);
+        }
+      }
+    }
+    if (options.actions) {
+      for (i in options.actions) {
+        if (options.actions[i].condition) {
+          var cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').find('.lt-action[data-actionid="' + i + '"]');
+          if (eval(replaceHashes(options.actions[i].condition, newrow))) cell.show();
+          else cell.hide();
+        }
       }
     }
   }

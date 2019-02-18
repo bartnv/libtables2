@@ -513,6 +513,38 @@ switch ($mode) {
       }
       print json_encode($ret, JSON_PARTIAL_OUTPUT_ON_ERROR);
     }
+    else if ($_POST['type'] == 'row') {
+      if (empty($table['options']['actions'])) fatalerr('No row actions defined in block ' . $_POST['src']);
+      if (!isset($_POST['action'])) fatalerr('No action id passed in mode function in block ' . $_POST['src']);
+      if (empty($table['options']['actions'][intval($_POST['action'])])) fatalerr('Action #' . $_POST['action'] . ' not found for table ' . $_POST['src']);
+      $action = $table['options']['actions'][intval($_POST['action'])];
+      if (empty($_POST['row'])) fatalerr('No row id passed in mode function in block ' . $_POST['src']);
+      if (!is_numeric($_POST['row'])) fatalerr('Invalid row id passed in mode function in block ' . $_POST['src']);
+      $data = lt_query($table['query'], $params, intval($_POST['row']));
+      if (empty($data['rows'])) fatalerr('Row with id ' . $_POST['row'] . ' not found in mode function in block ' . $_POST['src']);
+      $row = $data['rows'][0];
+      $ret = [];
+      if (!empty($action['query'])) {
+        $query = replaceHashes($action['query'], $row);
+        if (!$dbh->query($query)) {
+          $ret['error'] = $dbh->errorInfo()[2];
+        }
+      }
+      else if (!empty($action['block'])) {
+        if (!empty($action['params'])) {
+          foreach ($action['params'] as $key => $value) {
+            $action['params'][$key] = replaceHashes($action['params'][$key], $row);
+          }
+          $params = $action['params'];
+        }
+        else $params = [];
+        ob_start();
+        lt_print_block($action['block'], $params);
+        $output = ob_get_clean();
+        if (!empty($output)) $ret['alert'] = $output;
+      }
+      print json_encode($ret);
+    }
     else fatalerr('Invalid type in mode function');
     break;
   case 'excelexport':
