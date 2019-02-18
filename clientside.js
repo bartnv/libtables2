@@ -1217,7 +1217,7 @@ function renderRow(options, row) {
   }
   if (options.appendcell) html.push('<td class="lt-cell lt-append">' + replaceHashes(options.appendcell, row) + '</td>');
   if (options.actions) html.push(renderActions(options.actions, row));
-  if (options.delete) {
+  if (options.delete && row[0]) { // Special rows may have null for id; they can't be deleted so don't show the button
     if (options.delete.text) var value = options.delete.text;
     else var value = '✖';
     if (options.delete.notids && (options.delete.notids.indexOf(row[0]) >= 0));
