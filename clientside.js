@@ -94,6 +94,11 @@ function load(el, visible) {
       loadControl($(this), attr);
     });
   }
+  el.find('.lt-div-text').each(function() {
+    var attr = $(this).data();
+    if (attr.embedded) $(this).html(atob(attr.embedded));
+    else refreshText($(this));
+  });
 }
 
 function refreshAll() {
@@ -1284,6 +1289,7 @@ function renderCell(options, row, c, element) {
     else var content = '';
   }
   else var content = row[c];
+
   return '<' + element + ' class="' + classes.join(' ') + '"' + style + onclick + mouseover + '>' + content + '</' + element + '>';
 }
 

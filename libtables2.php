@@ -59,7 +59,8 @@ function lt_text($tag, $query, $params, $format, $options = array()) {
 
   $divstr = ' <div id="' . $tag . '" class="' . $divclasses . '" data-source="' . $basename . ':' . $tag . '"';
   if (!empty($params)) $divstr .= ' data-params="' . base64_encode(json_encode($params)) . '"';
-  print $divstr . '>' . lt_query_to_string($query, $params, $format) . "</div>\n";
+  if (!empty($options['embed'])) $divstr .= ' data-embedded="' . base64_encode(lt_query_to_string($query, $params, $format)) . '"';
+  print $divstr . "></div>\n";
 }
 
 function lt_table($tag, $title, $query, $options = array()) {
