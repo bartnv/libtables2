@@ -193,6 +193,7 @@ function lt_print_block($block, $params = array(), $options = array()) {
     return;
   }
 
+  $basename_prev = $basename;
   $basename = $block;
   $block_options = $options;
   $block_params = $params;
@@ -227,11 +228,13 @@ function lt_print_block($block, $params = array(), $options = array()) {
     if (file_exists($dir . $basename . '.html')) {
       readfile($dir . $basename . '.html');
       if (!empty($options['wrapperdiv']) && $options['wrapperdiv']) print "</div>\n";
+      $basename = $basename_prev;
       return;
     }
     if (file_exists($dir . $basename . '.yml')) {
       if (!function_exists('yaml_parse_file')) {
         print "YAML block found but the PHP YAML parser is not installed";
+        $basename = $basename_prev;
         return;
       }
       $yaml = yaml_parse_file($dir . $basename . '.yml', -1);
@@ -242,6 +245,7 @@ function lt_print_block($block, $params = array(), $options = array()) {
         }
       }
       if (!empty($options['wrapperdiv']) && $options['wrapperdiv']) print "</div>\n";
+      $basename = $basename_prev;
       return;
     }
     if (file_exists($dir . $basename . '.php')) {
