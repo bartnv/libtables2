@@ -510,6 +510,7 @@ function replaceHashes(str, row) {
 function renderTable(table, data, sub) {
   var start = Date.now();
   if (data.options.display && (data.options.display == 'list')) renderTableList(table, data, sub);
+  else if (data.options.display && (data.options.display = 'divs')) renderTableDivs(table, data, sub);
   else if (data.options.display && (data.options.display == 'select')) renderTableSelect(table, data, sub);
   else if (data.options.display && (data.options.display == 'vertical')) renderTableVertical(table, data, sub);
   else if (data.options.format) renderTableFormat(table, data, sub);
@@ -561,6 +562,26 @@ function renderTableSelect(table, data, sub) {
 
   var key = table.attr('id');
   tables[key].table = section;
+}
+
+function renderTableDivs(table, data, sub) {
+  var container = $('<div class="lt-div-table"/>');
+  container.attr('id', table.attr('id'));
+  if (data.options.classess && data.options.classes.table) container.addClass(data.options.classes.table);
+
+  var items = '';
+  for (var r = 0; r < data.rows.length; r++) { // Main loop over the data rows
+    items += '<div class="lt-div-row" data-rowid="' + data.rows[r][0] + '">';
+    if (data.options.rowlink) items += '<a href="' + replaceHashes(data.options.rowlink, data.rows[r]) + '">';
+    for (var c = 1; c < data.rows[r].length; c++) { // Loop over the columns
+      items += renderCell(data.options, data.rows[r], c, 'div');
+    }
+    if (data.options.appendcell) items += '<div class="lt-cell lt-append">' + replaceHashes(data.options.appendcell, data.rows[r]) + '</div>';
+    if (data.options.rowlink) items += '</a>';
+    items += '</div>';
+  }
+  container.append($(items));
+  tables[container.attr('id')].table = container;
 }
 
 function renderTableList(table, data, sub) {
