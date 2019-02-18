@@ -1934,6 +1934,7 @@ function doInsert(el) {
         else if (tabledata.options.insert.trigger) loadOrRefreshCollection($('#' + tabledata.options.insert.trigger));
         else if ((tabledata.options.insert.include == 'edit') && tabledata.options.edit.trigger) loadOrRefreshCollection($('#' + tabledata.options.edit.trigger));
         if (tabledata.options.insert.onsuccessalert) alert(tabledata.options.insert.onsuccessalert);
+        if (tabledata.options.insert.onsuccessscript) eval(tabledata.options.insert.onsuccessscript);
 
         this.find('input,select,textarea').first().focus();
       }
