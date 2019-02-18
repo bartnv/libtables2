@@ -994,6 +994,11 @@ function renderField(field, data, c) {
   else if (field.type == 'password') var input = $('<input type="password" class="lt-insert-input" name="' + field.target + '">');
   else if (field.type == 'email') var input = $('<input type="email" class="lt-insert-input" name="' + field.target + '">');
   else if (field.type == 'color') var input = $('<input type="text" class="lt-insert-input lt-color-cell" name="' + field.target + '" onfocus="showColPick(this)">');
+  else if (field.type == 'number') {
+    var input = $('<input type="number" class="lt-insert-input" name="' + field.target + '">');
+    if (field.min) input.attr('min', field.min);
+    if (field.max) input.attr('max', field.max);
+  }
   else if (field.target && !field.query) var input = $('<input type="text" class="lt-insert-input" name="' + field.target + '">');
   else {
     if (field.target) var input = $('<select class="lt-insert-input" name="' + field.target + '"/>');
