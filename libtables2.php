@@ -326,14 +326,14 @@ function lt_query($query, $params = array(), $id = 0) {
   return $ret;
 }
 
-function lt_query_to_string($query, $format) {
+function lt_query_to_string($query, $params = array(), $format) {
   global $dbh;
-  global $basename; // Set by lt_print_block()
   global $block_options; // Set by lt_print_block()
 
-  if (!$basename) return "no basename";
+  if (!empty($params)) $localparams = $params;
+  elseif (!empty($block_params)) $localparams = $block_params;
 
-  if (empty($block_options['params'])) {
+  if (empty($localparams)) {
     if (!($res = $dbh->query($query))) {
       $err = $dbh->errorInfo();
       return "SQL-error: " . $err[2];
@@ -344,7 +344,7 @@ function lt_query_to_string($query, $format) {
       $err = $dbh->errorInfo();
       return "SQL-error: " . $err[2];
     }
-    if (!$res->execute($block_options['params'])) {
+    if (!$res->execute($localparams)) {
       $err = $res->errorInfo();
       return "SQL-error: " . $err[2];
     }
