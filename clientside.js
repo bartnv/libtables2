@@ -69,16 +69,32 @@ function appError(msg, context) {
 }
 
 $(document).ready(function() {
-  $('.lt-div:visible').each(function() {
-    var attr = $(this).data();
-    loadTable($(this), attr);
-  });
-  $('.lt-control:visible').each(function() {
-    var attr = $(this).data();
-    loadControl($(this), attr);
-  });
+  load($(document), true);
   window.setInterval(refreshAll, 30000);
 });
+
+function load(el, visible) {
+  if (visible) {
+    el.find('.lt-div:visible').each(function() {
+      var attr = $(this).data();
+      loadTable($(this), attr);
+    });
+    el.find('.lt-control:visible').each(function() {
+      var attr = $(this).data();
+      loadControl($(this), attr);
+    });
+  }
+  else {
+    el.find('.lt-div').each(function() {
+      var attr = $(this).data();
+      loadTable($(this), attr);
+    });
+    el.find('.lt-control').each(function() {
+      var attr = $(this).data();
+      loadControl($(this), attr);
+    });
+  }
+}
 
 function refreshAll() {
   $('.lt-table:visible').each(function() {
