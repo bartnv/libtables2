@@ -1,4 +1,4 @@
-# Welcome to the documentation pages for Libtables
+# Welcome to the Libtables documentation
 
 Libtables allows for rapid development of dynamic, interactive web- applications that leverage the power of a relational
 database backend. It is aimed at developers with a firm grasp of SQL who wish to minimize the time spent on writing the

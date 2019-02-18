@@ -1,4 +1,6 @@
 site_name: Libtables Documentation
 pages:
   - Home: index.md
+  - Functions: functions.md
+  - lt_table(): table_function.md
 theme: readthedocs
