@@ -14,6 +14,11 @@ Parameters:
   * options (optional): an array of options to add functionality such as insert, delete, edit-in-place,
     filtering, sorting, etc to your table
 
+Basic example:
+```
+    lt_table('users', 'All users', "SELECT id, name FROM users", [ 'sortable' => true ]);
+```
+
 See [lt_table() options](table_function/) for more information.
 
 [^1]: in special cases you can pass in an array of column names instead of a query, to generate
