@@ -572,7 +572,7 @@ function renderTableSelect(table, data, sub) {
 function renderTableDivs(table, data, sub) {
   var container = $('<div class="lt-div-table"/>');
   container.attr('id', table.attr('id'));
-  if (data.options.classess && data.options.classes.table) container.addClass(data.options.classes.table);
+  if (data.options.classes && data.options.classes.table) container.addClass(data.options.classes.table);
 
   var items = '';
   for (var r = 0; r < data.rows.length; r++) { // Main loop over the data rows
