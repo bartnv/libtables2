@@ -224,6 +224,7 @@ switch ($mode) {
     if (!empty($table['options']['titlequery'])) $data['title'] = lt_query_single($table['options']['titlequery'], $params);
     else $data['title'] = $table['title'];
     $data['options'] = $table['options'];
+    if (!empty($data['options']['tablefunction']['hidecondition'])) $data['options']['tablefunction']['hidecondition'] = lt_query_single($data['options']['tablefunction']['hidecondition'], $params);
     if (!empty($data['options']['selectany'])) {
       $sa = $data['options']['selectany'];
       if (!empty($sa['id'])) $tmp = lt_query('SELECT ' . $sa['fields'][1] . ' FROM ' . $sa['linktable'] . ' WHERE ' . $sa['fields'][0] . ' = ?', [ $sa['id'] ]);
@@ -274,6 +275,7 @@ switch ($mode) {
     }
     else {
       $data['crc'] = $crc;
+      if (!empty($table['options']['tablefunction']['hidecondition'])) $data['options']['tablefunction']['hidecondition'] = lt_query_single($table['options']['tablefunction']['hidecondition'], $params);
       print json_encode($data, JSON_PARTIAL_OUTPUT_ON_ERROR);
     }
     break;
