@@ -17,6 +17,6 @@ features include:
 All client-server interaction is AJAX-based, so libtables2 is suitable to use
 in single-page, load-once web-applications.
 
-## Requirements
-* PHP 5.3 or newer
-* jQuery 1 or 2
+## Documentation
+
+https://libtables.readthedocs.io/en/latest/?badge=latest

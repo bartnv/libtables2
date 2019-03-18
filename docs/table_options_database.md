@@ -87,8 +87,11 @@ Include example:
         * message (string): show this message if the input is invalid
     * default (string): default value to put in the input element when it is created or emptied
     * placeholder (string): html5 placeholder attribute to set on the input element; shown whenever the input element is empty
+    * submit (string): label to be used as a text on the insert button
     * class (string): CSS class name to set on the input element, in addition to the default ones
     * trigger (string): refresh the indicated other table whenever this table is changed through edit; needs to contain the 'tag' name of the other table
+    * next (string): when the insert button is clicked, replace this block with the block named in this option; the new block is invoked with the id of the
+      newly inserted entry as its first parameter
     * include (string): input definitions to reuse; currently only supports 'edit' to use the edit-definitions
     * noclear (boolean): if set to true, the insert input fields are not cleared after each insert is done
     * onsuccessalert (string): text to show in a javascript alert() after the insert was done succesfully

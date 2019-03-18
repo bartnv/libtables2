@@ -65,44 +65,12 @@ Most options shown here can be combined within the options array passed into lt_
   'hidecolumn' => [ 2 => true ]
 ```
 
-# showid [deprecated]
-  * showid (boolean): shows the row id number (conceptually column number zero), which is normally hidden from the user. This will be removed in a
-    future version because it causes confusion and can better be done by just asking for the id twice in the SQL query.
-
 # classes
   * classes (array): assigns a CSS class to the specified columns or the table as a whole.
 ```php
   'classes' => [
     'table' => 'MyTable',
     3 => 'ColumnThree'
-  ]
-```
-
-# style [experimental]
-  * style (array): assigns direct CSS styling to the specified elements. You can use the contents of other columns as part of the CSS here. If you don't need that,
-    please use the 'classes' option. This option currently only supports tables with 'display => list' or the 'selectone' option active. The example sets the
-    background-color of each list entry to the value of column 2.
-      * list
-      * selectone
-
-```php
-  'style' => [
-    'list' => 'background-color: #2'
-  ]
-```
-
-# transformations [experimental]
-  * transformations (array): applies a clientside transformation to the data in the specified column(s). Currently available are 'round', which rounds a numeric
-    value to the requested number of decimal digits, and 'image', which interprets the data as the src attribute of an &lt;img> tag. In the latter case the data can
-    either be a valid URL or a data URI containing the image data itself.
-```php
-  'transformations' => [
-    3 => [ 'round' => 2 ]
-  ]
-```
-```php
-  'transformations' => [
-    1 => [ 'image' => '#1' ]
   ]
 ```
 
@@ -168,20 +136,6 @@ Most options shown here can be combined within the options array passed into lt_
   ]
 ```
 
-# display [experimental]
-  * display (string): render the table with different elements than the normal &lt;table>, &lt;tr> and &lt;td>. Available options are 'list' (rendered as &lt;ul> with
-    each row a &lt;li>), 'divs' (renders as a &lt;div> with class "lt-div-table" with each row as a &lt;div> with class "lt-div-row"), 'select' (renders as a &lt;select>
-    with each row as an &lt;option>), 'vertical' (only works for insert fields currently, rendering them as a vertical table).
-```php
-  'display' => 'list'
-```
-
-# rowlink [experimental]
-  * rowlink (string): current only used for display => divs, wraps each &lt;div> in a link (&lt;a>-element) with this string as the href-attribute. #-tags can be used.
-```php
-  'rowlink' => 'product.php?id=#0'
-```
-
 # trigger
   * trigger (string): trigger a reload on another table within the user's browser whenever this table gets changed locally. The string should be the lt_table() tag of
     the target table.
@@ -199,6 +153,48 @@ Most options shown here can be combined within the options array passed into lt_
   ]
 ```
 
+# style [experimental]
+  * style (array): assigns direct CSS styling to the specified elements. You can use the contents of other columns as part of the CSS here. If you don't need that,
+    please use the 'classes' option. This option currently only supports tables with 'display => list' or the 'selectone' option active. The example sets the
+    background-color of each list entry to the value of column 2.
+      * list
+      * selectone
+
+```php
+  'style' => [
+    'list' => 'background-color: #2'
+  ]
+```
+
+# display [experimental]
+  * display (string): render the table with different elements than the normal &lt;table>, &lt;tr> and &lt;td>. Available options are 'list' (rendered as &lt;ul> with
+    each row a &lt;li>), 'divs' (renders as a &lt;div> with class "lt-div-table" with each row as a &lt;div> with class "lt-div-row"), 'select' (renders as a &lt;select>
+    with each row as an &lt;option>), 'vertical' (only works for insert fields currently, rendering them as a vertical table).
+```php
+  'display' => 'list'
+```
+
+# transformations [experimental]
+  * transformations (array): applies a clientside transformation to the data in the specified column(s). Currently available are 'round', which rounds a numeric
+    value to the requested number of decimal digits, and 'image', which interprets the data as the src attribute of an &lt;img> tag. In the latter case the data can
+    either be a valid URL or a data URI containing the image data itself.
+```php
+  'transformations' => [
+    3 => [ 'round' => 2 ]
+  ]
+```
+```php
+  'transformations' => [
+    1 => [ 'image' => '#1' ]
+  ]
+```
+
+# rowlink [experimental]
+  * rowlink (string): current only used for display => divs, wraps each &lt;div> in a link (&lt;a>-element) with this string as the href-attribute. #-tags can be used.
+```php
+  'rowlink' => 'product.php?id=#0'
+```
+
 # renderfunction [experimental]
   * renderfunction (string): provide the name of a javascript function that completely replaces the normal lt_table() rendering. This function will be called with 2
     parameters, the first is the &lt;div> with the source attributes, the second is the data object coming from the server. You should render the data as you like to a
@@ -212,9 +208,6 @@ Usage:
   'renderfunction' => 'renderListing'
 ```
 
-# popout [deprecated]
-  * popout (array) type/icon_class
-
 # export [experimental]
   * export (array): add links to the bottom of the table to export the data in various formats. Available (experimentally) for now are: 'xlsx' (export as a modern Excel-sheet)
     and 'image' (export as a PNG image). The Excel export needs "xlsxwriter.class.php" from https://github.com/mk-j/PHP_XLSXWriter/ to be in the main libtables directory. The
@@ -227,3 +220,10 @@ Usage:
     'hideid' => true
   ]
 ```
+
+# showid [deprecated]
+  * showid (boolean): shows the row id number (conceptually column number zero), which is normally hidden from the user. This will be removed in a
+    future version because it causes confusion and can better be done by just asking for the id twice in the SQL query.
+
+# popout [deprecated]
+  * popout (array) type/icon_class
