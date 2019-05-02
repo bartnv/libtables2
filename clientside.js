@@ -1451,17 +1451,9 @@ function updateRow(options, tbody, oldrow, newrow) {
       if (options.format) cell = tbody.find('.lt-data').eq(c-1);
       else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').children().eq(c-offset);
       if (cell) {
-        if ((newrow[c] === null) && (typeof options.emptycelltext == 'string')) cell.text(options.emptycelltext);
-        else if (options.transformations && (options.transformations[c])) {
-          if (options.transformations[c].image) cell.html('<img src="' + replaceHashes(options.transformations[c].image, newrow) + '">');
-          else if (options.transformations[c].round && $.isNumeric(newrow[c])) {
-            cell.html(parseFloat(newrow[c]).toFixed(options.transformations[c].round));
-          }
-        }
-        else if (options.edit && options.edit[c] && options.edit[c].show && (options.edit[c].show == 'always')) {
-          cell.html(renderEdit(options.edit[c], cell, newrow[c], ' onchange="directEdit(this);"'));
-        }
-        else cell.html(newrow[c]?newrow[c]:(newrow[c]===false?'false':''));
+        var newcell = $(renderCell(options, newrow, c));
+        cell.replaceWith(newcell);
+        cell = newcell;
         cell.css('background-color', 'green');
         setTimeout(function(cell) { cell.css('background-color', ''); }, 2000, cell);
       }
