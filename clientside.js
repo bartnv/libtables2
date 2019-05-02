@@ -60,6 +60,11 @@ function tr(str) {
   }
 }
 
+function escape(val) {
+  if (typeof val == 'string') return val.replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  else return val;
+}
+
 function userError(msg) {
   alert(tr('Error') + ': ' + msg);
 }
@@ -553,8 +558,8 @@ function renderTableSelect(table, data, sub) {
   if (data.options.placeholder) select += '<option value="" disabled selected hidden>' + data.options.placeholder + '</option>';
 
   for (var r = 0; r < data.rows.length; r++) { // Main loop over the data rows
-    if (!data.rows[r][2]) select += '<option value="' + data.rows[r][0] + '">' + data.rows[r][1] + '</option>';
-    else select += '<option value="' + data.rows[r][0] + '">' + data.rows[r][1] + ' (' + data.rows[r][2] + ')</option>';
+    if (!data.rows[r][2]) select += '<option value="' + data.rows[r][0] + '">' + escape(data.rows[r][1]) + '</option>';
+    else select += '<option value="' + data.rows[r][0] + '">' + escape(data.rows[r][1]) + ' (' + escape(data.rows[r][2]) + ')</option>';
   }
   select += '</select>';
   section.append(select);
@@ -613,7 +618,7 @@ function renderTableList(table, data, sub) {
       else style = '';
       ul += '<span><input type="radio" name="select' + selectones + '" ' + trigger + style + '></span>';
     }
-    ul += data.rows[r][1];
+    ul += escape(data.rows[r][1]);
   }
   ul += '</ul>';
   section.append(ul);
@@ -822,7 +827,7 @@ function renderHeaders(data, id) {
         else classes.push('lt-sort');
       }
     }
-    str += '<td class="' + classes.join(' ') + '" onclick="' + onclick + '">' + data.headers[c] + '</td>';
+    str += '<td class="' + classes.join(' ') + '" onclick="' + onclick + '">' + escape(data.headers[c]) + '</td>';
   }
   str += '</tr>';
 
@@ -1292,7 +1297,7 @@ function renderCell(options, row, c, element) {
     if (typeof options.emptycelltext == 'string') var content = $('<div/>').text(options.emptycelltext).html(); // Run through jQuery .text() and .html() to apply HTML entity escaping
     else var content = '';
   }
-  else var content = row[c];
+  else var content = escape(row[c]);
 
   return '<' + element + ' class="' + classes.join(' ') + '"' + style + onclick + mouseover + '>' + content + '</' + element + '>';
 }
@@ -1480,7 +1485,7 @@ function updateRow(options, tbody, oldrow, newrow) {
       if (cell.length) {
         var content = replaceHashes(options.appendcell, newrow);
         if (cell.html() !== content.replace(/&/g, '&amp;')) {
-          cell.html(content);
+          cell.text(content);
           cell.css('background-color', 'green');
           setTimeout(function(cell) { cell.css('background-color', ''); }, 2000, cell);
         }
@@ -1541,7 +1546,7 @@ function renderEdit(edit, cell, content, handler) {
   if (handler === undefined) handler = '';
   var input;
   if (edit.type == 'multiline') {
-    input = '<textarea id="editbox" name="input" style="width: ' + cell.width() + 'px; height: ' + cell.height() + 'px;">' + content + '</textarea>';
+    input = '<textarea id="editbox" name="input" style="width: ' + cell.width() + 'px; height: ' + cell.height() + 'px;">' + escape(content) + '</textarea>';
   }
   else if (edit.type == 'checkbox') {
     if (content === (edit.truevalue || 'true')) var checked = ' checked';
@@ -1558,13 +1563,13 @@ function renderEdit(edit, cell, content, handler) {
     input = '<input type="date" id="editbox" name="input" value="' + value + '">';
   }
   else if (edit.type == 'email') {
-    input = $('<input type="email" id="editbox" name="input" value="' + content + '">');
+    input = $('<input type="email" id="editbox" name="input" value="' + escape(content) + '">');
   }
   else if (edit.type == 'datauri') {
     input = $('<input type="file" id="editbox" name="input">');
   }
   else {
-    input = $('<input type="text" id="editbox" name="input" value="' + content + '" style="width: ' + cell.width() + 'px; height: ' + cell.height() + 'px;">');
+    input = $('<input type="text" id="editbox" name="input" value="' + escape(content) + '" style="width: ' + cell.width() + 'px; height: ' + cell.height() + 'px;">');
   }
   return input;
 }
@@ -1573,7 +1578,7 @@ function doEdit(cell, newcontent) {
   cell = $(cell);
   if (cell.hasClass('lt-editing')) return;
   cell.addClass('lt-editing');
-  var content = cell.html();
+  var content = cell.text();
   var data = tables[cell.closest('table').attr('id')].data;
   if ((typeof data.options.emptycelltext == 'string') && (content === $('<div/>').text(data.options.emptycelltext).html())) content = '';
   if (data.options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
@@ -1620,7 +1625,7 @@ function doEdit(cell, newcontent) {
     if ((evt.which != 9) && (evt.which != 13) && (evt.which != 27) && (evt.which != 38) && (evt.which != 40)) return;
     if ((edit.prop('nodeName') == 'TEXTAREA') && ((evt.which == 13) || (evt.which == 38) || (evt.which == 40))) return;
 
-    if (evt.which == 27) cell.html(content); // Escape
+    if (evt.which == 27) cell.text(content); // Escape
     else checkEdit(cell, edit, content);
 
     if (evt.which == 38) { // Arrow up
@@ -1677,7 +1682,7 @@ function doEditSelect(cell) {
   if (cell.hasClass('lt-editing')) return;
   cell.addClass('lt-editing');
   var key = cell.closest('table').attr('id');
-  var content = cell.html();
+  var content = cell.text();
   if (tables[key].data.options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
   else var c = cell.parent().children('.lt-data').index(cell)+1;
   $.ajax({
@@ -1710,7 +1715,7 @@ function doEditSelect(cell) {
         selectbox.focus();
         selectbox.on('keydown', this, function(evt) {
           var cell = evt.data;
-          if (evt.which == 27) cell.html(content); // Escape
+          if (evt.which == 27) cell.text(content); // Escape
           else if (evt.which == 13) checkEdit(cell, selectbox, oldvalue); // Enter
           else if (evt.keyCode == 9) { // Tab
             checkEdit(cell, selectbox, oldvalue);
@@ -1841,17 +1846,17 @@ function checkEdit(cell, edit, oldvalue) {
         }
       }
     });
-    if (edit.prop('nodeName') == 'SELECT') cell.html(edit.find('option:selected').text());
+    if (edit.prop('nodeName') == 'SELECT') cell.text(edit.find('option:selected').text());
     else if (options.edit[c].type == 'password') cell.empty();
     else if (options.edit[c].type == 'datauri') cell.html(tr('Loading...'));
     else if ((newvalue == '') && (typeof options.emptycelltext == 'string')) cell.text(options.emptycelltext);
-    else cell.html(newvalue);
+    else cell.text(newvalue);
     if (!options.style || !options.style[c]) cell.css({ backgroundColor: '#ffa0a0' });
   }
-  else if (edit.prop('nodeName') == 'SELECT') cell.html(edit.find('option[value="' + oldvalue + '"]').text());
+  else if (edit.prop('nodeName') == 'SELECT') cell.text(edit.find('option[value="' + oldvalue + '"]').text());
   else {
-    cell.html(oldvalue);
     if ((oldvalue === '') && (typeof options.emptycelltext == 'string')) cell.text(options.emptycelltext);
+    else cell.text(oldvalue);
   }
   return true;
 }
