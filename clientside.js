@@ -589,6 +589,10 @@ function renderTableDivs(table, data, sub) {
   tables[container.attr('id')].table = container;
 }
 
+function listClick(el) {
+  $(el).find('input').prop('checked', true);
+}
+
 function renderTableList(table, data, sub) {
   var section = $('<section class="lt-list"><h3>' + data.title + '</h3>');
   var ul = '<ul>';
@@ -601,7 +605,7 @@ function renderTableList(table, data, sub) {
   for (var r = 0; r < data.rows.length; r++) { // Main loop over the data rows
     if (data.options.style && data.options.style.list) var style = ' style="' + replaceHashes(data.options.style.list, data.rows[r]) + '"';
     else var style = '';
-    ul += '<li data-rowid="' + data.rows[r][0] + '"' + style + '>';
+    ul += '<li data-rowid="' + data.rows[r][0] + '"' + style + ' onclick="listClick(this);">';
     if (data.options.selectone) {
       if (data.options.selectone.trigger) var trigger = ' data-trigger="' + data.options.selectone.trigger + '"';
       else var trigger = '';
