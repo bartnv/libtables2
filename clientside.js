@@ -2095,7 +2095,7 @@ function calendarSelect(start, end, timezone, callback) {
     dataType: 'json',
     data: {
       mode: 'calendarselect',
-      src: this.overrides.src,
+      src: this.optionsManager.overrides.src,
       start: start.format(),
       end: end.format()
     },
@@ -2130,14 +2130,14 @@ function calendarUpdate(event, delta, revertFunc) {
   });
 }
 function calendarInsert(start, end) {
-  if (this.calendar.overrides.allDayOnly && start.hasTime()) return;
-  if (this.calendar.overrides.insertTitle) {
-    var title = this.calendar.overrides.insertTitle();
+  if (this.calendar.optionsManager.overrides.allDayOnly && start.hasTime()) return;
+  if (this.calendar.optionsManager.overrides.insertTitle) {
+    var title = this.calendar.optionsManager.overrides.insertTitle();
     if (!title) return;
   }
   else var title = '';
-  if (this.calendar.overrides.params) {
-    for (var i = 1; this.calendar.overrides.params[i]; i++) {
+  if (this.calendar.optionsManager.overrides.params) {
+    for (var i = 1; this.calendar.optionsManager.overrides.params[i]; i++) {
       var checked = false;
       var elem = $('input[name=select'+i+']:checked');
       if (elem.length) checked = true;
@@ -2145,8 +2145,8 @@ function calendarInsert(start, end) {
         elem = $('select[name=select'+i+']');
         if ((elem.prop('selectedIndex') >= 0) && ($('select[name=select'+i+'] option').eq($('select[name=select'+i+']').prop('selectedIndex')).attr('value') !== "")) checked = true;
       }
-      if (this.calendar.overrides.params[i].required && !checked) {
-        if (this.calendar.overrides.params[i].missingtext) userError(this.calendar.overrides.params[i].missingtext);
+      if (this.calendar.optionsManager.overrides.params[i].required && !checked) {
+        if (this.calendar.optionsManager.overrides.params[i].missingtext) userError(this.calendar.optionsManager.overrides.params[i].missingtext);
         else userError(tr('Missing parameter'));
         return;
       }
@@ -2158,7 +2158,7 @@ function calendarInsert(start, end) {
     dataType: 'json',
     data: {
       mode: 'calendarinsert',
-      src: this.calendar.overrides.src,
+      src: this.calendar.optionsManager.overrides.src,
       param1: $('input[name=select1]:checked').parent().parent().data('rowid') || $('select[name=select1]').val(),
       param2: $('input[name=select2]:checked').parent().parent().data('rowid') || $('select[name=select2]').val(),
       start: start.format(),
