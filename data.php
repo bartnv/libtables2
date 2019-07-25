@@ -41,7 +41,7 @@ function fatalerr($msg, $redirect = "") {
 function lt_col_allow_null($table, $column) {
   global $dbh;
 
-  if (!($dbtype = $dbh->getAttribute(PDO::ATTR_DRIVER_NAME))) fatalerr('Unable to query SQL server type');
+  if (!($dbtype = $dbh->getAttribute(\PDO::ATTR_DRIVER_NAME))) fatalerr('Unable to query SQL server type');
   if ($dbtype == 'mysql') {
     if (!($res = $dbh->query("DESC $table $column"))) {
       $err = $dbh->errorInfo();
@@ -133,7 +133,7 @@ function allowed_block($block) {
       $err = $dbh->errorInfo();
       fatalerr("Allowed-blocks query returned error: " . $err[2]);
     }
-    $allowed_blocks = $res->fetchAll(PDO::FETCH_COLUMN, 0);
+    $allowed_blocks = $res->fetchAll(\PDO::FETCH_COLUMN, 0);
     if (!in_array($basename, $allowed_blocks)) return false;
   }
   return true;
@@ -478,7 +478,7 @@ switch ($mode) {
       fatalerr("SQL error: " . $err[2]);
     }
     $data = array();
-    $data['items'] = $res->fetchAll(PDO::FETCH_NUM);
+    $data['items'] = $res->fetchAll(\PDO::FETCH_NUM);
     $data['null'] = lt_col_allow_null($target[0], $target[1]);
     if (!empty($edit['insert']) || !empty($edit[2])) $data['insert'] = true;
     header('Content-type: application/json; charset=utf-8');
@@ -510,7 +510,7 @@ switch ($mode) {
           $ret['redirect'] = str_replace('#id', $id, $table['options']['tablefunction']['redirect']);
         }
         elseif (strpos($table['options']['tablefunction']['redirect'], '#') !== FALSE) {
-          $row = $stmt->fetch(PDO::FETCH_NUM);
+          $row = $stmt->fetch(\PDO::FETCH_NUM);
           $str = $table['options']['tablefunction']['redirect'];
           for ($i = count($row)-1; $i >= 0; $i--) $str = str_replace('#' . $i, $row[$i], $str);
           $ret['redirect'] = $str;
@@ -564,14 +564,14 @@ switch ($mode) {
     if (isset($data['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
     $types = str_replace([ 'int4', 'int8', 'float4', 'float8', 'bool', 'text' ], [ 'integer', 'integer', '#,##0.00', '#,##0.00', 'integer', 'string' ], $data['types']);
     $headers = array_combine($data['headers'], $types);
-    $writer = new XLSXWriter();
+    $writer = new \XLSXWriter();
     if (!empty($table['options']['export']['hideid']) && $table['options']['export']['hideid']) array_shift($headers);
     $writer->writeSheetHeader('Sheet1', $headers, array('font-style' => 'bold', 'border' => 'bottom'));
     foreach ($data['rows'] as $row) {
       if (!empty($table['options']['export']['hideid']) && $table['options']['export']['hideid']) array_shift($row);
       $writer->writeSheetRow('Sheet1', $row);
     }
-    header('Content-disposition: attachment; filename="'.XLSXWriter::sanitize_filename($table['title'] . '.xlsx').'"');
+    header('Content-disposition: attachment; filename="'.\XLSXWriter::sanitize_filename($table['title'] . '.xlsx').'"');
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     header('Content-Transfer-Encoding: binary');
     header('Cache-Control: must-revalidate');
@@ -833,7 +833,7 @@ switch ($mode) {
     }
 
     $results = array();
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
       $results[] = array(
         'id' => $row['id'],
         'subid' => isset($row['subid'])?$row['subid']:null,
@@ -926,7 +926,7 @@ switch ($mode) {
     }
 
     $results = array();
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
       $results[] = array(
         'id' => $row['id'],
         'text' => $row['text'],
@@ -944,7 +944,7 @@ switch ($mode) {
 
 function lt_run_insert($table, $data, $idcolumn = '') {
   global $dbh;
-  $driver = $dbh->getAttribute(PDO::ATTR_DRIVER_NAME);
+  $driver = $dbh->getAttribute(\PDO::ATTR_DRIVER_NAME);
 
   $values_str = "";
   foreach (array_keys($data['columns']) as $column) {
@@ -975,7 +975,7 @@ function lt_run_insert($table, $data, $idcolumn = '') {
 
   if ($idcolumn) {
     if ($driver == 'pgsql') {
-      $row = $stmt->fetch(PDO::FETCH_NUM);
+      $row = $stmt->fetch(\PDO::FETCH_NUM);
       if (empty($row) || empty($row[0])) fatalerr("lastInsertId requested but not available");
       $id = $row[0];
     }
