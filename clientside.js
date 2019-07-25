@@ -520,7 +520,7 @@ function replaceHashes(str, row) {
 function renderTable(table, data, sub) {
   var start = Date.now();
   if (data.options.display && (data.options.display == 'list')) renderTableList(table, data, sub);
-  else if (data.options.display && (data.options.display = 'divs')) renderTableDivs(table, data, sub);
+  else if (data.options.display && (data.options.display == 'divs')) renderTableDivs(table, data, sub);
   else if (data.options.display && (data.options.display == 'select')) renderTableSelect(table, data, sub);
   else if (data.options.display && (data.options.display == 'vertical')) renderTableVertical(table, data, sub);
   else if (data.options.format) renderTableFormat(table, data, sub);
