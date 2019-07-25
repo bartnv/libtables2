@@ -613,7 +613,7 @@ switch ($mode) {
     if (!empty($_POST['params'])) $params = json_decode(base64_decode($_POST['params']));
     else $params = array();
 
-    $tableinfo = lt_find_table($_POST['src']);
+    $tableinfo = lt_find_table($_POST['src'], $params);
     if (!allowed_block($tableinfo['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     $tables = array();
 
