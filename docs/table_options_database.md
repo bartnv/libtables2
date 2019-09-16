@@ -21,6 +21,8 @@ Basic example:
         * color: use a color picker as input element; requires https://github.com/mrgrain/colpick to be loaded. Saves the color's #-code in the cell
         * number: use a &lt;input type="number"> element which presents up/down arrows in supporting browsers; falls back to normal text input otherwise. Also allows the use of
           'min' and 'max' suboptions that set limits on the permitted input
+        * datauri: use a file upload element; the uploaded file should be an image and will be stored in the database as a data uri (to be used in conjunction with [transformations -> image](https://bart.noordervliet.net/lt-docs/table_options_display/#transformations-experimental))
+          note: there is currently no size limit and automatic resizing is not yet implemented, so beware of bloating your database with giant files
     * query (string): query to generate a pulldown menu from; should produce a foreign key and a description.
       The foreign key is stored in the 'target' column, the description is shown in the user interface.
     * required (boolean or array): enforce that the field cannot be left empty
@@ -38,10 +40,11 @@ Full example:
     2 => [ 'target' => 'table.column2', 'type' => 'multiline' ],
     3 => [ 'target' => 'table.column3', 'type' => 'checkbox', 'truevalue' => 't', 'falsevalue' => 'f' ],
     4 => [ 'target' => 'table.column4', 'type' => 'number', 'min' => 1, 'max' => 100 ],
-    5 => [ 'target' => 'table.column5', 'query' => 'SELECT id, description FROM othertable' ],
-    6 => [ 'target' => 'table.column6', 'required' => true ],
-    7 => [ 'target' => 'table.column7', 'required' => [ 'regex' => '\d{4}', 'message' => 'Input is not a 4-digit code' ] ],
-    8 => [ 'target' => 'table.column8', 'condition' => [ '#3', '==', 't' ] ],
+    5 => [ 'target' => 'table.column9', 'type' => 'datauri' ],
+    6 => [ 'target' => 'table.column5', 'query' => 'SELECT id, description FROM othertable' ],
+    7 => [ 'target' => 'table.column6', 'required' => true ],
+    8 => [ 'target' => 'table.column7', 'required' => [ 'regex' => '\d{4}', 'message' => 'Input is not a 4-digit code' ] ],
+    9 => [ 'target' => 'table.column8', 'condition' => [ '#3', '==', 't' ] ],
     'trigger' => 'tag'
   ]
 ```
