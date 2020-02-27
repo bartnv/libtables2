@@ -32,6 +32,7 @@ Basic example:
       (either '==' or '!=') as a string and the right-hand side. The left-hand side will expand hash-tags like '#2' meaning 'the value of column 2 in this row'.
     * show (string): [experimental] only supports the value 'always' currently, which makes the edit input always visible, not just after clicking
     * trigger (string): refresh the indicated other table whenever this table is changed through edit; needs to contain the 'tag' name of the other table
+    * idcolumn (integer): normally, the row and table to edit are defined by the first column in the select query containing the id of the row to update after an edit; if the cell to be updated is in an other table, the idcolumn makes it possible to specify the row and table that has to be updated
 
 Full example:
 ```php
@@ -45,6 +46,7 @@ Full example:
     7 => [ 'target' => 'table.column6', 'required' => true ],
     8 => [ 'target' => 'table.column7', 'required' => [ 'regex' => '\d{4}', 'message' => 'Input is not a 4-digit code' ] ],
     9 => [ 'target' => 'table.column8', 'condition' => [ '#3', '==', 't' ] ],
+    10 => [ 'target' => 'othertable.column2', 'idcolumn' => 4 ]
     'trigger' => 'tag'
   ]
 ```
@@ -94,7 +96,7 @@ Include example:
     * class (string): CSS class name to set on the input element, in addition to the default ones
     * trigger (string): refresh the indicated other table whenever this table is changed through edit; needs to contain the 'tag' name of the other table
     * next (string): when the insert button is clicked, replace this block with the block named in this option; the new block is invoked with the id of the
-      newly inserted entry as its first parameter
+      newly inserted entry as its first parameter (use it as $params[0] from PHP)
     * include (string): input definitions to reuse; currently only supports 'edit' to use the edit-definitions
     * noclear (boolean): if set to true, the insert input fields are not cleared after each insert is done
     * onsuccessalert (string): text to show in a javascript alert() after the insert was done succesfully

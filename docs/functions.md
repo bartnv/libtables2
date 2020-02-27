@@ -51,6 +51,17 @@ Parameters:
   lt_print_block('productinfo', [ $_GET['product_id'] ]);
 ```
 
+## lt_print_single
+
+Returns the value of the first row, first column resulting from the passed query
+and optional parameters. Usually used with a SELECT or an "INSERT ... RETURNING"
+query. If any error is encountered, the empty string is returned. No further error
+reporting is performed.
+
+```php
+  lt_print_single('SELECT users.name FROM users WHERE id = ?', [ $_SESSION['user_id'] ]);
+```
+
 ## lt_control [experimental]
 
 The lt_control() function adds control-flow buttons to the current block.
@@ -59,14 +70,21 @@ The lt_control() function adds control-flow buttons to the current block.
 
 Parameters:
 
-  * tag (required): unique name for the controls within this block, only lowercase letters allowed
-  * options (required): an array of options to specify the functionality of the buttons
+  * tag (string, required): unique name for the controls within this block, only lowercase letters allowed
+  * options (array, required): an array of options to specify the functionality of the buttons
+    * next (array, required): first element is the block name to load when the next button is clicked, second element is the text to show on the button
+    * verify (string): an SQL query to run before any action is taken; if the query returns no results, stop the action and show the error text
+    * error (string): the error text to show if the verify fails
+    * php (string): PHP code to run before any action is taken; if the PHP returns text, stop the action and show this text in an alert
+    * class (string): the CSS class to assign to the button
 
 ```php
   lt_control('buttons', [
     'next' => [ 'payment', 'Go to payment' ],
     'verify' => "SELECT id FROM cart WHERE user = " . $_SESSION['user_id'],
-    'error' => "you have no items in your cart"
+    'error' => "you have no items in your cart",
+    'php' => "if (!check_stock($_SESSION['cart'])) return 'Insufficient stock';",
+    'class' => 'importantButton'
   ]);
 ```
 
