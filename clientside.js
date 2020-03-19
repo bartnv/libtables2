@@ -185,14 +185,50 @@ function doFunction(button, addparam) {
     });
   }
   else if (button.hasClass('lt-rowfunc')) {
+    let actionid = button.parent().data('actionid');
+    let data = tables[key].data;
+    let action = data.options.actions[actionid];
+    data.active = button.closest('.lt-row').data('rowid');
+
+    if (action.location) {
+      for (let r = 0; r < data.rows.length; r++) {
+        if (data.rows[r][0] == data.active) {
+          window.location = replaceHashes(action.location, data.rows[r]);
+          return;
+        }
+      }
+      console.log('Row with id ' + data.active + ' not found');
+      return;
+    }
+
     $.ajax({
       method: 'post',
       url: ajaxUrl,
       dataType: 'json',
+      context: data,
       data: { mode: 'function', type: 'row', src: tables[key].data.block + ':' + tables[key].data.tag, params: paramstr, row: button.closest('.lt-row').data('rowid'), action: button.parent().data('actionid') },
       success: function(data) {
         if (data.error) appError(data.error, table);
         else if (data.redirect) window.location = data.redirect;
+        if (data.output) {
+          if (action.output == 'block') {
+            button.closest('table').parent().replaceWith(data.output);
+            loadOrRefreshCollection($('.lt-div'));
+            return;
+          }
+          if (action.output == 'location') {
+            window.location = data.output;
+            return;
+          }
+          if (action.output == 'alert') alert(data.output);
+          else if (action.output == 'function') {
+            if (!action.functionname) {
+              console.log('Source ' + tables[key].data.block + ':' + tables[key].data.tag + ' has an action with output type function without a functionname parameter');
+              return;
+            }
+            window[action.functionname](data.output);
+          }
+        }
         else {
           refreshTable(table, key);
           if (data.alert) alert(data.alert);
@@ -584,6 +620,8 @@ function renderTableDivs(table, data, sub) {
     items += '<div class="lt-div-row" data-rowid="' + data.rows[r][0] + '">';
     if (data.options.rowlink) items += '<a href="' + replaceHashes(data.options.rowlink, data.rows[r]) + '">';
     for (var c = 1; c < data.rows[r].length; c++) { // Loop over the columns
+      if (data.options.mouseover && data.options.mouseover[c]) continue;
+      if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
       items += renderCell(data.options, data.rows[r], c, 'div');
     }
     if (data.options.appendcell) items += '<div class="lt-cell lt-append">' + replaceHashes(data.options.appendcell, data.rows[r]) + '</div>';
@@ -942,12 +980,15 @@ function renderInsert(data) {
   var colspan = 1;
   if (data.options.delete) colspan++;
   if (data.options.appendcell) colspan++;
-  for (var c = 1; ; c++) {
+  for (var c = 1; ; c++) { // Loop over the headers
     if (data.options.mouseover && data.options.mouseover[c]) continue;
     if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
     if (!fields[c]) {
-      row.append('<td class="lt-head" colspan="' + colspan + '">' + tr('Insert') + '</td>');
-      break;
+      if (!fields[c+1] && !fields[c+2]) {
+        row.append('<td class="lt-head" colspan="' + colspan + '">' + tr('Insert') + '</td>');
+        break;
+      }
+      str = '<td class="lt-cell"></td>';
     }
     else {
       if ((typeof(fields[c]) == 'object') && fields[c].label) str = '<td class="lt-head">' + fields[c].label + '</td>';
@@ -959,10 +1000,12 @@ function renderInsert(data) {
 
   row = $('<tr class="lt-row lt-insert"/>');
   if (data.options.selectany) row.append('<td/>');
-  for (var c = 1; ; c++) {
+  for (var c = 1; ; c++) { // Loop over the input fields
+    if (data.options.mouseover && data.options.mouseover[c]) continue;
+    if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
     var insert = null;
     if (!fields[c]) {
-      if (c >= data.headers.length-1) break;
+      if (!fields[c+1] && !fields[c+2]) break;
       else {
         row.append('<td class="lt-cell"></td>');
         continue;
@@ -1005,6 +1048,7 @@ function renderField(field, data, c) {
   }
   else if (field.type == 'checkbox') var input = $('<input type="checkbox" class="lt-insert-input" name="' + field.target + '">');
   else if (field.type == 'date') var input = $('<input type="date" class="lt-insert-input" name="' + field.target + '" value="' + new Date().toISOString().slice(0, 10) + '">');
+  else if (field.type == 'datetime') var input = $('<input type="datetime-local" class="lt-insert-input" name="' + field.target + '" value="' + new Date().toISOString().slice(0, 11) + '00:00">');
   else if (field.type == 'password') var input = $('<input type="password" class="lt-insert-input" name="' + field.target + '">');
   else if (field.type == 'email') var input = $('<input type="email" class="lt-insert-input" name="' + field.target + '">');
   else if (field.type == 'color') var input = $('<input type="text" class="lt-insert-input lt-color-cell" name="' + field.target + '" onfocus="showColPick(this)">');
@@ -1012,6 +1056,9 @@ function renderField(field, data, c) {
     var input = $('<input type="number" class="lt-insert-input" name="' + field.target + '">');
     if (field.min) input.attr('min', field.min);
     if (field.max) input.attr('max', field.max);
+  }
+  else if (field.type == 'file') {
+    input = $('<input type="file" class="lt-insert-input" name="' + field.target + '">');
   }
   else if (field.target && !field.query) var input = $('<input type="text" class="lt-insert-input" name="' + field.target + '">');
   else {
@@ -1575,6 +1622,10 @@ function doEdit(cell, newcontent) {
   if ((typeof data.options.emptycelltext == 'string') && (content === $('<div/>').text(data.options.emptycelltext).html())) content = '';
   if (data.options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
   else var c = cell.parent().children('.lt-data').index(cell)+1;
+  for (var i = 0; i <= c; i++) {
+    if (data.options.mouseover && data.options.mouseover[i]) c++;
+    if (data.options.hidecolumn && data.options.hidecolumn[i]) c++;
+  }
 
   var edit = $(renderEdit(data.options.edit[c], cell, typeof newcontent == 'string'?newcontent:content));
   cell.empty().append(edit);
@@ -1677,6 +1728,11 @@ function doEditSelect(cell) {
   var content = cell.text();
   if (tables[key].data.options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
   else var c = cell.parent().children('.lt-data').index(cell)+1;
+  for (var i = 0; i <= c; i++) {
+    if (tables[key].data.options.mouseover && tables[key].data.options.mouseover[i]) c++;
+    if (tables[key].data.options.hidecolumn && tables[key].data.options.hidecolumn[i]) c++;
+  }
+
   $.ajax({
     method: 'get',
     url: ajaxUrl,
@@ -1736,6 +1792,7 @@ function doEditSelect(cell) {
           checkEdit(evt.data, $(this), oldvalue);
           evt.data.removeClass('lt-editing');
         });
+        selectbox.on('click', 'option', function() { this.parentNode.blur(); });
       }
     }
   });
@@ -1776,6 +1833,11 @@ function checkEdit(cell, edit, oldvalue) {
   var options = tables[key].data.options;
   if (options.format) var c = cell.closest('tbody').find('.lt-data').index(cell)+1;
   else var c = cell.parent().children('.lt-data').index(cell)+1;
+  for (var i = 0; i <= c; i++) {
+    if (options.mouseover && options.mouseover[i]) c++;
+    if (options.hidecolumn && options.hidecolumn[i]) c++;
+  }
+
   if (options.edit[c].type == 'checkbox') {
     if (edit.prop('checked')) {
       if (options.edit[c].truevalue) newvalue = options.edit[c].truevalue;
@@ -1795,7 +1857,20 @@ function checkEdit(cell, edit, oldvalue) {
     if (options.edit[c].required) {
       if (!checkRequirements(options, c, newvalue)) return false;
     }
-    var data = { mode: 'inlineedit', src: tables[key].data.block + ':' + tables[key].data.tag, col: c, row: cell.parent().data('rowid'), val: newvalue };
+    var rowid = cell.parent().data('rowid');
+    if (options.edit[c].idcolumn) {
+      var rows = tables[key].data.rows;
+      for (var r = 0; r < rows.length; r++) {
+        if (rows[r][0] == rowid) break;
+      }
+      if (r == rows.length) {
+        console.log('Row ' + rowid + ' not found in table data for ' + tables[key].data.block + ':' + tables[key].data.tag);
+        return;
+      }
+      rowid = rows[r][options.edit[c].idcolumn];
+    }
+
+    var data = { mode: 'inlineedit', src: tables[key].data.block + ':' + tables[key].data.tag, col: c, row: rowid, val: newvalue };
     if (tables[key].data.params) data['params'] = tables[key].data.params;
     if (options.sql) data['sql'] = options.sql;
     $.ajax({
@@ -1857,15 +1932,21 @@ function doInsert(el) {
   el = $(el);
   row = el.closest('.lt-insert');
   var error = false;
-  postdata = row.find('input,select,textarea').not(el).map(function() {
-    input = $(this);
+  let table = tables[row.closest('table').attr('id')].data;
+  let formdata = new FormData();
+  formdata.append('mode', 'insertrow');
+  formdata.append('src', table.block + ':' + table.tag);
+  formdata.append('params', row.closest('.lt-div').data('params'));
+  for (let input of row.find('input,select,textarea').not(el)) {
+    input = $(input);
     if (input.prop('type') == 'checkbox') value = input.prop('checked');
+    else if (input.prop('type') == 'file') value = input[0].files[0];
     else value = input.val();
     if (value === null) value = '';
     input.trigger('input');
     if (input.hasClass('lt-input-error')) error = true;
-    return input.prop('name').replace('.', ':') + '=' + encodeURIComponent(value);
-  }).get().join('&');
+    formdata.append(input.prop('name').replace('.', ':'), value);
+  };
   if (error) {
     alert(tr('Row has errors and cannot be inserted'));
     return;
@@ -1873,19 +1954,33 @@ function doInsert(el) {
   table = tables[row.closest('table').attr('id')].data;
   if (table.options.insert && table.options.insert.hidden) {
     if (typeof(table.options.insert.hidden[0]) == 'object') { // Multiple hidden fields (array of arrays)
-      for (i = 0; table.options.insert.hidden[i]; i++) processHiddenInsert(table.options.insert.hidden[i], row.closest('.lt-div').data('params'));
+      for (i = 0; table.options.insert.hidden[i]; i++) processHiddenInsert(formdata, table.options.insert.hidden[i], row.closest('.lt-div').data('params'));
     }
-    else processHiddenInsert(table.options.insert.hidden, row.closest('.lt-div').data('params'));
+    else processHiddenInsert(formdata, table.options.insert.hidden, row.closest('.lt-div').data('params'));
   }
-  postdata = 'params=' + row.closest('.lt-div').data('params') + '&' + postdata;
   $.ajax({
     dataType: 'json',
     url: ajaxUrl,
     method: 'post',
     context: row,
-    data: 'mode=insertrow&src=' + table.block + ':' + table.tag + '&' + postdata,
+    data: formdata,
+    processData: false,
+    contentType: false,
+    xhr: function() {
+      let xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('progress', function(evt) {
+        if (evt.lengthComputable) {
+          let pct = Math.round(evt.loaded * 100 / evt.total);
+          el.css('background', 'linear-gradient(90deg, rgba(0,255,0,1) 0%, rgba(0,255,0,1) ' + pct + '%, rgba(110,28,32,0) ' + pct + '%, rgba(0,0,0,0) 100%)');
+        }
+      });
+      return xhr;
+    },
     success: function(data) {
-      if (data.error) userError(data.error);
+      if (data.error) {
+        el.css('background', 'rgb(255,0,0)');
+        userError(data.error);
+      }
       else if (data.replace) {
         var div = this.closest('.lt-div');
         div.before(data.replace);
@@ -1906,6 +2001,7 @@ function doInsert(el) {
             }
             else if (el.prop('nodeName') == 'SELECT') el.prop('selectedIndex', -1);
             else if (el.prop('type') == 'date') el.val(new Date().toISOString().slice(0, 10));
+            else if (el.prop('type') == 'datetime-local') el.val(new Date().toISOString().slice(0, 11) + '00:00');
             else if (el.prop('type') == 'checkbox') el.prop('checked', false);
             else if (el.hasClass('lt-addoption')) switchToSelect(el);
             else el.val('');
@@ -1937,6 +2033,7 @@ function doInsert(el) {
         if (tabledata.options.insert.onsuccessalert) alert(tabledata.options.insert.onsuccessalert);
         if (tabledata.options.insert.onsuccessscript) eval(tabledata.options.insert.onsuccessscript);
 
+        el.css('background', '');
         this.find('input,select,textarea').first().focus();
       }
     }
@@ -1973,7 +2070,7 @@ function doNext(el, prev) {
   }
 }
 
-function processHiddenInsert(hidden, paramstr) {
+function processHiddenInsert(formdata, hidden, paramstr) {
   if (!hidden.target || !hidden.value) appError('No target or value defined in insert hidden');
   value = String(hidden.value);
   if (value.indexOf('#') >= 0) {
@@ -1984,7 +2081,7 @@ function processHiddenInsert(hidden, paramstr) {
       }
     }
   }
-  postdata += '&' + hidden.target.replace('.', ':') + '=' + value;
+  formdata.append(hidden.target.replace('.', ':'), value);
 }
 
 function doDelete(el) {
@@ -1999,7 +2096,9 @@ function doDelete(el) {
       appError('Row to be deleted not found', table.rows);
       return;
     }
-    if (!confirm(replaceHashes(table.options.delete.confirm, table.rows[r]))) return;
+    if (!confirm(replaceHashes(table.options.delete.confirm, table.rows[r]))) {
+      return;
+    }
   }
   $.ajax({
     dataType: 'json',
@@ -2189,6 +2288,13 @@ function calendarDelete(src, id, successFunc) {
  *   3rd-party scripts   *
  *                       *
  * * * * * * * * * * * * */
+
+// Redraw helper function
+$.fn.redraw = function(){
+  return $(this).each(function() {
+    let redraw = this.offsetHeight;
+  });
+};
 
 // Array Remove - By John Resig (MIT licensed) - http://ejohn.org/blog/javascript-array-remove/
 Array.prototype.remove = function(from, to) {

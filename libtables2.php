@@ -104,7 +104,7 @@ function lt_table($tag, $title, $query, $options = array()) {
       foreach ($options['params'] as $param) {
         if (!empty($_GET[$param])) $params[] = $_GET[$param];
         else {
-          print "<p>Table $tag in block $basename requires $param parameter</p>";
+          print "<script>console.log('Not rendering table $tag because parameter $param is not set')</script>";
           return;
         }
       }
@@ -257,6 +257,14 @@ function lt_print_block($block, $params = array(), $options = array()) {
       $basename = $basename_prev;
       return $ret;
     }
+    if (file_exists($dir . $basename . '.includephp')) {
+      if (!empty($params)) $block_options['params'] = $params;
+      $ret = include $dir . $basename . '.includephp';
+      if ($ret === FALSE) print "<p>PHP syntax error in block $basename</p>";
+      if (!empty($options['wrapperdiv']) && $options['wrapperdiv']) print "</div>\n";
+      $basename = $basename_prev;
+      return $ret;
+    }
   }
 
   print "Block $basename not found in blocks_dir " . implode(", ", $dirs) . " (CWD: " . getcwd() . ")";
@@ -369,13 +377,19 @@ function lt_query_to_string($query, $params = array(), $format) {
 
 function lt_query_single($query, $params = array()) {
   global $dbh;
+  global $block_params;
 
-  if (!empty($params)) {
+  if (!empty($params)) $localparams = $params;
+  elseif (!empty($block_params)) $localparams = $block_params;
+
+  if (!empty($localparams)) {
+    $paramcount = substr_count($query, '?');
+    if (count($localparams) > $paramcount) $localparams = array_slice($localparams, 0, $paramcount);
     if (!($res = $dbh->prepare($query))) {
       $err = $dbh->errorInfo();
       return "Error: query prepare failed: " . $err[2];
     }
-    if (!$res->execute($params)) {
+    if (!$res->execute($localparams)) {
       $err = $res->errorInfo();
       return "Error: query execute failed: " . $err[2];
     }

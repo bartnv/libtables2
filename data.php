@@ -88,6 +88,8 @@ function lt_col_allow_null($table, $column) {
 function lt_find_table($src, $params = []) {
   global $lt_settings;
   global $tables;
+  global $parseonly;
+  $parseonly = true;
 
   $src = explode(':', $src);
   if (is_array($lt_settings['blocks_dir'])) $dirs = $lt_settings['blocks_dir'];
@@ -110,6 +112,12 @@ function lt_find_table($src, $params = []) {
       ob_end_clean();
       break;
     }
+    elseif (file_exists($dir . $src[0] . '.includephp')) {
+      ob_start();
+      if ((include $dir . $src[0] . '.includephp') === FALSE) fatalerr('PHP syntax error in block ' . $src[0]);
+      ob_end_clean();
+      break;
+    }
   }
 
   if (!empty($error)) fatalerr($error, $redirect);
@@ -123,6 +131,13 @@ function lt_find_table($src, $params = []) {
       return $atable;
     }
   }
+  fatalerr('Table ' . $src[1] . ' not found in block ' . $src[0]);
+}
+
+function lt_find_id_column($table) {
+  global $lt_settings;
+  if (!empty($lt_settings['id_columns']) && !empty($lt_settings['id_columns'][$table])) return $lt_settings['id_columns'][$table];
+  return 'id';
   fatalerr('Table ' . $src[1] . ' not found in block ' . $src[0]);
 }
 
@@ -360,7 +375,7 @@ switch ($mode) {
     $target = explode('.', $target);
 
     if ($_POST['val'] == '') {
-      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = NULL WHERE id = ?'))) {
+      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = NULL WHERE ' . lt_find_id_column($target[0]) . ' = ?'))) {
         $err = $dbh->errorInfo();
         fatalerr("SQL prepare error: " . $err[2]);
       }
@@ -370,7 +385,7 @@ switch ($mode) {
       }
     }
     elseif (($type == 'checkbox') && !empty($edit['truevalue']) && ($edit['truevalue'] === $_POST['val'])) {
-      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = TRUE WHERE id = ?'))) {
+      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = TRUE WHERE ' . lt_find_id_column($target[0]) . ' = ?'))) {
         $err = $dbh->errorInfo();
         fatalerr("SQL prepare error: " . $err[2]);
       }
@@ -380,7 +395,7 @@ switch ($mode) {
       }
     }
     elseif (($type == 'checkbox') && !empty($edit['falsevalue']) && ($edit['falsevalue'] === $_POST['val'])) {
-      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = FALSE WHERE id = ?'))) {
+      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = FALSE WHERE ' . lt_find_id_column($target[0]) . ' = ?'))) {
         $err = $dbh->errorInfo();
         fatalerr("SQL prepare error: " . $err[2]);
       }
@@ -392,7 +407,7 @@ switch ($mode) {
     elseif (!empty($edit['phpfunction'])) {
       $func = 'return ' . str_replace('?', "'" . $_POST['val'] . "'", $edit['phpfunction']) . ';';
       $ret = eval($func);
-      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = ? WHERE id = ?'))) {
+      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = ? WHERE ' . lt_find_id_column($target[0]) . ' = ?'))) {
         $err = $dbh->errorInfo();
         fatalerr("SQL prepare error: " . $err[2]);
       }
@@ -414,7 +429,7 @@ switch ($mode) {
         }
       }
       else $sqlfunc = $edit['sqlfunction'];
-      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = ' . $sqlfunc . ' WHERE id = ?'))) {
+      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = ' . $sqlfunc . ' WHERE ' . lt_find_id_column($target[0]) . ' = ?'))) {
         $err = $dbh->errorInfo();
         fatalerr("SQL prepare error: " . $err[2]);
       }
@@ -424,7 +439,7 @@ switch ($mode) {
       }
     }
     else {
-      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = ? WHERE id = ?'))) {
+      if (!($stmt = $dbh->prepare('UPDATE ' . $target[0] . ' SET ' . $target[1] . ' = ? WHERE ' . lt_find_id_column($target[0]) . ' = ?'))) {
         $err = $dbh->errorInfo();
         fatalerr("SQL prepare error: " . $err[2]);
       }
@@ -490,7 +505,7 @@ switch ($mode) {
     if (!empty($_POST['params'])) $params = json_decode(base64_decode($_POST['params']));
     else $params = array();
 
-    $table = lt_find_table($_POST['src']);
+    $table = lt_find_table($_POST['src'], $params);
     if ($_POST['type'] == 'table') {
       if (empty($table['options']['tablefunction'])) fatalerr('No tablefunction defined in block ' . $_POST['src']);
       if (empty($table['options']['tablefunction']['query'])) fatalerr('No tablefunction query defined in block ' . $_POST['src']);
@@ -546,7 +561,7 @@ switch ($mode) {
         ob_start();
         lt_print_block($action['block'], $params);
         $output = ob_get_clean();
-        if (!empty($output)) $ret['alert'] = $output;
+        if (!empty($output)) $ret['output'] = $output;
       }
       print json_encode($ret);
     }
@@ -628,6 +643,12 @@ switch ($mode) {
         else $tables[$table]['columns'][$column] = $value;
       }
     }
+    foreach ($_FILES as $key => $value) {
+      if (strpos($key, ':') === FALSE) fatalerr('<p>Invalid target specification for file upload in mode insert: ' . $key);
+      list($table, $column) = explode(':', $key);
+      if (!$table || !$column) fatalerr('<p>Invalid target specification for file upload in mode insert: ' . $key);
+      $tables[$table]['columns'][$column] = $value;
+    }
 
     // Check whether there is a matching insert field for each table.column combination
     $fields = $tableinfo['options']['insert'];
@@ -694,6 +715,39 @@ switch ($mode) {
         if (!empty($found['sqlfunction'])) {
           $tables[$tabname]['sqlfunction'][$colname] = $found['sqlfunction'];
         }
+        if (!empty($found['type']) && ($found['type'] == 'file')) {
+          if (empty($found['path'])) fatalerr("Insert type 'file' without 'path' parameter in block " . $_POST['src']);
+          if (!empty($path)) fatalerr("Insert type 'file' can only be used once within a table");
+          $path = $found['path'];
+          if (substr($path, -1) !== '/') $path .= '/';
+          $path .= $tables[$tabname]['columns'][$colname]['name'];
+          if (is_file($path)) fatalerr("File already exists");
+          if (!move_uploaded_file($tables[$tabname]['columns'][$colname]['tmp_name'], $path)) fatalerr("Failed to move uploaded file into directory [$path]");
+          if (!empty($found['nameinto'])) {
+            list($ntable, $ncolumn) = explode('.', $found['nameinto']);
+            $tables[$ntable]['columns'][$ncolumn] = preg_replace('/\.[^.]+$/', '', $tables[$tabname]['columns'][$colname]['name']);
+          }
+          if (!empty($found['thumbinto']) && (list($w, $h, $type) = getimagesize($path)) && (($type == IMAGETYPE_PNG) || ($type == IMAGETYPE_JPEG))) {
+            if (!empty($found['thumbsize'])) $dim = $found['thumbsize'];
+            else $dim = 100;
+            if ($type === IMAGETYPE_PNG) $img = imagecreatefrompng($path);
+            else $img = imagecreatefromjpeg($path);
+            if ($w > $h) {
+              $new = imagecreatetruecolor($dim, $dim*($h/$w));
+              imagecopyresampled($new, $img, 0, 0, 0, 0, $dim, $dim*($h/$w), $w, $h);
+            }
+            else {
+              $new = imagecreatetruecolor($dim*($w/$h), $dim);
+              imagecopyresampled($new, $img, 0, 0, 0, 0, $dim*($w/$h), $dim, $w, $h);
+            }
+            ob_start();
+            imagejpeg($new);
+            $datauri = 'data:image/' . ($type == IMAGETYPE_PNG?'png':'jpeg') . ';base64,' . base64_encode(ob_get_clean());
+            list($ttable, $tcolumn) = explode('.', $found['thumbinto']);
+            $tables[$ttable]['columns'][$tcolumn] = $datauri;
+          }
+          $tables[$tabname]['columns'][$colname] = $path;
+        }
       }
     }
 
@@ -713,7 +767,7 @@ switch ($mode) {
     // Then run the rest of the inserts
     foreach ($tables as $name => $value) {
       if (!isset($tables[$name]['columns'])) continue;
-      $id = lt_run_insert($name, $tables[$name], 'id');
+      $id = lt_run_insert($name, $tables[$name], lt_find_id_column($name));
       unset($tables[$name]['columns']); // May not be necessary
     }
 
@@ -747,15 +801,25 @@ switch ($mode) {
     if (!empty($_POST['params'])) $params = json_decode(base64_decode($_POST['params']));
     else $params = array();
 
-    $table = lt_find_table($_POST['src']);
+    $table = lt_find_table($_POST['src'], $params);
     if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     if (empty($table['options']['delete']['table'])) fatalerr('No table defined in delete option in block ' . $_POST['src']);
     $target = $table['options']['delete']['table'];
 
+    if (!empty($table['options']['delete']['runphp'])) {
+      $data = lt_query($table['query'], $params, $_POST['id']);
+      if (!empty($data['error'])) fatalerr("SQL error in delete->runphp for table " . $_POST['src'] . ": " . $data['error']);
+      try {
+        $ret = eval(replaceHashes($table['options']['delete']['runphp'], $data['rows'][0]));
+      } catch (Exception $e) {
+        fatalerr("PHP error in delete->runphp for table " . $_POST['src'] . ": " . $e->getMessage());
+      }
+    }
+
     if (!empty($table['options']['delete']['update'])) {
       if (empty($table['options']['delete']['update']['column'])) fatalerr('No column defined in update setting for delete option in block ' . $_POST['src']);
       if (!isset($table['options']['delete']['update']['value'])) fatalerr('No value defined in update setting for delete option in block ' . $_POST['src']);
-      if (!($stmt = $dbh->prepare("UPDATE " . $target . " SET " . $table['options']['delete']['update']['column'] . " = ? WHERE id = ?"))) {
+      if (!($stmt = $dbh->prepare("UPDATE " . $target . " SET " . $table['options']['delete']['update']['column'] . " = ? WHERE " . lt_find_id_column($target) . " = ?"))) {
         $err = $dbh->errorInfo();
         fatalerr("SQL prepare error: " . $err[2]);
       }
@@ -765,7 +829,7 @@ switch ($mode) {
       }
     }
     else {
-      if (!($stmt = $dbh->prepare("DELETE FROM " . $target . " WHERE id = ?"))) {
+      if (!($stmt = $dbh->prepare("DELETE FROM " . $target . " WHERE " . lt_find_id_column($target) . " = ?"))) {
         $err = $dbh->errorInfo();
         fatalerr("SQL prepare error: " . $err[2]);
       }
@@ -774,6 +838,7 @@ switch ($mode) {
         fatalerr("SQL execute error: " . $err[2]);
       }
     }
+
     $data = lt_query($table['query'], $params);
     $ret = [ 'status' => 'ok', 'crc' => crc32(json_encode($data['rows'], JSON_PARTIAL_OUTPUT_ON_ERROR)) ];
     print json_encode($ret, JSON_PARTIAL_OUTPUT_ON_ERROR);
@@ -912,30 +977,40 @@ switch ($mode) {
   break;
   case 'ganttselect':
     if (empty($_GET['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_GET['src'])) fatalerr('Invalid src in mode ganttselect');
-    $table = lt_find_table($_GET['src']);
+    if (!empty($_GET['params'])) $params = json_decode(base64_decode($_GET['params']));
+    else $params = array();
+
+    $table = lt_find_table($_GET['src'], $params);
     if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_GET['block'] . ' denied');
     if (empty($table['queries']['select'])) fatalerr('No select query defined in lt_gantt block ' . $_GET['src']);
 
-    if (!($stmt = $dbh->prepare($table['queries']['select']))) {
-      $err = $dbh->errorInfo();
-      fatalerr("SQL prepare error: " . $err[2]);
-    }
-    if (!($stmt->execute())) {
-      $err = $stmt->errorInfo();
-      fatalerr("SQL execute error: " . $err[2]);
-    }
+    $data = lt_query($table['queries']['select'], $params);
+    if (!empty($data['error'])) fatalerr($data['error']);
 
     $results = array();
-    while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+    foreach ($data['rows'] as $row) {
       $results[] = array(
-        'id' => $row['id'],
-        'text' => $row['text'],
-        'start_date' => $row['start'],
-        'end_date' => $row['end']
+        'id' => $row[0],
+        'text' => $row[1],
+        'start_date' => $row[2],
+        'end_date' => $row[3]
       );
     }
 
     print json_encode(array('data' => $results, 'links' => []), JSON_PARTIAL_OUTPUT_ON_ERROR);
+    break;
+  case 'ganttupdate':
+    if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode ganttupdate');
+    if (empty($_POST['id']) || !is_numeric($_POST['id'])) fatalerr('Invalid id in mode ganttupdate');
+    if (empty($_POST['start']) || empty($_POST['end'])) fatalerr('Invalid dates in mode ganttupdate');
+
+    $table = lt_find_table($_POST['src'], $params);
+    if (!allowed_block($table['block'])) fatalerr('Access to block ' . $_POST['block'] . ' denied');
+    if (empty($table['queries']['update'])) fatalerr('No update query defined in lt_gantt block ' . $_POST['src']);
+
+    $data = lt_query($table['queries']['update'], [ $_POST['start'], $_POST['end'], $_POST['id'] ]);
+    if (!empty($data['error'])) fatalerr($data['error']);
+    print '{ "status": "ok" }';
     break;
   default:
     if (file_exists('custommodes2.php')) include('custommodes2.php');
