@@ -1,6 +1,6 @@
 [![Documentation Status](https://readthedocs.org/projects/libtables/badge/?version=latest)](https://libtables.readthedocs.io/en/latest/?badge=latest)
 
-**Please note: this is libtables version 1 and no longer being maintained -- new projects are strongly encouraged to start using [libtables 3](https://github.com/bartnv/libtables3/)**
+**Please note: this is libtables version 2 and no longer being maintained -- new projects are strongly encouraged to start using [libtables 3](https://github.com/bartnv/libtables3/)**
 
 # libtables2
 This framework allows for rapid development of dynamic, interactive web-
