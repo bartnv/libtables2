@@ -34,6 +34,7 @@
 
 var ajaxUrl = "data.php";
 var tables = {};
+var $ = jQuery;
 
 function tr(str) {
   switch (navigator.language) {
@@ -212,15 +213,27 @@ function doFunction(button, addparam) {
         else if (data.redirect) window.location = data.redirect;
         if (data.output) {
           if (action.output == 'block') {
-            button.closest('table').parent().replaceWith(data.output);
+            button.closest('.lt-div').replaceWith(data.output);
             loadOrRefreshCollection($('.lt-div'));
+            $('.lt-control:visible').each(function() {
+              var attr = $(this).data();
+              loadControl($(this), attr);
+            });
             return;
           }
-          if (action.output == 'location') {
+          else if ((action.output.substring(0, 1) == '#') || (action.output.substring(0, 1) == '.')) {
+            $(action.output).empty().html(data.output);
+            loadOrRefreshCollection($('.lt-div'));
+            $(action.output).find('.lt-control:visible').each(function() {
+              var attr = $(this).data();
+              loadControl($(this), attr);
+            });
+          }
+          else if (action.output == 'location') {
             window.location = data.output;
             return;
           }
-          if (action.output == 'alert') alert(data.output);
+          else if (action.output == 'alert') alert(data.output);
           else if (action.output == 'function') {
             if (!action.functionname) {
               console.log('Source ' + tables[key].data.block + ':' + tables[key].data.tag + ' has an action with output type function without a functionname parameter');
