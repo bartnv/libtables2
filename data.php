@@ -88,6 +88,7 @@ function lt_col_allow_null($table, $column) {
 function lt_find_table($src, $params = []) {
   global $lt_settings;
   global $tables;
+  global $mch; // May be used in block definitions
   global $parseonly;
   $parseonly = true;
 
@@ -550,7 +551,7 @@ switch ($mode) {
           $ret['error'] = $dbh->errorInfo()[2];
         }
       }
-      else if (!empty($action['block'])) {
+      if (!empty($action['block'])) {
         if (!empty($action['params'])) {
           foreach ($action['params'] as $key => $value) {
             $action['params'][$key] = replaceHashes($action['params'][$key], $row);
@@ -867,6 +868,7 @@ switch ($mode) {
         }
       }
       if (!empty($table['options']['php'])) {
+        global $mch;
         $res = eval($table['options']['php']);
         if ($res === FALSE) fatalerr('Syntax error in lt_control ' . $_POST['src'] . ' php option');
       }
