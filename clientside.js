@@ -1486,7 +1486,7 @@ function updateTable(tbody, data, newrows) {
   else {
     for (var i = 0; i < newrows.length; i++) { // Row added
       let row = $(renderRow(data.options, newrows[i]));
-      row.css({ 'background-color': 'green' });
+      row.css({ 'background-color': 'rgb(0, 225, 0)' });
       tbody.append(row);
       setTimeout(function(row) { row.css({ 'background-color': '' }); }, 1000, row);
     }
