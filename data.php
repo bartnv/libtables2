@@ -882,6 +882,11 @@ switch ($mode) {
         global $mch;
         $res = eval($table['options']['php']);
         if ($res === FALSE) fatalerr('Syntax error in lt_control ' . $_POST['src'] . ' php option');
+        elseif (is_string($res)) {
+          $data['error'] = $res;
+          print json_encode($data, JSON_PARTIAL_OUTPUT_ON_ERROR);
+          return;
+        }
       }
       if (!empty($table['options']['next'])) {
         ob_start();
