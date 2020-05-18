@@ -859,8 +859,19 @@ switch ($mode) {
       else $data['replace'] = ob_get_clean();
     }
     else {
+      $params = [];
+      if (!empty($table['options']['fields'])) {
+        $count = 0;
+        foreach ($table['options']['fields'] as $field) {
+          if (!empty($_POST['field_'.$field[0]])) {
+            $params[$count] = $_POST['field_'.$field[0]];
+            $params[$field[0]] = $_POST['field_'.$field[0]];
+            $count++;
+          }
+        }
+      }
       if (!empty($table['options']['verify'])) {
-        if (!lt_query_check($table['options']['verify'])) {
+        if (!lt_query_check($table['options']['verify'], $params)) {
           if (!empty($table['options']['error'])) $data['error'] = $table['options']['error'];
           else $ret['error'] = 'Step not complete';
           print json_encode($data, JSON_PARTIAL_OUTPUT_ON_ERROR);
@@ -874,8 +885,8 @@ switch ($mode) {
       }
       if (!empty($table['options']['next'])) {
         ob_start();
-        if (is_array($table['options']['next'])) $res = lt_print_block($table['options']['next'][0]);
-        else $res = lt_print_block($table['options']['next']);
+        if (is_array($table['options']['next'])) $res = lt_print_block($table['options']['next'][0], $params);
+        else $res = lt_print_block($table['options']['next'], $params);
         if (!empty($res['location'])) $data['location'] = $res['location'];
         else $data['replace'] = ob_get_clean();
       }

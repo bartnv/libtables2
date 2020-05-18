@@ -414,12 +414,11 @@ function lt_tables_from_query($query) {
   return array_keys(array_flip($matches[1]));
 }
 
-function lt_query_check($query) {
+function lt_query_check($query, $funcparams = []) {
   global $dbh;
-  global $params;
   global $block_params;
 
-  if (!empty($params)) $localparams = $params;
+  if (!empty($funcparams)) $localparams = $funcparams;
   elseif (!empty($block_params)) $localparams = $block_params;
 
   if (!empty($localparams)) {

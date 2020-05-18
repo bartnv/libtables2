@@ -336,6 +336,15 @@ function loadControl(div, attr) {
   var options = JSON.parse(atob(attr.options));
   var classes = "lt-control-button";
   if (options.class) classes += ' ' + options.class;
+  if (options.fields) {
+    for (field of options.fields) {
+      if (field.length != 2) {
+        console.log('Invalid lt_control field option; ignoring', field);
+        continue;
+      }
+      div.append('<label>' + field[1] + ' <input type="text" class="lt-control-field" name="' + field[0] + '"></label>');
+    }
+  }
   if (options.prev) {
     if (typeof options.prev == 'object') {
       div.append('<input type="button" class="' + classes + '" value="' + options.prev[1] + '" onclick="doNext(this, true)">');
@@ -2059,11 +2068,17 @@ function doNext(el, prev) {
   var options = tables[key].options;
 
   if (options.prev || options.next) {
+    var data = { mode: 'donext', src: key, prev: prev || false };
+    if (options.fields) {
+      for (field of options.fields) {
+        data['field_'+field[0]] = div.find('.lt-control-field[name=' + field[0] + ']').val();
+      }
+    }
     $.ajax({
       dataType: 'json',
       url: ajaxUrl,
       method: 'post',
-      data: 'mode=donext&src=' + key + '&prev=' + prev,
+      data: data,
       success: function(data) {
         if (data.error) userError(data.error);
         else if (data.replace) {
