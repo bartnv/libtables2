@@ -2004,10 +2004,13 @@ function doInsert(el) {
         userError(data.error);
       }
       else if (data.replace) {
-        var div = this.closest('.lt-div');
-        div.before(data.replace);
-        loadOrRefreshCollection(div.prev());
-        div.remove();
+        var parent = this.closest('.lt-div').parent();
+        parent.empty().html(data.replace);
+        loadOrRefreshCollection(parent.find('.lt-div'));
+        parent.find('.lt-control:visible').each(function() {
+          var attr = $(this).data();
+          loadControl($(this), attr);
+        });
       }
       else {
         var table = this.closest('table');
