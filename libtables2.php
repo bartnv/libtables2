@@ -184,6 +184,7 @@ function lt_print_block($block, $params = array(), $options = array()) {
   global $basename;
   global $block_options;
   global $block_params;
+  global $mch; // May be used in block definitions
 
   if (!is_array($params)) {
     print "Second parameter to lt_print_block('$block', ...) is not an array";
@@ -440,7 +441,8 @@ function lt_query_check($query, $funcparams = []) {
       return false;
     }
     if ($res->rowCount() == 0) return false;
-    if (!($row = $res->fetch())) return false;
+    if (!($row = $res->fetch(PDO::FETCH_NUM))) return false;
+    if (is_null($row[0])) return false;
   }
   return true;
 }
