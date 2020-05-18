@@ -721,7 +721,7 @@ switch ($mode) {
           if (!empty($path)) fatalerr("Insert type 'file' can only be used once within a table");
           $path = $found['path'];
           if (substr($path, -1) !== '/') $path .= '/';
-          $path .= $tables[$tabname]['columns'][$colname]['name'];
+          $path .= random_int(100000, 999999) . '-' . $tables[$tabname]['columns'][$colname]['name'];
           if (is_file($path)) fatalerr("File already exists");
           if (!move_uploaded_file($tables[$tabname]['columns'][$colname]['tmp_name'], $path)) fatalerr("Failed to move uploaded file into directory [$path]");
           if (!empty($found['nameinto'])) {
