@@ -201,6 +201,14 @@ function doFunction(button, addparam) {
       console.log('Row with id ' + data.active + ' not found');
       return;
     }
+    if (action.confirm) {
+      for (let r = 0; r < data.rows.length; r++) {
+        if (data.rows[r][0] == data.active) {
+          if (!confirm(replaceHashes(action.confirm, data.rows[r]))) return;
+          break;
+        }
+      }
+    }
 
     $.ajax({
       method: 'post',

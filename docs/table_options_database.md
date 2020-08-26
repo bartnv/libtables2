@@ -197,6 +197,7 @@ Full example:
     * name (string): descriptive text for the function to be used on the button; hashtags in this string are interpreted
     * condition (string): comparison to be evaluated in a javascript eval(); if the comparison is false, the action button is not shown for that row;
       hashtags in this string are interpreted
+    * confirm (string): text to show in a javascript confirm() dialog to request confirmation from the user before running the action; hashtags in this string are interpreted
     * query (string): query to run on the database when the action button is clicked; hashtags in this string are interpreted
     * block (string): block to load (replacing the current one) when the action button is clicked
     * params (array): only used with the 'block' option above; specifies the parameters to use with the new block; hashtags are interpreted
